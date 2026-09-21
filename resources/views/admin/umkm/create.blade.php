@@ -115,22 +115,71 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1.5">
                             Foto / Logo UMKM
                         </label>
-                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl hover:border-djajan-primary transition-colors bg-gray-50/50 cursor-pointer group">
-                            <div class="space-y-1 text-center">
-                                <svg class="mx-auto h-10 w-10 text-gray-400 group-hover:text-djajan-primary transition-colors" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
-                                <div class="flex text-sm text-gray-600 justify-center">
-                                    <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-djajan-primary hover:text-djajan-primary-hover focus-within:outline-none">
-                                        <span>Pilih berkas foto</span>
-                                        <input id="file-upload" name="gambar" type="file" class="sr-only" accept="image/*">
-                                    </label>
-                                    <p class="pl-1">atau tarik ke sini</p>
-                                </div>
-                                <p class="text-xs text-gray-500">PNG, JPG, WEBP hingga 2MB</p>
+
+                        <!-- Preview Container -->
+                        <div id="gambar-preview-container" class="hidden mb-3 space-y-3">
+                            <div class="relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50 max-w-sm">
+                                <img id="gambar-preview" src="" alt="Preview Logo / Foto UMKM" class="w-full h-48 object-cover">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="btn-ganti-gambar" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-djajan-primary bg-djajan-primary/10 hover:bg-djajan-primary/20 rounded-lg transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                    Ganti Gambar
+                                </button>
+                                <button type="button" id="btn-hapus-gambar" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    Hapus
+                                </button>
                             </div>
                         </div>
-                        @error('gambar') <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p> @enderror
+
+                        <!-- Upload Container -->
+                        <div id="gambar-upload-container">
+                            <label for="file-upload" id="dropzone-label"
+                                class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl hover:border-djajan-primary transition-colors bg-gray-50/50 cursor-pointer group">
+
+                                <div class="space-y-1 text-center">
+
+                                    <svg class="mx-auto h-10 w-10 text-gray-400 group-hover:text-djajan-primary transition-colors"
+                                        stroke="currentColor"
+                                        fill="none"
+                                        viewBox="0 0 48 48"
+                                        aria-hidden="true">
+                                        <path
+                                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round" />
+                                    </svg>
+
+                                    <div class="text-sm text-gray-600">
+                                        <span class="font-medium text-djajan-primary">
+                                            Pilih berkas foto
+                                        </span>
+                                        <span class="pl-1">
+                                            atau tarik ke sini
+                                        </span>
+                                    </div>
+
+                                    <p class="text-xs text-gray-500">
+                                        PNG, JPG, WEBP hingga 2MB
+                                    </p>
+
+                                    <input
+                                        id="file-upload"
+                                        name="gambar"
+                                        type="file"
+                                        class="sr-only"
+                                        accept="image/png,image/jpeg,image/webp">
+                                </div>
+                            </label>
+                        </div>
+
+                        @error('gambar')
+                        <p class="mt-1.5 text-xs text-red-600 font-medium">
+                            {{ $message }}
+                        </p>
+                        @enderror
                     </div>
 
                 </div>
@@ -227,5 +276,84 @@
         </div>
     </div>
 </form>
-
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const fileUpload = document.getElementById('file-upload');
+        const gambarPreview = document.getElementById('gambar-preview');
+        const gambarPreviewContainer = document.getElementById('gambar-preview-container');
+        const gambarUploadContainer = document.getElementById('gambar-upload-container');
+        const dropzoneLabel = document.getElementById('dropzone-label');
+        const btnGantiGambar = document.getElementById('btn-ganti-gambar');
+        const btnHapusGambar = document.getElementById('btn-hapus-gambar');
+
+        function handleFile(file) {
+            if (!file) return;
+
+            if (!file.type.match('image.*')) {
+                alert('Silakan pilih file gambar (PNG, JPG, WEBP).');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                gambarPreview.src = e.target.result;
+                gambarPreviewContainer.classList.remove('hidden');
+                gambarUploadContainer.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        if (fileUpload) {
+            fileUpload.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                handleFile(file);
+            });
+        }
+
+        if (dropzoneLabel) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzoneLabel.addEventListener(eventName, function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzoneLabel.classList.add('border-djajan-primary', 'bg-djajan-primary/5');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzoneLabel.addEventListener(eventName, function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzoneLabel.classList.remove('border-djajan-primary', 'bg-djajan-primary/5');
+                }, false);
+            });
+
+            dropzoneLabel.addEventListener('drop', function (e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    fileUpload.files = files;
+                    handleFile(files[0]);
+                }
+            }, false);
+        }
+
+        if (btnGantiGambar) {
+            btnGantiGambar.addEventListener('click', function () {
+                fileUpload.click();
+            });
+        }
+
+        if (btnHapusGambar) {
+            btnHapusGambar.addEventListener('click', function () {
+                fileUpload.value = '';
+                gambarPreview.src = '';
+                gambarPreviewContainer.classList.add('hidden');
+                gambarUploadContainer.classList.remove('hidden');
+            });
+        }
+    });
+</script>
+@endpush

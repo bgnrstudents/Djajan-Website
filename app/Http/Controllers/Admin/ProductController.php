@@ -128,4 +128,83 @@ class ProductController extends Controller
             ->route('admin.umkm.edit', $product->umkm_id)
             ->with('success', 'Produk berhasil diperbarui.');
     }
+
+    public function index(Request $request)
+    {
+        $query = Product::with('umkm')->latest();
+
+        if ($request->filled('search')) {
+            $query->where('nama_produk', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('umkm_id')) {
+            $query->where('umkm_id', $request->umkm_id);
+        }
+
+        $products = $query->paginate(10)->withQueryString();
+
+        $umkms = Umkm::orderBy('nama_umkm')->get();
+
+        return view('admin.product.index', compact(
+            'products',
+            'umkms'
+        ));
+    }
+
+    public function show(Product $product)
+    {
+        $product->load('umkm');
+
+        return view('admin.product.show', compact('product'));
+    }
+
+    public function destroy(Product $product)
+    {
+        if ($product->gambar && Storage::disk('public')->exists($product->gambar)) {
+            Storage::disk('public')->delete($product->gambar);
+        }
+
+        $product->delete();
+
+        return redirect()
+            ->route('admin.products.index')
+            ->with('success', 'Produk berhasil dihapus.');
+    }
+
+    public function createStandalone()
+    {
+        $umkms = Umkm::where('status_publikasi', 'aktif')
+            ->orderBy('nama_umkm')
+            ->get();
+
+        return view('admin.product.create-standalone', compact('umkms'));
+    }
+    public function storeStandalone(Request $request)
+    {
+        $validated = $request->validate([
+            'umkm_id' => 'required|exists:umkms,id',
+            'nama_produk' => 'required|string|max:255',
+            'kategori' => 'nullable|string|max:255',
+            'harga' => 'required|numeric|min:0',
+            'deskripsi' => 'nullable|string|max:300',
+            'gambar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'status' => 'required|in:aktif,nonaktif',
+        ]);
+
+        if ($request->hasFile('gambar')) {
+            $validated['gambar'] = $request
+                ->file('gambar')
+                ->store('products', 'public');
+        }
+
+        Product::create($validated);
+
+        return redirect()
+            ->route('admin.products.index')
+            ->with('success', 'Produk berhasil ditambahkan.');
+    }
 }
