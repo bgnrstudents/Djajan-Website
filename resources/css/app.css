@@ -1,1 +1,37 @@
 @import "tailwindcss";
+
+@theme {
+    --font-heading: "Plus Jakarta Sans", sans-serif;
+    --font-body: "Inter", sans-serif;
+
+    --color-djajan-primary: #0F623F;
+    --color-djajan-primary-hover: #0B4E32;
+    --color-djajan-secondary: #4CAF50;
+    --color-djajan-tertiary: #F59E0B;
+    --color-djajan-neutral: #111827;
+    --color-djajan-light: #F8FAFC;
+}
+
+@layer base {
+    body {
+        font-family: var(--font-body);
+        color: var(--color-djajan-neutral);
+        background-color: var(--color-djajan-light);
+    }
+
+    /* Custom smooth scrollbar for table and content */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #CBD5E1;
+        border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94A3B8;
+    }
+}
