@@ -88,15 +88,15 @@
                 <div class="md:col-span-2">
 
                     <label
-                        for="umkm_id"
+                        for="id_umkm"
                         class="mb-1.5 block text-sm font-medium text-gray-700"
                     >
                         UMKM <span class="text-red-500">*</span>
                     </label>
 
                     <select
-                        id="umkm_id"
-                        name="umkm_id"
+                        id="id_umkm"
+                        name="id_umkm"
                         required
                         class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F623F] focus:ring-1 focus:ring-[#0F623F]"
                     >
@@ -108,17 +108,17 @@
                         @foreach($umkms as $umkm)
 
                             <option
-                                value="{{ $umkm->id }}"
-                                {{ old('umkm_id') == $umkm->id ? 'selected' : '' }}
+                                value="{{ $umkm->id_umkm }}"
+                                {{ old('id_umkm') == $umkm->id_umkm ? 'selected' : '' }}
                             >
-                                {{ $umkm->nama_umkm }}
+                                {{ $umkm->nama_usaha }}
                             </option>
 
                         @endforeach
 
                     </select>
 
-                    @error('umkm_id')
+                    @error('id_umkm')
                         <p class="mt-1 text-xs text-red-600">
                             {{ $message }}
                         </p>
@@ -223,45 +223,63 @@
                 </div>
 
 
-                {{-- Status --}}
+                {{-- Mode Penjualan --}}
                 <div>
 
                     <label
-                        for="status"
+                        for="mode_penjualan"
                         class="mb-1.5 block text-sm font-medium text-gray-700"
                     >
-                        Status <span class="text-red-500">*</span>
+                        Mode Penjualan <span class="text-red-500">*</span>
                     </label>
 
                     <select
-                        id="status"
-                        name="status"
+                        id="mode_penjualan"
+                        name="mode_penjualan"
                         required
                         class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F623F] focus:ring-1 focus:ring-[#0F623F]"
                     >
-
-                        <option
-                            value="aktif"
-                            {{ old('status', 'aktif') === 'aktif' ? 'selected' : '' }}
-                        >
-                            Aktif
-                        </option>
-
-                        <option
-                            value="nonaktif"
-                            {{ old('status') === 'nonaktif' ? 'selected' : '' }}
-                        >
-                            Nonaktif
-                        </option>
-
+                        <option value="ready" {{ old('mode_penjualan') === 'ready' ? 'selected' : '' }}>Ready Stock</option>
+                        <option value="pre_order" {{ old('mode_penjualan') === 'pre_order' ? 'selected' : '' }}>Pre-Order</option>
+                        <option value="keduanya" {{ old('mode_penjualan', 'keduanya') === 'keduanya' ? 'selected' : '' }}>Ready & Pre-Order</option>
                     </select>
 
-                    @error('status')
-                        <p class="mt-1 text-xs text-red-600">
-                            {{ $message }}
-                        </p>
+                    @error('mode_penjualan')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
 
+                </div>
+
+                {{-- Stok --}}
+                <div>
+                    <label for="stok" class="mb-1.5 block text-sm font-medium text-gray-700">Stok</label>
+                    <input type="number" id="stok" name="stok" value="{{ old('stok', 0) }}" min="0"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F623F] focus:ring-1 focus:ring-[#0F623F]">
+                    @error('stok')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                {{-- Min Order PO --}}
+                <div>
+                    <label for="min_order_po" class="mb-1.5 block text-sm font-medium text-gray-700">Minimal Pesanan (PO)</label>
+                    <input type="number" id="min_order_po" name="min_order_po" value="{{ old('min_order_po', 0) }}" min="0"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F623F] focus:ring-1 focus:ring-[#0F623F]">
+                    @error('min_order_po')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                {{-- Waktu Masak PO --}}
+                <div>
+                    <label for="waktu_masak_po" class="mb-1.5 block text-sm font-medium text-gray-700">Waktu Masak (PO)</label>
+                    <input type="text" id="waktu_masak_po" name="waktu_masak_po" value="{{ old('waktu_masak_po', 'H-2 Hari') }}" maxlength="30"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F623F] focus:ring-1 focus:ring-[#0F623F]">
+                    @error('waktu_masak_po')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                {{-- Tersedia --}}
+                <div class="md:col-span-2">
+                    <label class="flex items-start gap-3 rounded-lg border border-gray-300 p-3.5 cursor-pointer hover:bg-gray-50">
+                        <input type="checkbox" name="status_ketersediaan" value="1" {{ old('status_ketersediaan', true) ? 'checked' : '' }} class="mt-0.5 w-4 h-4 text-[#0F623F] border-gray-300 rounded focus:ring-[#0F623F]">
+                        <span class="text-sm text-gray-700">Tersedia / ditampilkan ke pembeli</span>
+                    </label>
                 </div>
 
 
@@ -314,12 +332,12 @@
 
             <input
                 type="file"
-                name="gambar"
+                name="gambar_produk"
                 accept=".jpg,.jpeg,.png,.webp"
                 class="block w-full rounded-lg border border-gray-300 bg-white text-sm text-gray-600 file:mr-4 file:border-0 file:bg-gray-100 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
             >
 
-            @error('gambar')
+            @error('gambar_produk')
                 <p class="mt-1 text-xs text-red-600">
                     {{ $message }}
                 </p>

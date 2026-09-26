@@ -382,9 +382,9 @@
                     <!-- Image -->
                     <div class="relative aspect-square md:aspect-auto overflow-hidden bg-gray-100">
 
-                        @if($featuredProduct->gambar)
+                        @if($featuredProduct->gambar_produk)
                         <img
-                            src="{{ asset('storage/' . $featuredProduct->gambar) }}"
+                            src="{{ asset('storage/' . $featuredProduct->gambar_produk) }}"
                             alt="{{ $featuredProduct->nama_produk }}"
                             class="img-zoom w-full h-full object-cover">
                         @else
@@ -443,7 +443,7 @@
                                     </svg>
 
                                     <span class="text-[#6B7280]">
-                                        {{ $featuredProduct->umkm->nama_umkm }}
+                                        {{ $featuredProduct->umkm->nama_usaha }}
                                     </span>
 
                                 </div>
@@ -504,10 +504,10 @@
                 <!-- Image -->
                 <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
 
-                    @if($product->gambar)
+                    @if($product->gambar_produk)
 
                     <img
-                        src="{{ asset('storage/' . $product->gambar) }}"
+                        src="{{ asset('storage/' . $product->gambar_produk) }}"
                         alt="{{ $product->nama_produk }}"
                         class="img-zoom w-full h-full object-cover">
 
@@ -648,11 +648,11 @@
                 <!-- Image -->
                 <div class="lg:col-span-3 relative aspect-[16/10] lg:aspect-auto overflow-hidden bg-gray-100">
 
-                    @if($featuredUmkm->gambar)
+                    @if($featuredUmkm->foto_profil)
 
                     <img
-                        src="{{ asset('storage/' . $featuredUmkm->gambar) }}"
-                        alt="{{ $featuredUmkm->nama_umkm }}"
+                        src="{{ $featuredUmkm->urlFotoProfil() }}"
+                        alt="{{ $featuredUmkm->nama_usaha }}"
                         class="img-zoom w-full h-full object-cover">
 
                     @else
@@ -700,7 +700,7 @@
                             <span class="inline-block h-1.5 w-1.5 rounded-full bg-[#0F623F]"></span>
 
                             <span class="text-xs font-medium text-[#0F623F] uppercase tracking-wide">
-                                {{ $featuredUmkm->kategori }}
+                                {{ $featuredUmkm->spesialis }}
                             </span>
 
                         </div>
@@ -708,13 +708,13 @@
 
                         <!-- Name -->
                         <h3 class="font-display text-3xl lg:text-4xl font-bold text-[#111827] mb-4">
-                            {{ $featuredUmkm->nama_umkm }}
+                            {{ $featuredUmkm->nama_usaha }}
                         </h3>
 
 
                         <!-- Description -->
                         <p class="text-[#374151] leading-relaxed mb-6">
-                            {{ $featuredUmkm->deskripsi ?: 'UMKM lokal Desa Kreyongan Atas.' }}
+                            {{ $featuredUmkm->deskripsi_usaha ?: 'UMKM lokal Desa Kreyongan Atas.' }}
                         </p>
 
 
@@ -724,7 +724,7 @@
                             <div>
 
                                 <p class="font-display text-2xl font-bold text-[#111827]">
-                                    {{ $featuredUmkm->products_count }}
+                                    {{ $featuredUmkm->produk_count }}
                                 </p>
 
                                 <p class="text-xs text-[#6B7280] mt-1">
@@ -734,16 +734,16 @@
                             </div>
 
 
-                            @if($featuredUmkm->tahun_berdiri)
+                            @if($featuredUmkm->spesialis)
 
                             <div class="border-l border-gray-200 pl-4">
 
-                                <p class="font-display text-2xl font-bold text-[#111827]">
-                                    {{ date('Y') - $featuredUmkm->tahun_berdiri }}
+                                <p class="font-display text-sm font-bold text-[#111827] line-clamp-2">
+                                    {{ $featuredUmkm->spesialis }}
                                 </p>
 
                                 <p class="text-xs text-[#6B7280] mt-1">
-                                    Tahun Berjalan
+                                    Spesialisasi
                                 </p>
 
                             </div>
@@ -792,7 +792,7 @@
 
             @php
             $otherUmkms = $umkms->filter(function ($umkm) use ($featuredUmkm) {
-            return !$featuredUmkm || $umkm->id !== $featuredUmkm->id;
+            return !$featuredUmkm || $umkm->id_umkm !== $featuredUmkm->id_umkm;
             });
             @endphp
 
@@ -803,11 +803,11 @@
                 <!-- Image -->
                 <div class="relative aspect-[16/10] overflow-hidden bg-gray-100">
 
-                    @if($umkm->gambar)
+                    @if($umkm->foto_profil)
 
                     <img
-                        src="{{ asset('storage/' . $umkm->gambar) }}"
-                        alt="{{ $umkm->nama_umkm }}"
+                        src="{{ $umkm->urlFotoProfil() }}"
+                        alt="{{ $umkm->nama_usaha }}"
                         class="img-zoom w-full h-full object-cover">
 
                     @else
@@ -821,16 +821,16 @@
                     @endif
 
 
-                    @if($umkm->unggulan)
-
-                    <div class="absolute top-4 left-4 bg-[#F59E0B] text-white text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
-                        Unggulan
-                    </div>
-
-                    @else
+                    @if($umkm->status_verifikasi === 'terverifikasi')
 
                     <div class="absolute top-4 left-4 bg-[#0F623F] text-white text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
-                        {{ $umkm->kategori }}
+                        Terverifikasi
+                    </div>
+
+                    @elseif($umkm->spesialis)
+
+                    <div class="absolute top-4 left-4 bg-[#6B7280] text-white text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
+                        {{ $umkm->spesialis }}
                     </div>
 
                     @endif
@@ -842,12 +842,12 @@
                 <div class="p-6">
 
                     <h3 class="font-display text-xl font-semibold text-[#111827] mb-2">
-                        {{ $umkm->nama_umkm }}
+                        {{ $umkm->nama_usaha }}
                     </h3>
 
 
                     <p class="text-sm text-[#6B7280] leading-relaxed mb-4 line-clamp-2">
-                        {{ $umkm->deskripsi ?: 'UMKM lokal Desa Kreyongan Atas.' }}
+                        {{ $umkm->deskripsi_usaha ?: 'UMKM lokal Desa Kreyongan Atas.' }}
                     </p>
 
 
@@ -874,7 +874,7 @@
                             </svg>
 
                             <span>
-                                {{ $umkm->products_count }} Produk
+                                {{ $umkm->produk_count }} Produk
                             </span>
 
                         </div>

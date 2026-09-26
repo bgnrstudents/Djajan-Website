@@ -56,7 +56,7 @@
                             Nama UMKM <span class="text-red-500">*</span>
                         </label>
                         <input type="text" id="nama_umkm" name="nama_umkm"
-                            value="{{ old('nama_umkm') }}" placeholder="Contoh: Dapur Kreyongan" class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('nama_umkm') border-red-300 focus:ring-red-200 focus:border-red-400 @enderror">
+                            value="{{ old('nama_umkm') }}" placeholder="Contoh: Dapur Kreyongan" minlength="3" maxlength="255" pattern="[a-zA-Z\s]+" title="Nama UMKM hanya boleh berisi huruf dan spasi" required class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('nama_umkm') border-red-300 focus:ring-red-200 focus:border-red-400 @enderror">
                         @error('nama_umkm')
                         <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
                         @enderror
@@ -94,8 +94,11 @@
                         <label for="deskripsi" class="block text-sm font-medium text-gray-700 mb-1.5">
                             Deskripsi Singkat
                         </label>
-                        <textarea id="deskripsi" name="deskripsi" rows="4" placeholder="Jelaskan secara singkat tentang produk atau usaha ini..." class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors resize-none @error('deskripsi') border-red-300 @enderror">{{ old('deskripsi') }}</textarea>
-                        <p class="mt-1 text-xs text-gray-400">Teks deskripsi akan tampil pada kartu informasi UMKM.</p>
+                        <textarea id="deskripsi" name="deskripsi" rows="4" maxlength="500" placeholder="Jelaskan secara singkat tentang produk atau usaha ini..." class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors resize-none @error('deskripsi') border-red-300 @enderror">{{ old('deskripsi') }}</textarea>
+                        <div class="flex items-center justify-between mt-1">
+                            <p class="text-xs text-gray-400">Teks deskripsi akan tampil pada kartu informasi UMKM.</p>
+                            <p class="text-xs text-gray-400"><span id="char-count">0</span>/500</p>
+                        </div>
                         @error('deskripsi') <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p> @enderror
                     </div>
 
@@ -104,7 +107,7 @@
                         <label for="alamat" class="block text-sm font-medium text-gray-700 mb-1.5">
                             Alamat Lengkap <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" id="alamat" name="alamat" value="{{ old('alamat') }}" placeholder="Jl. Raya Kreyongan No. 12, RT 03/RW 02" class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('alamat') border-red-300 @enderror">
+                        <input type="text" id="alamat" name="alamat" value="{{ old('alamat') }}" placeholder="Jl. Raya Kreyongan No. 12, RT 03/RW 02" maxlength="500" required class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('alamat') border-red-300 @enderror">
                         @error('alamat')
                         <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
                         @enderror
@@ -200,7 +203,7 @@
                         <label for="nama_pemilik" class="block text-sm font-medium text-gray-700 mb-1.5">
                             Nama Pemilik <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" id="nama_pemilik" name="nama_pemilik" value="{{ old('nama_pemilik') }}" placeholder="Nama lengkap pemilik" class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('nama_pemilik') border-red-300 @enderror">
+                        <input type="text" id="nama_pemilik" name="nama_pemilik" value="{{ old('nama_pemilik') }}" placeholder="Nama lengkap pemilik" minlength="3" maxlength="255" pattern="[a-zA-Z\s]+" title="Nama pemilik hanya boleh berisi huruf dan spasi" required class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('nama_pemilik') border-red-300 @enderror">
                         @error('nama_pemilik')
                         <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
                         @enderror
@@ -210,7 +213,7 @@
                         <label for="no_telepon" class="block text-sm font-medium text-gray-700 mb-1.5">
                             Nomor Telepon / WhatsApp <span class="text-red-500">*</span>
                         </label>
-                        <input type="tel" id="no_telepon" name="no_telepon" value="{{ old('no_telepon') }}" placeholder="08xxxxxxxxxx" class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('no_telepon') border-red-300 @enderror">
+                        <input type="tel" id="no_telepon" name="no_telepon" value="{{ old('no_telepon') }}" placeholder="08xxxxxxxxxx" minlength="10" maxlength="15" pattern="(\+62|62|0)8[1-9][0-9]{6,10}" title="Format: 08xxxxxxxxxx atau +628xxxxxxxxxx" required class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('no_telepon') border-red-300 @enderror">
                         @error('no_telepon')
                         <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
                         @enderror
@@ -289,11 +292,58 @@
         const btnGantiGambar = document.getElementById('btn-ganti-gambar');
         const btnHapusGambar = document.getElementById('btn-hapus-gambar');
 
+        // Filter input nama_umkm dan nama_pemilik (hanya huruf & spasi)
+        const namaUmkm = document.getElementById('nama_umkm');
+        if (namaUmkm) {
+            namaUmkm.addEventListener('input', function() {
+                this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
+            });
+        }
+        const namaPemilik = document.getElementById('nama_pemilik');
+        if (namaPemilik) {
+            namaPemilik.addEventListener('input', function() {
+                this.value = this.value.replace(/[^a-zA-Z\s]/g, '');
+            });
+        }
+
+        // Deskripsi char counter
+        const deskripsi = document.getElementById('deskripsi');
+        const charCount = document.getElementById('char-count');
+        if (deskripsi && charCount) {
+            function updateCharCount() {
+                const length = deskripsi.value.length;
+                charCount.textContent = length;
+                if (length > 500) {
+                    charCount.classList.add('text-red-600');
+                } else {
+                    charCount.classList.remove('text-red-600');
+                }
+            }
+            deskripsi.addEventListener('input', updateCharCount);
+            updateCharCount();
+        }
+
+        // Allowed image types and max size
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        const maxSize = 2 * 1024 * 1024; // 2 MB
+
+        function validateFile(file) {
+            if (!file) return false;
+            if (!allowedTypes.includes(file.type)) {
+                alert('Format gambar harus JPG, JPEG, PNG, atau WEBP.');
+                return false;
+            }
+            if (file.size > maxSize) {
+                alert('Ukuran gambar maksimal 2 MB.');
+                return false;
+            }
+            return true;
+        }
+
         function handleFile(file) {
             if (!file) return;
-
-            if (!file.type.match('image.*')) {
-                alert('Silakan pilih file gambar (PNG, JPG, WEBP).');
+            if (!validateFile(file)) {
+                fileUpload.value = '';
                 return;
             }
 

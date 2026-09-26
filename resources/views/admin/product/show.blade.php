@@ -60,10 +60,10 @@
 
             <div class="aspect-square overflow-hidden rounded-lg bg-gray-100">
 
-                @if($product->gambar)
+                @if($product->gambar_produk)
 
                     <img
-                        src="{{ asset('storage/' . $product->gambar) }}"
+                        src="{{ asset('storage/' . $product->gambar_produk) }}"
                         alt="{{ $product->nama_produk }}"
                         class="h-full w-full object-cover"
                     >
@@ -97,10 +97,10 @@
                 </div>
 
 
-                @if($product->status === 'aktif')
+                @if($product->status_ketersediaan)
 
                     <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                        Aktif
+                        Tersedia
                     </span>
 
                 @else
@@ -147,7 +147,7 @@
                         href="{{ route('admin.umkm.show', $product->umkm) }}"
                         class="mt-1 inline-block text-sm font-medium text-[#0F623F] hover:underline"
                     >
-                        {{ $product->umkm->nama_umkm ?? '-' }}
+                        {{ $product->umkm->nama_usaha ?? '-' }}
                     </a>
                 </div>
 
@@ -158,7 +158,30 @@
                     </p>
 
                     <p class="mt-1 text-sm text-gray-700">
-                        #{{ $product->id }}
+                        #{{ $product->id_produk }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Mode Penjualan
+                    </p>
+
+                    <p class="mt-1 text-sm text-gray-700">
+                        {{ ['ready' => 'Ready Stock', 'pre_order' => 'Pre-Order', 'keduanya' => 'Ready & Pre-Order'][$product->mode_penjualan] ?? '-' }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-400">
+                        Stok
+                    </p>
+
+                    <p class="mt-1 text-sm text-gray-700">
+                        {{ $product->stok }}
+                        @if($product->mode_penjualan !== 'ready')
+                            <span class="text-gray-400">(min. PO: {{ $product->min_order_po }}, {{ $product->waktu_masak_po }})</span>
+                        @endif
                     </p>
                 </div>
 
@@ -194,7 +217,7 @@
                 </p>
 
                 <h2 class="mt-1 text-lg font-semibold text-gray-900">
-                    {{ $product->umkm->nama_umkm ?? '-' }}
+                    {{ $product->umkm->nama_usaha ?? '-' }}
                 </h2>
             </div>
 
@@ -218,22 +241,22 @@
 
                 <div>
                     <p class="text-xs font-medium uppercase tracking-wide text-gray-400">
-                        Nama Pemilik
+                        Spesialisasi
                     </p>
 
                     <p class="mt-1 text-sm text-gray-700">
-                        {{ $product->umkm->nama_pemilik }}
+                        {{ $product->umkm->spesialis ?: '-' }}
                     </p>
                 </div>
 
 
                 <div>
                     <p class="text-xs font-medium uppercase tracking-wide text-gray-400">
-                        Nomor Telepon
+                        No. WhatsApp
                     </p>
 
                     <p class="mt-1 text-sm text-gray-700">
-                        {{ $product->umkm->no_telepon }}
+                        {{ $product->umkm->no_telp_usaha }}
                     </p>
                 </div>
 

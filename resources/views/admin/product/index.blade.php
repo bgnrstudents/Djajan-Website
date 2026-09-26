@@ -72,9 +72,9 @@
 
                     @foreach($umkms as $umkm)
                     <option
-                        value="{{ $umkm->id }}"
-                        {{ request('umkm_id') == $umkm->id ? 'selected' : '' }}>
-                        {{ $umkm->nama_umkm }}
+                        value="{{ $umkm->id_umkm }}"
+                        {{ request('umkm_id') == $umkm->id_umkm ? 'selected' : '' }}>
+                        {{ $umkm->nama_usaha }}
                     </option>
                     @endforeach
                 </select>
@@ -88,19 +88,19 @@
                 </label>
 
                 <select
-                    name="status"
+                    name="status_ketersediaan"
                     class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F623F] focus:ring-1 focus:ring-[#0F623F]">
                     <option value="">Semua Status</option>
 
                     <option
-                        value="aktif"
-                        {{ request('status') === 'aktif' ? 'selected' : '' }}>
-                        Aktif
+                        value="1"
+                        {{ request('status_ketersediaan') === '1' ? 'selected' : '' }}>
+                        Tersedia
                     </option>
 
                     <option
-                        value="nonaktif"
-                        {{ request('status') === 'nonaktif' ? 'selected' : '' }}>
+                        value="0"
+                        {{ request('status_ketersediaan') === '0' ? 'selected' : '' }}>
                         Nonaktif
                     </option>
                 </select>
@@ -183,10 +183,10 @@
 
                             <div class="flex items-center gap-3">
 
-                                @if($product->gambar)
+                                @if($product->gambar_produk)
 
                                 <img
-                                    src="{{ asset('storage/' . $product->gambar) }}"
+                                    src="{{ asset('storage/' . $product->gambar_produk) }}"
                                     alt="{{ $product->nama_produk }}"
                                     class="h-12 w-12 rounded-lg object-cover">
 
@@ -204,7 +204,7 @@
                                     </p>
 
                                     <p class="text-xs text-gray-500">
-                                        ID #{{ $product->id }}
+                                        ID #{{ $product->id_produk }}
                                     </p>
                                 </div>
 
@@ -215,7 +215,7 @@
 
                         {{-- UMKM --}}
                         <td class="px-5 py-4 text-gray-700">
-                            {{ $product->umkm->nama_umkm ?? '-' }}
+                            {{ $product->umkm->nama_usaha ?? '-' }}
                         </td>
 
 
@@ -234,10 +234,10 @@
                         {{-- Status --}}
                         <td class="px-5 py-4">
 
-                            @if($product->status === 'aktif')
+                            @if($product->status_ketersediaan)
 
                             <span class="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
-                                Aktif
+                                Tersedia
                             </span>
 
                             @else

@@ -11,7 +11,7 @@
         <li class="text-gray-400">/</li>
         <li><a href="{{ route('admin.umkm.index') }}" class="text-gray-500 hover:text-djajan-primary transition-colors">Data UMKM</a></li>
         <li class="text-gray-400">/</li>
-        <li><a href="{{ route('admin.umkm.edit', $product->umkm_id) }}" class="text-gray-500 hover:text-djajan-primary transition-colors">{{ $product->umkm->nama_umkm }}</a></li>
+        <li><a href="{{ route('admin.umkm.edit', $product->id_umkm) }}" class="text-gray-500 hover:text-djajan-primary transition-colors">{{ $product->umkm->nama_usaha }}</a></li>
         <li class="text-gray-400">/</li>
         <li class="text-djajan-neutral font-semibold">Edit Produk</li>
     </ol>
@@ -22,9 +22,9 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-djajan-neutral font-heading tracking-tight">Edit Data Produk</h1>
-            <p class="text-sm text-gray-500 mt-1">Perbarui informasi produk <span class="font-semibold text-gray-700">{{ $product->nama_produk }}</span> milik <span class="font-semibold text-gray-700">{{ $product->umkm->nama_umkm }}</span>.</p>
+            <p class="text-sm text-gray-500 mt-1">Perbarui informasi produk <span class="font-semibold text-gray-700">{{ $product->nama_produk }}</span> milik <span class="font-semibold text-gray-700">{{ $product->umkm->nama_usaha }}</span>.</p>
         </div>
-        <a href="{{ route('admin.umkm.edit', $product->umkm_id) }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+        <a href="{{ route('admin.umkm.edit', $product->id_umkm) }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
@@ -52,7 +52,7 @@
 @endif
 
 <!-- FORM CONTAINER -->
-<form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data" class="space-y-6 max-w-4xl">
+<form action="{{ route('admin.products.update', $product->id_produk) }}" method="POST" enctype="multipart/form-data" class="space-y-6 max-w-4xl">
     @csrf
     @method('PUT')
 
@@ -128,11 +128,11 @@
         </div>
 
         <div class="p-6">
-            @if ($product->gambar)
+            @if ($product->gambar_produk)
             <div id="current-image-wrapper" class="mb-5">
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-heading mb-2">Gambar Saat Ini</p>
                 <div class="relative max-w-xs rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50">
-                    <img src="{{ asset('storage/' . $product->gambar) }}" alt="{{ $product->nama_produk }}" id="current-image" class="w-full h-44 object-cover">
+                    <img src="{{ asset('storage/' . $product->gambar_produk) }}" alt="{{ $product->nama_produk }}" id="current-image" class="w-full h-44 object-cover">
                 </div>
                 <label class="flex items-center gap-2 mt-3 cursor-pointer">
                     <input type="checkbox" name="hapus_gambar" value="1" id="hapus_gambar" class="w-4 h-4 rounded border-gray-300 text-djajan-primary focus:ring-djajan-primary">
@@ -142,7 +142,7 @@
             @endif
 
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-heading mb-2">
-                {{ $product->gambar ? 'Unggah Gambar Baru (Opsional)' : 'Unggah Gambar Produk' }}
+                {{ $product->gambar_produk ? 'Unggah Gambar Baru (Opsional)' : 'Unggah Gambar Produk' }}
             </p>
 
             <div id="upload-area" class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-xl hover:border-djajan-primary transition-colors bg-gray-50/50 cursor-pointer group">
@@ -156,7 +156,7 @@
                     </div>
                     <p class="text-xs text-gray-500">PNG, JPG, WEBP hingga 2 MB</p>
                 </div>
-                <input id="gambar" name="gambar" type="file" class="hidden" accept="image/jpeg,image/png,image/webp">
+                <input id="gambar" name="gambar_produk" type="file" class="hidden" accept="image/jpeg,image/png,image/webp">
             </div>
 
             <!-- PREVIEW NEW IMAGE -->
@@ -171,33 +171,61 @@
                     </button>
                 </div>
             </div>
-            @error('gambar')
+            @error('gambar_produk')
             <p class="mt-2 text-xs text-red-600 font-medium">{{ $message }}</p>
             @enderror
         </div>
     </div>
 
-    <!-- STATUS PRODUK -->
+    <!-- MODE PENJUALAN & STOK -->
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-sm font-semibold text-djajan-neutral font-heading">Status Publikasi Produk</h2>
+            <h2 class="text-sm font-semibold text-djajan-neutral font-heading">Mode Penjualan & Stok</h2>
         </div>
 
-        <div class="p-6">
-            <label for="status" class="block text-sm font-medium text-gray-700 mb-1.5">Status Produk <span class="text-red-500">*</span></label>
-            <select id="status" name="status" required class="w-full md:w-72 px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors cursor-pointer @error('status') border-red-300 @enderror">
-                <option value="aktif" {{ old('status', $product->status) === 'aktif' ? 'selected' : '' }}>Aktif (Ditampilkan)</option>
-                <option value="nonaktif" {{ old('status', $product->status) === 'nonaktif' ? 'selected' : '' }}>Nonaktif (Draft)</option>
-            </select>
-            @error('status')
-            <p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>
-            @enderror
+        <div class="p-6 space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label for="mode_penjualan" class="block text-sm font-medium text-gray-700 mb-1.5">Mode Penjualan <span class="text-red-500">*</span></label>
+                    <select id="mode_penjualan" name="mode_penjualan" required class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors cursor-pointer @error('mode_penjualan') border-red-300 @enderror">
+                        <option value="ready" {{ old('mode_penjualan', $product->mode_penjualan) === 'ready' ? 'selected' : '' }}>Ready Stock</option>
+                        <option value="pre_order" {{ old('mode_penjualan', $product->mode_penjualan) === 'pre_order' ? 'selected' : '' }}>Pre-Order</option>
+                        <option value="keduanya" {{ old('mode_penjualan', $product->mode_penjualan) === 'keduanya' ? 'selected' : '' }}>Ready & Pre-Order</option>
+                    </select>
+                    @error('mode_penjualan')<p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="stok" class="block text-sm font-medium text-gray-700 mb-1.5">Stok</label>
+                    <input type="number" id="stok" name="stok" value="{{ old('stok', $product->stok) }}" min="0" class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('stok') border-red-300 @enderror">
+                    @error('stok')<p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>@enderror
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label for="min_order_po" class="block text-sm font-medium text-gray-700 mb-1.5">Minimal Pesanan (PO)</label>
+                    <input type="number" id="min_order_po" name="min_order_po" value="{{ old('min_order_po', $product->min_order_po) }}" min="0" class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('min_order_po') border-red-300 @enderror">
+                    @error('min_order_po')<p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="waktu_masak_po" class="block text-sm font-medium text-gray-700 mb-1.5">Waktu Masak (PO)</label>
+                    <input type="text" id="waktu_masak_po" name="waktu_masak_po" value="{{ old('waktu_masak_po', $product->waktu_masak_po) }}" maxlength="30" class="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors @error('waktu_masak_po') border-red-300 @enderror">
+                    @error('waktu_masak_po')<p class="mt-1.5 text-xs text-red-600 font-medium">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            <label class="flex items-start gap-3 p-3.5 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                <input type="checkbox" name="status_ketersediaan" value="1" {{ old('status_ketersediaan', $product->status_ketersediaan) ? 'checked' : '' }} class="mt-0.5 w-4 h-4 text-djajan-primary border-gray-300 rounded focus:ring-djajan-primary">
+                <div>
+                    <p class="text-sm font-medium text-gray-900">Tersedia / Ditampilkan</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Jika tidak dicentang, produk disembunyikan dari pembeli.</p>
+                </div>
+            </label>
         </div>
     </div>
 
     <!-- ACTION BUTTONS -->
     <div class="flex items-center justify-end gap-3 pt-2">
-        <a href="{{ route('admin.umkm.edit', $product->umkm_id) }}" class="px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+        <a href="{{ route('admin.umkm.edit', $product->id_umkm) }}" class="px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
             Batal
         </a>
         <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-djajan-primary text-white text-sm font-semibold hover:bg-djajan-primary-hover transition shadow-sm">

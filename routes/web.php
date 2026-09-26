@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PublicSite\HomeController;
 use App\Http\Controllers\Admin\UmkmController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Models\Umkm;
+use App\Models\Produk;
 
 
 // ======================================================
@@ -24,7 +26,22 @@ Route::middleware('auth')
 
         // Dashboard
         Route::get('/', function () {
-            return view('admin.dashboard');
+            // Statistik ringkas dari tabel `umkm` & `produk` yang asli
+            // (dipakai bareng aplikasi Flutter). Grafik & tabel "aktivitas
+            // terbaru" di bawahnya masih data contoh (belum di-hubungkan).
+            $totalUmkmAktif = Umkm::where('status_verifikasi', 'terverifikasi')
+                ->where('toko_aktif', true)
+                ->count();
+
+            $totalProduk = Produk::count();
+
+            $totalPengajuanBaru = Umkm::where('status_verifikasi', 'pending')->count();
+
+            return view('admin.dashboard', compact(
+                'totalUmkmAktif',
+                'totalProduk',
+                'totalPengajuanBaru'
+            ));
         })->name('dashboard');
 
 
@@ -32,23 +49,21 @@ Route::middleware('auth')
         // UMKM
         // ==================================================
 
-        // Data UMKM
+       // Data UMKM (bisa difilter ?status=pending|terverifikasi|ditolak)
         Route::get('/umkm', [UmkmController::class, 'index'])
             ->name('umkm.index');
 
-        // Tambah UMKM
-        Route::get('/umkm/create', [UmkmController::class, 'create'])
-            ->name('umkm.create');
-
-        // Simpan UMKM
-        Route::post('/umkm', [UmkmController::class, 'store'])
-            ->name('umkm.store');
-
-        // Detail UMKM
+        // Detail UMKM + tombol Setujui/Tolak
         Route::get('/umkm/{umkm}', [UmkmController::class, 'show'])
             ->name('umkm.show');
 
-        // Form Edit UMKM
+        // Setujui / tolak pendaftaran (dari tombol di halaman detail)
+        Route::post('/umkm/{umkm}/approve', [UmkmController::class, 'approve'])
+            ->name('umkm.approve');
+        Route::post('/umkm/{umkm}/reject', [UmkmController::class, 'reject'])
+            ->name('umkm.reject');
+
+        // Form Edit UMKM (data dasar, bukan password)
         Route::get('/umkm/{umkm}/edit', [UmkmController::class, 'edit'])
             ->name('umkm.edit');
 

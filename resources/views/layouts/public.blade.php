@@ -44,7 +44,7 @@
 
                 <!-- CTA + Mobile Toggle -->
                 <div class="flex items-center">
-                    <a href="#umkm" class="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-[#F59E0B] px-7 py-2.5 text-sm font-semibold text-[#111827] hover:bg-[#FBBF24] transition-all duration-200 hover:shadow-lg hover:shadow-[#F59E0B]/20">
+                    <a href="{{ route('login') }}" class="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-[#F59E0B] px-7 py-2.5 text-sm font-semibold text-[#111827] hover:bg-[#FBBF24] transition-all duration-200 hover:shadow-lg hover:shadow-[#F59E0B]/20">
                         Login
                     </a>
 

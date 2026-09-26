@@ -12,12 +12,12 @@
             <p class="text-sm text-gray-500 mt-1">Pantau dan kelola aktivitas utama Djajan dari satu tempat.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
-            <a href="{{ route('admin.umkm.create') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-djajan-primary text-white text-sm font-medium rounded-lg hover:bg-djajan-primary-hover transition-colors shadow-sm">
+            <a href="{{ route('admin.umkm.index', ['status' => 'pending']) }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-djajan-primary text-white text-sm font-medium rounded-lg hover:bg-djajan-primary-hover transition-colors shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <path d="M9 12l2 2 4-4"></path>
+                    <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"></path>
                 </svg>
-                Tambah UMKM
+                Verifikasi Pendaftaran
             </a>
             <a href="{{ route('admin.umkm.index') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -43,10 +43,10 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                 </div>
             </div>
-            <p class="text-3xl font-bold font-heading tracking-tight mb-2">12</p>
+            <p class="text-3xl font-bold font-heading tracking-tight mb-2">{{ $totalUmkmAktif }}</p>
             <div class="flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-white/80"></span>
-                <p class="text-xs text-white/70">UMKM terdaftar aktif</p>
+                <p class="text-xs text-white/70">UMKM terverifikasi & aktif</p>
             </div>
         </div>
     </div>
@@ -59,7 +59,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-500"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             </div>
         </div>
-        <p class="text-3xl font-bold text-djajan-neutral font-heading tracking-tight mb-2">35</p>
+        <p class="text-3xl font-bold text-djajan-neutral font-heading tracking-tight mb-2">{{ $totalProduk }}</p>
         <div class="flex items-center gap-1.5">
             <span class="w-1.5 h-1.5 rounded-full bg-djajan-secondary"></span>
             <p class="text-xs text-gray-500">Produk dari semua UMKM</p>
@@ -89,7 +89,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-600"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
             </div>
         </div>
-        <p class="text-3xl font-bold text-djajan-neutral font-heading tracking-tight mb-2">4</p>
+        <p class="text-3xl font-bold text-djajan-neutral font-heading tracking-tight mb-2">{{ $totalPengajuanBaru }}</p>
         <div class="flex items-center gap-1.5">
             <span class="w-1.5 h-1.5 rounded-full bg-djajan-tertiary"></span>
             <p class="text-xs text-gray-500">Menunggu tinjauan</p>
@@ -293,8 +293,8 @@
                     <span class="text-xs font-medium bg-white/20 px-2.5 py-1 rounded-full">Prioritas</span>
                 </div>
                 <h4 class="text-base font-semibold font-heading mb-1">Tinjau Pengajuan</h4>
-                <p class="text-sm text-white/90 leading-relaxed mb-4">4 pengajuan UMKM baru menunggu persetujuan Anda.</p>
-                <a href="{{ route('admin.umkm.index') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-djajan-primary text-sm font-semibold rounded-lg hover:bg-white/95 transition-colors w-full shadow-sm">
+                <p class="text-sm text-white/90 leading-relaxed mb-4">{{ $totalPengajuanBaru }} pengajuan UMKM baru menunggu persetujuan Anda.</p>
+                <a href="{{ route('admin.umkm.index', ['status' => 'pending']) }}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-djajan-primary text-sm font-semibold rounded-lg hover:bg-white/95 transition-colors w-full shadow-sm">
                     Tinjau Sekarang
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </a>
