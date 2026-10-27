@@ -37,7 +37,7 @@ class AuthController extends Controller
         }
 
         $umkm = Umkm::where('no_telp_usaha', $nomor)
-            ->orWhere('email_usaha', $identifier)
+            ->orWhereRaw('LOWER(email_usaha) = ?', [mb_strtolower($identifier)])
             ->first();
 
         if (!$umkm) {
@@ -56,7 +56,7 @@ class AuthController extends Controller
         if ($umkm->status_verifikasi === 'ditolak') {
             return $this->gagal('Akun usaha Anda ditolak admin desa. Hubungi BUMDes.', 403);
         }
-        if ($umkm->status_verifikasi === 'pending') {
+        if (in_array($umkm->status_verifikasi, ['pending', 'menunggu'], true)) {
             return $this->gagal('Akun usaha Anda masih menunggu verifikasi admin desa.', 403);
         }
 
@@ -65,6 +65,7 @@ class AuthController extends Controller
         $token = $umkm->createToken('flutter-app')->plainTextToken;
 
         $data          = $umkm->keFormatJson();
+        $data['role']   = 'umkm';
         $data['token'] = $token;
 
         return $this->sukses('Selamat datang, ' . $umkm->nama_usaha . '!', $data);
