@@ -113,21 +113,17 @@ class PelangganAuthController extends Controller
             ->first();
 
         if (!$pelanggan) {
-            $pelanggan = Pelanggan::create([
-                'nama' => (string) ($google['name'] ?? $email),
-                'email' => $email,
-                'google_sub' => $googleSub,
-                'auth_provider' => 'google',
-                'email_verified_at' => now(),
-                'foto_profil' => $google['picture'] ?? null,
-            ]);
-        } else {
-            $pelanggan->forceFill([
-                'google_sub' => $googleSub,
-                'auth_provider' => 'google',
-                'email_verified_at' => $pelanggan->email_verified_at ?? now(),
-            ])->save();
+            return $this->gagal(
+                'Akun Google belum terdaftar. Silakan register terlebih dahulu.',
+                403,
+            );
         }
+
+        $pelanggan->forceFill([
+            'google_sub' => $googleSub,
+            'auth_provider' => 'google',
+            'email_verified_at' => $pelanggan->email_verified_at ?? now(),
+        ])->save();
 
         return $this->sukses('Selamat datang, ' . $pelanggan->nama . '!', $this->dataDenganToken($pelanggan));
     }

@@ -42,9 +42,17 @@ class PelangganAuthTest extends TestCase
             ->assertJsonPath('sukses', false);
     }
 
-    public function test_verified_google_account_is_created_once(): void
+    public function test_registered_customer_can_login_with_google(): void
     {
         config(['services.google.client_id' => 'client-id']);
+        $pelanggan = Pelanggan::create([
+            'nama' => 'Budi Santoso',
+            'email' => 'budi@example.com',
+            'password' => 'hashed-password',
+            'no_telp' => '081234567890',
+            'google_sub' => null,
+            'auth_provider' => 'password',
+        ]);
         Http::fake([
             'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
                 'aud' => 'client-id',
@@ -61,6 +69,32 @@ class PelangganAuthTest extends TestCase
             ->assertJsonPath('data.role', 'pelanggan');
 
         $this->postJson('/api/auth/google', $payload)->assertOk();
-        $this->assertSame(1, Pelanggan::where('google_sub', 'google-123')->count());
+        $this->assertSame(
+            1,
+            Pelanggan::where('id_pelanggan', $pelanggan->id_pelanggan)
+                ->where('google_sub', 'google-123')
+                ->count(),
+        );
+    }
+
+    public function test_unregistered_google_account_cannot_login(): void
+    {
+        config(['services.google.client_id' => 'client-id']);
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'aud' => 'client-id',
+                'sub' => 'google-new',
+                'email' => 'new@example.com',
+                'email_verified' => 'true',
+                'name' => 'Pengguna Baru',
+            ]),
+        ]);
+
+        $this->postJson('/api/auth/google', ['id_token' => 'valid-token'])
+            ->assertForbidden()
+            ->assertJsonPath('sukses', false);
+        $this->assertDatabaseMissing('pelanggan', [
+            'email' => 'new@example.com',
+        ]);
     }
 }
