@@ -16,15 +16,11 @@
             </h1>
 
             <p class="mt-1 text-sm text-gray-500">
-                Kelola seluruh produk UMKM yang terdaftar di Djajan.
+                Lihat seluruh produk yang dikelola oleh UMKM melalui aplikasi mobile.
             </p>
         </div>
 
-        <a
-            href="{{ route('admin.products.createStandalone') }}"
-            class="inline-flex items-center rounded-lg bg-[#0F623F] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#0c5134]">
-            Tambah Produk
-        </a>
+
     </div>
 
 
@@ -161,7 +157,7 @@
                         </th>
 
                         <th class="px-5 py-3 text-center font-medium text-gray-600">
-                            Aksi
+                            Detail
                         </th>
                     </tr>
                 </thead>
@@ -186,7 +182,7 @@
                                 @if($product->gambar_produk)
 
                                 <img
-                                    src="{{ asset('storage/' . $product->gambar_produk) }}"
+                                    src="{{ $product->urlGambar() }}"
                                     alt="{{ $product->nama_produk }}"
                                     class="h-12 w-12 rounded-lg object-cover">
 
@@ -251,7 +247,7 @@
                         </td>
 
 
-                        {{-- Actions --}}
+                        {{-- Detail --}}
                         <td class="px-5 py-4">
 
                             <div class="flex items-center justify-center gap-2">
@@ -261,26 +257,6 @@
                                     class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">
                                     Detail
                                 </a>
-
-                                <a
-                                    href="{{ route('admin.products.edit', $product) }}"
-                                    class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">
-                                    Edit
-                                </a>
-
-                                <form
-                                    action="{{ route('admin.products.destroy', $product) }}"
-                                    method="POST"
-                                    onsubmit="return confirm('Yakin ingin menghapus produk ini? Data yang sudah dihapus tidak dapat dikembalikan.')">
-                                    @csrf
-                                    @method('DELETE')
-
-                                    <button
-                                        type="submit"
-                                        class="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50">
-                                        Hapus
-                                    </button>
-                                </form>
 
                             </div>
 

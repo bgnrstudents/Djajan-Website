@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id('id_detail');
             $table->string('id_pesanan');
             $table->unsignedBigInteger('id_produk')->nullable();
-            $table->string('nama_produk');
+            $table->string('nama_produk', 100);
             $table->string('satuan')->default('pcs');
             $table->integer('jumlah');
             $table->integer('harga_satuan');

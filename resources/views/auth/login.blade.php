@@ -1,4 +1,20 @@
-<x-guest-layout>
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>Login - {{ config('app.name', 'Laravel') }}</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+
+    <!-- Scripts -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="font-sans text-gray-900 antialiased">
     <div class="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-[#F8FAFC]">
         <div class="w-full max-w-4xl bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12">
             
@@ -11,12 +27,7 @@
                 <!-- Brand Logo & Header -->
                 <div class="relative z-10">
                     <div class="flex items-center gap-3 mb-8">
-                        <div class="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center border border-white/20 shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                            </svg>
-                        </div>
+                        <img src="{{ asset('logo_djajan.png') }}" alt="Logo Djajan" class="w-10 h-10 object-contain">
                         <div>
                             <span class="text-2xl font-bold font-heading tracking-tight text-white block leading-none">Djajan</span>
                             <span class="text-[11px] text-white/80 font-medium mt-1 block">Admin Portal</span>
@@ -50,12 +61,7 @@
 
                 <!-- Mobile Brand Header -->
                 <div class="md:hidden flex items-center gap-2.5 mb-6">
-                    <div class="w-9 h-9 bg-[#0F623F] rounded-lg flex items-center justify-center shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                        </svg>
-                    </div>
+                    <img src="{{ asset('logo_djajan.png') }}" alt="Logo Djajan" class="w-9 h-9 object-contain">
                     <div>
                         <span class="text-xl font-bold font-heading text-[#111827]">Djajan</span>
                         <span class="text-xs text-gray-500 block -mt-1">Admin Website</span>
@@ -192,7 +198,6 @@
         </div>
     </div>
 
-    @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const passwordInput = document.getElementById('password');
@@ -216,5 +221,5 @@
             }
         });
     </script>
-    @endpush
-</x-guest-layout>
+</body>
+</html>

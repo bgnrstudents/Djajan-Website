@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Umkm;
 use App\Support\ApiResponse;
+use App\Support\UploadFoto;
+use App\Support\ValidasiUmkm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -114,25 +116,25 @@ class RegisterController extends Controller
             return $this->gagal('Kata sandi dan konfirmasi kata sandi tidak cocok.', 400);
         }
 
-        // Cek nomor telepon sudah terdaftar
-        if (Umkm::where('no_telp_usaha', $nomor)->exists()) {
-            return $this->gagal('Nomor WhatsApp sudah terdaftar. Gunakan nomor lain atau login jika sudah punya akun.', 409);
+        // Cek data kembar (nama usaha, nomor WhatsApp, email). Lihat App\Support\ValidasiUmkm.
+        // Respons 409 membawa `data.field` supaya aplikasi menandai kolom yang bermasalah.
+        if ($bentrok = ValidasiUmkm::bentrok($namaUsaha, $nomor, $emailUsaha)) {
+            return $this->gagal($bentrok['pesan'], 409, ['field' => $bentrok['field']]);
         }
 
-        // Cek email sudah terdaftar
-        if (Umkm::where('email_usaha', $emailUsaha)->exists()) {
-            return $this->gagal('Email usaha sudah terdaftar. Gunakan email lain atau login jika sudah punya akun.', 409);
-        }
+        // Foto profil usaha (opsional) -- supaya admin bisa melihatnya saat meninjau pendaftaran.
+        $fotoProfil = UploadFoto::simpan($request, 'foto_profil', 'profil', 'profil');
 
         // Buat akun baru
         try {
             $umkm = Umkm::create([
+                'foto_profil' => $fotoProfil,
                 'nama_usaha' => $namaUsaha,
                 'spesialis' => $spesialis,
                 'deskripsi_usaha' => '',
                 'alamat' => $alamat,
                 'no_telp_usaha' => $nomor,
-                'email_usaha' => $emailUsaha,
+                'email_usaha' => ValidasiUmkm::normalisasiEmail($emailUsaha),
                 'password' => hash('sha256', $password),
                 'status_verifikasi' => 'pending',
                 'toko_aktif' => 1,

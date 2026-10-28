@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\UmkmZonaOngkir;
 use App\Support\ApiResponse;
 use App\Support\UploadFoto;
+use App\Support\ValidasiUmkm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -32,7 +32,8 @@ class ProfilController extends Controller
         $umkm = $request->user();
 
         $kolomTeks = [
-            'nama_usaha', 'spesialis', 'deskripsi_usaha', 'alamat', 'no_telp_usaha',
+            'nama_usaha', 'spesialis', 'deskripsi_usaha', 'alamat', 
+            'no_telp_usaha',
             'bank_kode', 'bank_nama', 'no_rekening', 'atas_nama', 'skema_po',
         ];
         $kolomAngka   = ['biaya_pengantaran'];
@@ -75,6 +76,25 @@ class ProfilController extends Controller
             return $this->gagal('Nama usaha tidak boleh kosong.', 400);
         }
 
+        // Nama usaha / nomor WhatsApp tidak boleh sama dengan akun UMKM lain.
+        // Hanya dicek kalau nilainya benar-benar berubah dari yang tersimpan.
+        $namaBerubah  = $request->has('nama_usaha')
+            && ValidasiUmkm::normalisasiNama((string) $umkm->nama_usaha) !== ValidasiUmkm::normalisasiNama((string) $umkm->getOriginal('nama_usaha'));
+        $nomorBerubah = $request->has('no_telp_usaha')
+            && ValidasiUmkm::normalisasiNomor((string) $umkm->no_telp_usaha) !== ValidasiUmkm::normalisasiNomor((string) $umkm->getOriginal('no_telp_usaha'));
+
+        if ($namaBerubah || $nomorBerubah) {
+            $bentrok = ValidasiUmkm::bentrok(
+                $namaBerubah ? (string) $umkm->nama_usaha : null,
+                $nomorBerubah ? (string) $umkm->no_telp_usaha : null,
+                null,
+                (int) $umkm->id_umkm
+            );
+            if ($bentrok) {
+                return $this->gagal($bentrok['pesan'], 409, ['field' => $bentrok['field']]);
+            }
+        }
+
         $umkm->save();
 
         return $this->sukses('Pengaturan usaha berhasil disimpan ke database.', $umkm->fresh()->keFormatJson());
@@ -101,22 +121,6 @@ class ProfilController extends Controller
         $umkm->radius_gratis_km  = $radiusGratis;
         $umkm->jarak_maksimal_km = $jarakMaksimal;
         $umkm->save();
-
-        $zonaInput = json_decode($request->input('zona', '[]'), true);
-        if (!is_array($zonaInput)) {
-            $zonaInput = [];
-        }
-
-        UmkmZonaOngkir::where('id_umkm', $umkm->id_umkm)->delete();
-
-        foreach ($zonaInput as $z) {
-            UmkmZonaOngkir::create([
-                'id_umkm'   => $umkm->id_umkm,
-                'jarak_min' => (float) ($z['jarak_min'] ?? 0),
-                'jarak_max' => (float) ($z['jarak_max'] ?? 0),
-                'biaya'     => max(0, (int) ($z['biaya'] ?? 0)),
-            ]);
-        }
 
         return $this->sukses('Pengaturan ongkir berhasil disimpan ke database.', $umkm->fresh()->keFormatJson());
     }

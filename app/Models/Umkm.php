@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\UploadFoto;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Sanctum\HasApiTokens;
 
 class Umkm extends Model
@@ -33,6 +34,11 @@ class Umkm extends Model
         return $this->hasMany(Produk::class, 'id_umkm', 'id_umkm');
     }
 
+    public function pelanggan(): BelongsTo
+    {
+        return $this->belongsTo(Pelanggan::class, 'id_pelanggan', 'id_pelanggan');
+    }
+
     public function pesanan(): HasMany
     {
         return $this->hasMany(Pesanan::class, 'id_umkm', 'id_umkm');
@@ -41,6 +47,17 @@ class Umkm extends Model
     public function zonaOngkir(): HasMany
     {
         return $this->hasMany(UmkmZonaOngkir::class, 'id_umkm', 'id_umkm');
+    }
+
+    public function riwayatVerifikasi(): HasMany
+    {
+        return $this->hasMany(VerifikasiUmkm::class, 'id_umkm', 'id_umkm')
+            ->orderByDesc('tanggal_verifikasi');
+    }
+
+    public function urlFotoProfil(): ?string
+    {
+        return UploadFoto::url($this->foto_profil, 'profil');
     }
 
     /**
@@ -75,7 +92,7 @@ class Umkm extends Model
             'longitude'           => $this->longitude !== null ? (float) $this->longitude : null,
             'radius_gratis_km'    => (float) ($this->radius_gratis_km ?? 0),
             'jarak_maksimal_km'   => $this->jarak_maksimal_km !== null ? (float) $this->jarak_maksimal_km : null,
-            'zona_ongkir'         => $this->zonaOngkir->map(fn($z) => $z->keFormatJson())->all(),
+            'zona_ongkir'         => [],
         ];
     }
 }

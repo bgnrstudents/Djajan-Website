@@ -132,7 +132,7 @@
             <div id="current-image-wrapper" class="mb-5">
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider font-heading mb-2">Gambar Saat Ini</p>
                 <div class="relative max-w-xs rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50">
-                    <img src="{{ asset('storage/' . $product->gambar_produk) }}" alt="{{ $product->nama_produk }}" id="current-image" class="w-full h-44 object-cover">
+                    <img src="{{ $product->urlGambar() }}" alt="{{ $product->nama_produk }}" id="current-image" class="w-full h-44 object-cover">
                 </div>
                 <label class="flex items-center gap-2 mt-3 cursor-pointer">
                     <input type="checkbox" name="hapus_gambar" value="1" id="hapus_gambar" class="w-4 h-4 rounded border-gray-300 text-djajan-primary focus:ring-djajan-primary">

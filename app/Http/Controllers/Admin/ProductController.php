@@ -6,14 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Produk;
 use App\Models\Umkm;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use App\Support\UploadFoto;
+use App\Support\ValidasiProduk;
+use Illuminate\Validation\ValidationException;
 
-/**
- * Bekerja langsung di tabel `produk` ASLI (id_produk, id_umkm, ...) --
- * tabel yang sama dipakai UMKM lewat aplikasi Flutter. Sebelumnya
- * controller ini menunjuk ke Model `Product` (tabel `products` buatan
- * sendiri) yang sudah dihapus -- sekarang disatukan ke `Produk`.
- */
+
 class ProductController extends Controller
 {
     /**
@@ -31,10 +28,10 @@ class ProductController extends Controller
         $rules = [
             'nama_produk'          => [
                 'required', 'string', 'min:3', 'max:150',
-                'regex:/[a-zA-Z]/', // harus mengandung minimal 1 huruf
+                'regex:/^[\pL\s.,\'&()\/-]+$/u', 
             ],
             'kategori'             => ['nullable', 'string', 'max:60'],
-            'harga'                => ['required', 'integer', 'min:0', 'max:999999999'],
+            'harga'                => ['required', 'integer', 'min:100', 'max:1000000'],
             'deskripsi'            => ['nullable', 'string', 'max:1000', 'regex:/^(?!\s+$).+$/s'],
             'mode_penjualan'       => ['required', 'in:ready,pre_order,keduanya'],
             'stok'                 => ['nullable', 'integer', 'min:0'],
@@ -56,7 +53,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Pesan validasi dalam Bahasa Indonesia.
+     * Pesan validasi 
      */
     private function productMessages(): array
     {
@@ -64,12 +61,12 @@ class ProductController extends Controller
             'nama_produk.required' => 'Nama produk wajib diisi.',
             'nama_produk.min'      => 'Nama produk minimal :min karakter.',
             'nama_produk.max'      => 'Nama produk maksimal :max karakter.',
-            'nama_produk.regex'    => 'Nama produk tidak boleh hanya berupa angka atau simbol.',
+            'nama_produk.regex'    => 'Nama produk hanya boleh huruf (tanpa angka), spasi, dan tanda & - \' ( ) , .',
 
             'harga.required'       => 'Harga produk wajib diisi.',
             'harga.integer'        => 'Harga harus berupa angka bulat.',
-            'harga.min'            => 'Harga tidak boleh kurang dari 0.',
-            'harga.max'            => 'Harga terlalu besar.',
+            'harga.min'            => 'Harga minimal Rp100.',
+            'harga.max'            => 'Harga maksimal Rp1.000.000.',
 
             'deskripsi.max'        => 'Deskripsi maksimal :max karakter.',
             'deskripsi.regex'      => 'Deskripsi tidak boleh hanya berisi spasi.',
@@ -90,6 +87,17 @@ class ProductController extends Controller
     }
 
     /**
+     * Lempar error validasi bila produk kembar (nama sama + harga sama)
+     * sudah ada di UMKM yang sama.
+     */
+    private function tolakBilaDuplikat(int $idUmkm, string $nama, int $harga, ?int $kecualiId = null): void
+    {
+        if ($error = ValidasiProduk::duplikat($idUmkm, $nama, $harga, $kecualiId)) {
+            throw ValidationException::withMessages(['nama_produk' => $error]);
+        }
+    }
+
+    /**
      * Menampilkan form tambah produk untuk 1 UMKM tertentu.
      */
     public function create(Umkm $umkm)
@@ -107,13 +115,18 @@ class ProductController extends Controller
             $this->productMessages()
         );
 
+        $this->tolakBilaDuplikat((int) $umkm->id_umkm, $validated['nama_produk'], (int) $validated['harga']);
+
         if ($request->hasFile('gambar_produk')) {
-            $validated['gambar_produk'] = $request
-                ->file('gambar_produk')
-                ->store('produk', 'public');
+            $validated['gambar_produk'] = UploadFoto::simpan($request, 'gambar_produk', 'produk', 'prod');
         }
 
         $validated['status_ketersediaan'] = $request->boolean('status_ketersediaan');
+
+        // Pre-order murni tidak punya stok (pelanggan yang menentukan jumlahnya).
+        if (($validated['mode_penjualan'] ?? null) === 'pre_order') {
+            $validated['stok'] = 0;
+        }
         $validated['id_umkm'] = $umkm->id_umkm;
 
         Produk::create($validated);
@@ -137,23 +150,33 @@ class ProductController extends Controller
             $this->productMessages()
         );
 
+        $berubah = ValidasiProduk::normalisasiNama($validated['nama_produk']) !== ValidasiProduk::normalisasiNama((string) $product->nama_produk)
+            || (int) $validated['harga'] !== (int) $product->harga;
+        if ($berubah) {
+            $this->tolakBilaDuplikat(
+                (int) $product->id_umkm,
+                $validated['nama_produk'],
+                (int) $validated['harga'],
+                (int) $product->id_produk
+            );
+        }
+
         if ($request->boolean('hapus_gambar')) {
-            if ($product->gambar_produk && Storage::disk('public')->exists($product->gambar_produk)) {
-                Storage::disk('public')->delete($product->gambar_produk);
-            }
+            UploadFoto::hapus($product->gambar_produk, 'produk');
             $validated['gambar_produk'] = null;
         }
 
         if ($request->hasFile('gambar_produk')) {
-            if ($product->gambar_produk && Storage::disk('public')->exists($product->gambar_produk)) {
-                Storage::disk('public')->delete($product->gambar_produk);
-            }
-            $validated['gambar_produk'] = $request
-                ->file('gambar_produk')
-                ->store('produk', 'public');
+            UploadFoto::hapus($product->gambar_produk, 'produk');
+            $validated['gambar_produk'] = UploadFoto::simpan($request, 'gambar_produk', 'produk', 'prod');
         }
 
         $validated['status_ketersediaan'] = $request->boolean('status_ketersediaan');
+
+        // Pre-order murni tidak punya stok (pelanggan yang menentukan jumlahnya).
+        if (($validated['mode_penjualan'] ?? null) === 'pre_order') {
+            $validated['stok'] = 0;
+        }
 
         $product->update($validated);
 
@@ -197,9 +220,7 @@ class ProductController extends Controller
 
     public function destroy(Produk $product)
     {
-        if ($product->gambar_produk && Storage::disk('public')->exists($product->gambar_produk)) {
-            Storage::disk('public')->delete($product->gambar_produk);
-        }
+        UploadFoto::hapus($product->gambar_produk, 'produk');
 
         $product->delete();
 
@@ -230,13 +251,18 @@ class ProductController extends Controller
             return back()->withErrors(['id_umkm' => 'UMKM yang dipilih belum terverifikasi / tokonya tidak aktif.'])->withInput();
         }
 
+        $this->tolakBilaDuplikat((int) $validated['id_umkm'], $validated['nama_produk'], (int) $validated['harga']);
+
         if ($request->hasFile('gambar_produk')) {
-            $validated['gambar_produk'] = $request
-                ->file('gambar_produk')
-                ->store('produk', 'public');
+            $validated['gambar_produk'] = UploadFoto::simpan($request, 'gambar_produk', 'produk', 'prod');
         }
 
         $validated['status_ketersediaan'] = $request->boolean('status_ketersediaan');
+
+        // Pre-order murni tidak punya stok (pelanggan yang menentukan jumlahnya).
+        if (($validated['mode_penjualan'] ?? null) === 'pre_order') {
+            $validated['stok'] = 0;
+        }
 
         Produk::create($validated);
 

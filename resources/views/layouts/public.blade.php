@@ -19,9 +19,7 @@
 
                 <!-- Logo -->
                 <a href="#" class="flex items-center gap-2.5 group">
-                    <div class="h-9 w-9 rounded-lg bg-[#0F623F] flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                        <span class="font-display font-bold text-white text-sm">D</span>
-                    </div>
+                    <img src="{{ asset('logo_djajan.png') }}" alt="Logo Djajan" class="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105">
                     <span class="font-display font-bold text-white text-lg">Djajan</span>
                 </a>
 
@@ -44,9 +42,15 @@
 
                 <!-- CTA + Mobile Toggle -->
                 <div class="flex items-center">
-                    <a href="{{ route('login') }}" class="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-[#F59E0B] px-7 py-2.5 text-sm font-semibold text-[#111827] hover:bg-[#FBBF24] transition-all duration-200 hover:shadow-lg hover:shadow-[#F59E0B]/20">
-                        Login
-                    </a>
+                    @auth
+                        <a href="{{ route('admin.dashboard') }}" class="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-[#F59E0B] px-7 py-2.5 text-sm font-semibold text-[#111827] hover:bg-[#FBBF24] transition-all duration-200 hover:shadow-lg hover:shadow-[#F59E0B]/20">
+                            Dashboard Admin
+                        </a>
+                    @else
+                        <a href="{{ route('login') }}" class="hidden lg:inline-flex items-center gap-1.5 rounded-full bg-[#F59E0B] px-7 py-2.5 text-sm font-semibold text-[#111827] hover:bg-[#FBBF24] transition-all duration-200 hover:shadow-lg hover:shadow-[#F59E0B]/20">
+                            Login Admin
+                        </a>
+                    @endauth
 
                     <!-- Mobile Menu Button -->
                     <button id="menu-toggle" class="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg border border-white/20 text-white hover:border-white/40 hover:bg-white/10 transition-all">
@@ -76,9 +80,15 @@
                 </a>
 
                 <div class="pt-3 border-t border-white/10 mt-3">
-                    <a href="#umkm" class="block w-full text-center rounded-full bg-[#F59E0B] px-5 py-3 text-sm font-semibold text-[#111827] hover:bg-[#FBBF24] transition-colors">
-                        Jelajahi UMKM
-                    </a>
+                    @auth
+                        <a href="{{ route('admin.dashboard') }}" class="block w-full text-center rounded-full bg-[#F59E0B] px-5 py-3 text-sm font-semibold text-[#111827] hover:bg-[#FBBF24] transition-colors">
+                            Dashboard Admin
+                        </a>
+                    @else
+                        <a href="{{ route('login') }}" class="block w-full text-center rounded-full bg-[#F59E0B] px-5 py-3 text-sm font-semibold text-[#111827] hover:bg-[#FBBF24] transition-colors">
+                            Login Admin
+                        </a>
+                    @endauth
                 </div>
             </div>
         </div>
@@ -215,9 +225,7 @@
 
                         <!-- Logo -->
                         <a href="#" class="inline-flex items-center gap-2.5 group mb-8">
-                            <div class="h-9 w-9 rounded-lg bg-[#0F623F] flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                                <span class="font-display font-bold text-white text-sm">D</span>
-                            </div>
+                            <img src="{{ asset('logo_djajan.png') }}" alt="Logo Djajan" class="h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105">
                             <span class="font-display font-bold text-[#111827] text-lg">Djajan</span>
                         </a>
 

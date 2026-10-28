@@ -11,7 +11,7 @@ class HomeController extends Controller
     public function index()
     {
         // UMKM yang sudah terverifikasi admin & tokonya sedang aktif -- ini
-        // yang boleh tampil di halaman publik. Tabel `umkm` (asli, dipakai
+        // yang boleh tampil di halaman publik. Tabel `umkm` (asli, dipakai 
         // bareng aplikasi Flutter) tidak punya kolom `status_publikasi` atau
         // `unggulan`, jadi kriteria tampil publik dipetakan ke
         // `status_verifikasi = 'terverifikasi'` + `toko_aktif = true`.

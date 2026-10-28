@@ -70,8 +70,12 @@
 
                     <td class="py-4 px-5">
                         <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-lg bg-djajan-primary/10 text-djajan-primary flex items-center justify-center text-xs font-bold flex-shrink-0 font-heading">
+                            <div class="relative w-10 h-10 rounded-lg bg-djajan-primary/10 text-djajan-primary flex items-center justify-center text-xs font-bold flex-shrink-0 font-heading overflow-hidden">
                                 {{ strtoupper(substr($umkm->nama_usaha, 0, 2)) }}
+                                @if($umkm->foto_profil)
+                                <img src="{{ $umkm->urlFotoProfil() }}" alt="{{ $umkm->nama_usaha }}" loading="lazy"
+                                     class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'">
+                                @endif
                             </div>
                             <div>
                                 <a href="{{ route('admin.umkm.show', $umkm->id_umkm) }}" class="font-medium text-gray-900 hover:text-djajan-primary transition-colors">
@@ -84,8 +88,9 @@
                         </div>
                     </td>
 
-                    <td class="py-4 px-5 text-gray-700">
-                        {{ $umkm->no_telp_usaha }}
+                    <td class="py-4 px-5">
+                        <p class="text-gray-700 font-medium">{{ $umkm->no_telp_usaha ?: '-' }}</p>
+                        <p class="text-xs text-gray-500 truncate max-w-[200px]" title="{{ $umkm->email_usaha }}">{{ $umkm->email_usaha ?: '-' }}</p>
                     </td>
 
                     <td class="py-4 px-5 text-gray-500 hidden lg:table-cell max-w-xs truncate">
@@ -109,24 +114,34 @@
                     </td>
 
                     <td class="py-4 px-5 whitespace-nowrap">
-                        @if($umkm->toko_aktif)
-                        <span class="text-xs font-medium text-emerald-700">Aktif</span>
+                        @if($umkm->status_verifikasi !== 'terverifikasi')
+                        <span class="text-xs text-gray-400" title="Status toko baru bisa diatur setelah terverifikasi">-</span>
+                        @elseif($umkm->toko_aktif)
+                        <span class="text-xs font-medium text-emerald-700">Buka</span>
                         @else
-                        <span class="text-xs font-medium text-gray-400">Nonaktif</span>
+                        <span class="text-xs font-medium text-gray-500">Tutup</span>
                         @endif
                     </td>
 
                     <td class="py-4 px-5 whitespace-nowrap text-right">
                         <div class="flex items-center justify-end gap-1.5">
+                            @if(in_array($umkm->status_verifikasi, ['pending', 'menunggu'], true))
+                            <form action="{{ route('admin.umkm.approve', $umkm->id_umkm) }}" method="POST" class="inline-block">
+                                @csrf
+                                <button type="submit"
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                                    onclick="return confirm('Setujui UMKM {{ $umkm->nama_usaha }}?');">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 12 4 4L19 6" />
+                                    </svg>
+                                    Setujui
+                                </button>
+                            </form>
+                            @endif
                             <a href="{{ route('admin.umkm.show', $umkm->id_umkm) }}" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-djajan-primary hover:bg-djajan-primary/10 transition-colors" title="Lihat Detail">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                            </a>
-                            <a href="{{ route('admin.umkm.edit', $umkm->id_umkm) }}" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-djajan-primary hover:bg-djajan-primary/10 transition-colors" title="Edit Data">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                                 </svg>
                             </a>
                             <form action="{{ route('admin.umkm.destroy', $umkm->id_umkm) }}" method="POST" class="inline-block" onsubmit="return confirm('Yakin ingin menghapus UMKM {{ $umkm->nama_usaha }}? Data yang sudah dihapus tidak dapat dikembalikan.');">

@@ -21,7 +21,7 @@ class DashboardController extends Controller
         $data = [
             'total_produk'     => Produk::where('id_umkm', $idUmkm)->count(),
             'produk_tayang'    => Produk::where('id_umkm', $idUmkm)->where('status_ketersediaan', 1)->count(),
-            'stok_habis'       => Produk::where('id_umkm', $idUmkm)->where('stok', 0)->count(),
+            'stok_habis'       => Produk::where('id_umkm', $idUmkm)->where('stok', 0)->where('mode_penjualan', '!=', 'pre_order')->count(),
             'pesanan_baru'     => Pesanan::where('id_umkm', $idUmkm)->where('status_pesanan', 'po_baru')->count(),
             'pesanan_diterima' => Pesanan::where('id_umkm', $idUmkm)->where('status_pesanan', 'diterima')->count(),
             'omzet_diterima'   => (int) Pesanan::where('id_umkm', $idUmkm)

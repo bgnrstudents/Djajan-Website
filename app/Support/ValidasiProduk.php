@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\Produk;
+
 /**
  * Port langsung dari backend/config/validasi_produk.php (PHP Native).
  * Aturan disamakan persis (bukan ditulis ulang pakai gaya Laravel Validator)
@@ -10,7 +12,7 @@ namespace App\Support;
 class ValidasiProduk
 {
     public const HARGA_MINIMAL = 100;              // Rp100 — di bawah ini kemungkinan salah ketik
-    public const HARGA_MAKSIMAL = 5000000;          // Rp5.000.000 / porsi, wajar utk UMKM rumahan
+    public const HARGA_MAKSIMAL = 1000000;          // Rp1.000.000 / porsi
     public const NAMA_MIN_PANJANG = 3;
     public const NAMA_MAKS_PANJANG = 80;
     public const DESKRIPSI_MAKS_PANJANG = 500;
@@ -34,8 +36,11 @@ class ValidasiProduk
         if (!preg_match('/[A-Za-z\x{00C0}-\x{024F}]/u', $nama)) {
             return 'Nama produk harus mengandung huruf, tidak boleh hanya angka/simbol.';
         }
-        if (!preg_match("/^[A-Za-z0-9\x{00C0}-\x{024F} .,'&()\/-]+$/u", $nama)) {
-            return "Nama produk hanya boleh huruf, angka, spasi, dan tanda & - ' ( ) , .";
+        if (preg_match('/\d/u', $nama)) {
+            return 'Nama produk tidak boleh mengandung angka.';
+        }
+        if (!preg_match("/^[A-Za-z\x{00C0}-\x{024F} .,'&()\/-]+$/u", $nama)) {
+            return "Nama produk hanya boleh huruf, spasi, dan tanda & - ' ( ) , .";
         }
         return null;
     }
@@ -51,6 +56,45 @@ class ValidasiProduk
                 . '. Periksa lagi, sepertinya kelebihan angka nol.';
         }
         return null;
+    }
+
+    /**
+     * Samakan bentuk nama sebelum dibandingkan: huruf kecil, spasi di
+     * pinggir dibuang, dan spasi ganda dijadikan satu. Dengan begitu
+     * "Nasi Kotak", "nasi kotak" dan "  NASI   KOTAK " dianggap SAMA.
+     */
+    public static function normalisasiNama(string $nama): string
+    {
+        $nama = preg_replace('/\s+/u', ' ', trim($nama)) ?? $nama;
+
+        return mb_strtolower($nama);
+    }
+
+    /**
+     * Cek apakah UMKM ini sudah punya produk dengan nama (tanpa peduli
+     * huruf besar/kecil) DAN harga yang sama persis.
+     *
+     * @param int|null $kecualiIdProduk isi saat EDIT, supaya produk yang
+     *                                  sedang diedit tidak dianggap duplikat
+     *                                  dirinya sendiri.
+     * @return string|null pesan error bila duplikat, null bila aman.
+     */
+    public static function duplikat(int $idUmkm, string $nama, int $harga, ?int $kecualiIdProduk = null): ?string
+    {
+        $target = self::normalisasiNama($nama);
+
+        $ada = Produk::where('id_umkm', $idUmkm)
+            ->where('harga', $harga)
+            ->when($kecualiIdProduk, fn ($q) => $q->where('id_produk', '!=', $kecualiIdProduk))
+            ->pluck('nama_produk')
+            ->contains(fn ($n) => self::normalisasiNama((string) $n) === $target);
+
+        if (!$ada) {
+            return null;
+        }
+
+        return 'Produk "' . trim($nama) . '" dengan harga ' . self::rupiah($harga)
+            . ' sudah ada. Ubah nama atau harganya, atau edit produk yang sudah ada.';
     }
 
     public static function rupiah(int $angka): string

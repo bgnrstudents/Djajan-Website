@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\PelangganAuthController;
 use App\Http\Controllers\Api\ProdukController;
 use App\Http\Controllers\Api\ProfilController;
 use App\Http\Controllers\Api\RegisterController;
+use App\Http\Controllers\Api\KategoriController;
 use Illuminate\Support\Facades\Route;
 
 // publik
@@ -15,6 +16,7 @@ Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/pelanggan/register', [PelangganAuthController::class, 'register']);
 Route::post('/pelanggan/login', [PelangganAuthController::class, 'login']);
 Route::post('/auth/google', [PelangganAuthController::class, 'google']);
+Route::get('/kategori', [KategoriController::class, 'index']);
 
 // rute token Sanctum
 Route::middleware('auth:sanctum')->group(function () {

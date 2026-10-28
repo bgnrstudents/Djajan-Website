@@ -74,7 +74,7 @@ class UploadFoto
             return null;
         }
 
-        return url('file_gambar/' . $folder . '/' . rawurlencode($namaFile));
+        return url('uploads/' . $folder . '/' . rawurlencode($namaFile));
     }
 
     private static function tolak(string $pesan): never

@@ -32,17 +32,9 @@
         </div>
 
         <div class="flex items-center gap-2">
-
-            <a
-                href="{{ route('admin.products.edit', $product) }}"
-                class="rounded-lg bg-[#0F623F] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#0c5134]"
-            >
-                Edit Produk
-            </a>
-
             <a
                 href="{{ route('admin.products.index') }}"
-                class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                class="rounded-lg bg-[#0F623F] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#0c5134]"
             >
                 Kembali
             </a>
@@ -62,8 +54,8 @@
 
                 @if($product->gambar_produk)
 
-                    <img
-                        src="{{ asset('storage/' . $product->gambar_produk) }}"
+                        <img
+                            src="{{ $product->urlGambar() }}"
                         alt="{{ $product->nama_produk }}"
                         class="h-full w-full object-cover"
                     >

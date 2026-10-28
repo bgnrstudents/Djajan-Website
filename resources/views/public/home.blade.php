@@ -167,19 +167,19 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
 
                 <div>
-                    <p class="font-display text-3xl lg:text-4xl font-bold text-white num-display">25+</p>
+                    <p class="font-display text-3xl lg:text-4xl font-bold text-white num-display">{{ $totalUmkm }}</p>
                     <p class="mt-2 text-sm text-white/60">UMKM Lokal</p>
                     <div class="mt-3 h-px w-12 bg-white/20"></div>
                 </div>
 
                 <div>
-                    <p class="font-display text-3xl lg:text-4xl font-bold text-white num-display">100+</p>
+                    <p class="font-display text-3xl lg:text-4xl font-bold text-white num-display">{{ $totalProducts }}</p>
                     <p class="mt-2 text-sm text-white/60">Produk Lokal</p>
                     <div class="mt-3 h-px w-12 bg-white/20"></div>
                 </div>
 
                 <div>
-                    <p class="font-display text-3xl lg:text-4xl font-bold text-white num-display">5+</p>
+                    <p class="font-display text-3xl lg:text-4xl font-bold text-white num-display">{{ $totalCategories }}</p>
                     <p class="mt-2 text-sm text-white/60">Kategori Usaha</p>
                     <div class="mt-3 h-px w-12 bg-white/20"></div>
                 </div>
@@ -384,7 +384,7 @@
 
                         @if($featuredProduct->gambar_produk)
                         <img
-                            src="{{ asset('storage/' . $featuredProduct->gambar_produk) }}"
+                              src="{{ $featuredProduct->urlGambar() }}"
                             alt="{{ $featuredProduct->nama_produk }}"
                             class="img-zoom w-full h-full object-cover">
                         @else
@@ -467,8 +467,15 @@
                                     </p>
                                 </div>
 
-                                <a
-                                    href="#"
+                                <button
+                                    type="button"
+                                    data-detail-modal
+                                    data-modal-title="{{ $featuredProduct->nama_produk }}"
+                                    data-modal-category="{{ $featuredProduct->kategori ?: 'Produk' }}"
+                                    data-modal-description="{{ $featuredProduct->deskripsi ?: 'Produk lokal dari UMKM Desa Kreyongan Atas.' }}"
+                                    data-modal-price="Rp {{ number_format($featuredProduct->harga, 0, ',', '.') }}"
+                                    data-modal-label="Harga"
+                                    data-modal-image="{{ $featuredProduct->gambar_produk ? $featuredProduct->urlGambar() : '' }}"
                                     class="group/btn inline-flex items-center gap-2 rounded-full bg-[#111827] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0F623F] transition-colors duration-300">
                                     Lihat Detail
 
@@ -483,7 +490,7 @@
                                             stroke-width="2.5"
                                             d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                     </svg>
-                                </a>
+                                </button>
 
                             </div>
 
@@ -507,7 +514,7 @@
                     @if($product->gambar_produk)
 
                     <img
-                        src="{{ asset('storage/' . $product->gambar_produk) }}"
+                          src="{{ $product->urlGambar() }}"
                         alt="{{ $product->nama_produk }}"
                         class="img-zoom w-full h-full object-cover">
 
@@ -554,8 +561,15 @@
                             Rp {{ number_format($product->harga, 0, ',', '.') }}
                         </p>
 
-                        <a
-                            href="#"
+                        <button
+                            type="button"
+                            data-detail-modal
+                            data-modal-title="{{ $product->nama_produk }}"
+                            data-modal-category="{{ $product->kategori ?: 'Produk' }}"
+                            data-modal-description="{{ $product->deskripsi ?: 'Produk lokal dari UMKM Desa Kreyongan Atas.' }}"
+                            data-modal-price="Rp {{ number_format($product->harga, 0, ',', '.') }}"
+                            data-modal-label="Harga"
+                            data-modal-image="{{ $product->gambar_produk ? $product->urlGambar() : '' }}"
                             class="text-sm font-medium text-[#0F623F] hover:text-[#0A4A2F] transition-colors inline-flex items-center gap-1">
                             Detail
 
@@ -571,7 +585,7 @@
                                     d="M9 5l7 7-7 7" />
                             </svg>
 
-                        </a>
+                        </button>
 
                     </div>
 
@@ -758,8 +772,15 @@
                     <!-- Button -->
                     <div class="pt-6 border-t border-gray-200">
 
-                        <a
-                            href="#"
+                        <button
+                            type="button"
+                            data-detail-modal
+                            data-modal-title="{{ $featuredUmkm->nama_usaha }}"
+                            data-modal-category="{{ $featuredUmkm->spesialis ?: 'UMKM Lokal' }}"
+                            data-modal-description="{{ $featuredUmkm->deskripsi_usaha ?: 'UMKM lokal Desa Kreyongan Atas.' }}"
+                            data-modal-price="{{ $featuredUmkm->produk_count }} Produk"
+                            data-modal-label="Etalase"
+                            data-modal-image="{{ $featuredUmkm->foto_profil ? $featuredUmkm->urlFotoProfil() : '' }}"
                             class="group/btn inline-flex items-center justify-between w-full rounded-full bg-[#111827] px-6 py-4 text-sm font-semibold text-white hover:bg-[#0F623F] transition-colors duration-300">
 
                             <span>Kunjungi UMKM</span>
@@ -776,7 +797,7 @@
                                     d="M17 8l4 4m0 0l-4 4m4-4H3" />
                             </svg>
 
-                        </a>
+                        </button>
 
                     </div>
 
@@ -883,11 +904,18 @@
 
 
                     <!-- Detail -->
-                    <a
-                        href="#"
-                        class="inline-flex items-center gap-1.5 text-sm font-medium text-[#0F623F] hover:text-[#0A4A2F] transition-colors">
+<button
+                         type="button"
+                         data-detail-modal
+                         data-modal-title="{{ $umkm->nama_usaha }}"
+                         data-modal-category="{{ $umkm->spesialis ?: 'UMKM Lokal' }}"
+                         data-modal-description="{{ $umkm->deskripsi_usaha ?: 'UMKM lokal Desa Kreyongan Atas.' }}"
+                         data-modal-price="{{ $umkm->produk_count }} Produk"
+                         data-modal-label="Etalase"
+                         data-modal-image="{{ $umkm->foto_profil ? $umkm->urlFotoProfil() : '' }}"
+                         class="inline-flex items-center gap-1.5 text-sm font-medium text-[#0F623F] hover:text-[#0A4A2F] transition-colors">
 
-                        Lihat UMKM
+                         Lihat UMKM
 
                         <svg
                             class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1"
@@ -899,13 +927,13 @@
                                 stroke-linejoin="round"
                                 stroke-width="2"
                                 d="M9 5l7 7-7 7" />
-                        </svg>
+                             </svg>
 
-                    </a>
+                     </button>
 
-                </div>
+                 </div>
 
-            </article>
+             </article>
 
             @empty
 
@@ -1007,7 +1035,7 @@
                                 </div>
                             </div>
                             <div>
-                                <p class="text-sm font-semibold text-white">25+ UMKM</p>
+                                <p class="text-sm font-semibold text-white">{{ $totalUmkm }} UMKM</p>
                                 <p class="text-xs text-white/50">Sudah bergabung</p>
                             </div>
                         </div>
@@ -1015,7 +1043,7 @@
                         <div class="hidden sm:block w-px h-10 bg-white/10"></div>
 
                         <div>
-                            <p class="text-sm font-semibold text-white">100+ Produk Lokal</p>
+                            <p class="text-sm font-semibold text-white">{{ $totalProducts }} Produk Lokal</p>
                             <p class="text-xs text-white/50">Dari berbagai kategori</p>
                         </div>
 
@@ -1130,4 +1158,146 @@
     </div>
 
 </section>
-@endsection
+
+<style>
+    /* Pop-up detail: ditulis dengan CSS sendiri (bukan class Tailwind) supaya
+       tetap tampil benar walaupun `npm run build` belum dijalankan ulang. */
+    #detail-modal {
+        position: fixed; inset: 0; z-index: 9999;
+        display: none; align-items: center; justify-content: center;
+        padding: 16px;
+        background: rgba(15, 23, 42, .55);
+        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+        opacity: 0; transition: opacity .2s ease;
+    }
+    #detail-modal.is-open { display: flex; }
+    #detail-modal.is-visible { opacity: 1; }
+    #detail-modal .dm-card {
+        position: relative; display: grid; grid-template-columns: 1fr;
+        width: 100%; max-width: 880px; max-height: calc(100vh - 32px);
+        overflow: hidden; background: #fff; border-radius: 28px;
+        box-shadow: 0 30px 80px -20px rgba(0,0,0,.45);
+        transform: translateY(16px) scale(.98); transition: transform .25s ease;
+    }
+    #detail-modal.is-visible .dm-card { transform: none; }
+    #detail-modal .dm-media {
+        position: relative; background: #ECF3EF; min-height: 240px;
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    #detail-modal .dm-media img { width: 100%; height: 100%; object-fit: cover; display: block; max-height: 320px; }
+    #detail-modal .dm-empty { color: #8AA093; font-size: 14px; }
+    #detail-modal .dm-body { padding: 28px 26px 26px; overflow-y: auto; display: flex; flex-direction: column; }
+    #detail-modal .dm-chip {
+        align-self: flex-start; padding: 6px 12px; border-radius: 999px;
+        background: #E7F4EC; color: #0F623F; font-size: 12px; font-weight: 600;
+        letter-spacing: .02em; margin-bottom: 14px;
+    }
+    #detail-modal .dm-title {
+        font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.02em;
+        font-size: 28px; line-height: 1.2; font-weight: 800; color: #111827; margin: 0 0 12px;
+    }
+    #detail-modal .dm-desc { color: #4B5563; line-height: 1.7; font-size: 15px; margin: 0; white-space: pre-line; }
+    #detail-modal .dm-footer {
+        margin-top: auto; padding-top: 22px;
+    }
+    #detail-modal .dm-info {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        padding: 16px 18px; border-radius: 18px; background: #F4F8F5; border: 1px solid #E1EDE5;
+    }
+    #detail-modal .dm-label { font-size: 12px; color: #6B7280; margin: 0 0 2px; }
+    #detail-modal .dm-value {
+        font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 800; color: #0F623F; margin: 0;
+    }
+    #detail-modal .dm-close {
+        position: absolute; top: 14px; right: 14px; z-index: 3;
+        width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer;
+        background: #fff; color: #111827; font-size: 22px; line-height: 1;
+        box-shadow: 0 4px 14px rgba(0,0,0,.18); transition: transform .15s ease, background .15s ease;
+    }
+    #detail-modal .dm-close:hover { background: #F3F4F6; transform: scale(1.06); }
+    #detail-modal .dm-btn {
+        margin-top: 12px; width: 100%; padding: 13px 16px; border: 0; border-radius: 14px; cursor: pointer;
+        background: #0F623F; color: #fff; font-weight: 600; font-size: 14px; transition: background .15s ease;
+    }
+    #detail-modal .dm-btn:hover { background: #0A4A2F; }
+    @media (min-width: 768px) {
+        #detail-modal .dm-card { grid-template-columns: 1fr 1fr; }
+        #detail-modal .dm-media img { max-height: none; min-height: 460px; }
+        #detail-modal .dm-body { padding: 44px 40px 36px; }
+        #detail-modal .dm-title { font-size: 32px; }
+    }
+</style>
+
+<div id="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title">
+    <div class="dm-card">
+        <button type="button" class="dm-close" data-modal-close aria-label="Tutup">&times;</button>
+
+        <div class="dm-media">
+            <img id="detail-modal-image" alt="" style="display:none">
+            <span id="detail-modal-placeholder" class="dm-empty">Belum ada gambar</span>
+        </div>
+
+        <div class="dm-body">
+            <span id="detail-modal-category" class="dm-chip"></span>
+            <h2 id="detail-modal-title" class="dm-title"></h2>
+            <p id="detail-modal-description" class="dm-desc"></p>
+
+            <div class="dm-footer">
+                <div class="dm-info">
+                    <div>
+                        <p id="detail-modal-label" class="dm-label">Harga</p>
+                        <p id="detail-modal-price" class="dm-value"></p>
+                    </div>
+                </div>
+                <button type="button" class="dm-btn" data-modal-close>Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const modal = document.getElementById('detail-modal');
+        const image = document.getElementById('detail-modal-image');
+        const placeholder = document.getElementById('detail-modal-placeholder');
+        const $ = (id) => document.getElementById(id);
+
+        const showImage = (src) => {
+            if (!src) {
+                image.style.display = 'none';
+                image.removeAttribute('src');
+                placeholder.style.display = '';
+                return;
+            }
+            image.onerror = () => { image.style.display = 'none'; placeholder.style.display = ''; };
+            image.onload = () => { image.style.display = 'block'; placeholder.style.display = 'none'; };
+            image.src = src;
+        };
+
+        const open = (d) => {
+            $('detail-modal-title').textContent = d.modalTitle || '';
+            $('detail-modal-category').textContent = d.modalCategory || '';
+            $('detail-modal-description').textContent = d.modalDescription || '';
+            $('detail-modal-label').textContent = d.modalLabel || 'Informasi';
+            $('detail-modal-price').textContent = d.modalPrice || '';
+            image.alt = d.modalTitle || '';
+            showImage(d.modalImage);
+            modal.classList.add('is-open');
+            requestAnimationFrame(() => modal.classList.add('is-visible'));
+            document.body.style.overflow = 'hidden';
+        };
+
+        const close = () => {
+            modal.classList.remove('is-visible');
+            setTimeout(() => modal.classList.remove('is-open'), 200);
+            document.body.style.overflow = '';
+        };
+
+        document.querySelectorAll('[data-detail-modal]').forEach((btn) => {
+            btn.addEventListener('click', () => open(btn.dataset));
+        });
+        modal.querySelectorAll('[data-modal-close]').forEach((b) => b.addEventListener('click', close));
+        modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('is-open')) close(); });
+    })();
+</script>
