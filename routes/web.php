@@ -30,6 +30,17 @@ Route::get('/file_gambar/{folder}/{filename}', function (string $folder, string 
 Route::get('/', [HomeController::class, 'index'])
     ->name('public.home');
 
+Route::get('/payment/finish', function () {
+    return response(
+        '<!doctype html><html lang="id"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<title>Pembayaran DJajan</title></head><body style="font-family:Arial,sans-serif;'
+        . 'padding:40px;text-align:center"><h1>Pembayaran diproses</h1>'
+        . '<p>Status pembayaran sedang disinkronkan. Kamu dapat kembali ke aplikasi DJajan.</p>'
+        . '</body></html>'
+    );
+});
+
 
 // ======================================================
 // ADMIN

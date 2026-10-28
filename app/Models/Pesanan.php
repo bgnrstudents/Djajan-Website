@@ -23,6 +23,7 @@ class Pesanan extends Model
         'batas_konfirmasi', 'keperluan_acara', 'metode_pengiriman', 'alamat_tujuan',
         'catatan', 'metode_pembayaran', 'status_pembayaran', 'bukti_pembayaran',
         'biaya_pengantaran', 'biaya_layanan', 'total_harga', 'status_pesanan',
+        'midtrans_order_id', 'snap_token', 'payment_url', 'payment_status',
     ];
 
     public function pelanggan(): BelongsTo
@@ -63,6 +64,10 @@ class Pesanan extends Model
             'catatan'           => $this->catatan ?? '',
             'metode_pembayaran' => $this->metode_pembayaran ?? '',
             'status_pembayaran' => $this->status_pembayaran ?? 'belum_bayar',
+            'payment_status'    => $this->payment_status ?? ($this->status_pembayaran ?? 'pending'),
+            'midtrans_order_id' => $this->midtrans_order_id,
+            'snap_token'        => $this->snap_token,
+            'payment_url'       => $this->payment_url,
             'biaya_pengantaran' => (int) $this->biaya_pengantaran,
             'biaya_layanan'     => (int) $this->biaya_layanan,
             'subtotal'          => $subtotal,

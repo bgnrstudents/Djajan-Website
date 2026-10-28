@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ProdukController;
 use App\Http\Controllers\Api\ProfilController;
 use App\Http\Controllers\Api\RegisterController;
 use App\Http\Controllers\Api\KategoriController;
+use App\Http\Controllers\Api\KatalogController;
 use Illuminate\Support\Facades\Route;
 
 // publik
@@ -17,6 +18,7 @@ Route::post('/pelanggan/register', [PelangganAuthController::class, 'register'])
 Route::post('/pelanggan/login', [PelangganAuthController::class, 'login']);
 Route::post('/auth/google', [PelangganAuthController::class, 'google']);
 Route::get('/kategori', [KategoriController::class, 'index']);
+Route::get('/katalog', [KatalogController::class, 'index']);
 
 // rute token Sanctum
 Route::middleware('auth:sanctum')->group(function () {
@@ -36,5 +38,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pesanan_detail', [PesananController::class, 'show']);
     Route::post('/pesanan_status', [PesananController::class, 'updateStatus']);
 
+    Route::get('/pesanan/saya', [\App\Http\Controllers\Api\CheckoutController::class, 'index']);
+    Route::get('/pesanan/saya/{id_pesanan}', [\App\Http\Controllers\Api\CheckoutController::class, 'show']);
+    Route::post('/pesanan/checkout', [\App\Http\Controllers\Api\CheckoutController::class, 'store']);
+
     Route::get('/ringkasan', [DashboardController::class, 'ringkasan']);
 });
+
+Route::post('/pesanan/midtrans/callback', [\App\Http\Controllers\Api\CheckoutController::class, 'callback']);
