@@ -53,6 +53,10 @@ class Pesanan extends Model
         return [
             'id_pesanan'        => $this->id_pesanan,
             'id_pelanggan'      => (int) $this->id_pelanggan,
+            'id_umkm'           => (int) $this->id_umkm,
+            'nama_umkm'         => $this->umkm?->nama_usaha ?? 'UMKM',
+            'spesialis_umkm'    => $this->umkm?->spesialis ?? '',
+            'alamat_umkm'       => $this->umkm?->alamat ?? '',
             'nama_pembeli'      => $this->pelanggan?->nama ?? '',
             'no_telp'           => $this->pelanggan?->no_telp ?? '',
             'tanggal_pesan'     => $this->tanggal_pesan,

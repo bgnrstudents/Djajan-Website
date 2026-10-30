@@ -26,6 +26,11 @@ class MidtransService
         }
 
         if ($response->failed()) {
+            \Log::warning('Midtrans transaction status request failed', [
+                'order_id' => $orderId,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
             throw new \RuntimeException('Gagal mengambil status transaksi Midtrans.');
         }
 
