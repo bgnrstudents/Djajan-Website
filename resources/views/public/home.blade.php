@@ -24,6 +24,73 @@
     .group:hover .img-zoom {
         transform: scale(1.04);
     }
+
+    /* ===== Mobile Optimizations ===== */
+    @media (max-width: 1023px) {
+        /* Hero: Reduce min-height and adjust spacing */
+        #home {
+            min-height: auto;
+            height: 80vh;
+        }
+
+        /* Section: Consistent padding and spacing */
+        section {
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+        }
+
+        /* Cards: Remove minimum heights to fit content */
+        .min-h-\[280px\] {
+            min-height: auto;
+        }
+
+        /* Featured Product: Stack layout */
+        .md\\:col-span-2,
+        .lg\\:col-span-2 {
+            grid-column: auto;
+        }
+
+        /* Card Overlap: Reset to normal flow */
+        .lg\\:absolute,
+        .lg\\:-bottom-10,
+        .lg\\:right-10,
+        .lg\\:w-\[380px\] {
+            position: static;
+            width: 100%;
+            transform: none;
+        }
+
+        /* CTA Section: Adjust typography and button sizing */
+        #cta .font-display {
+            font-size: 1.875rem;
+            line-height: 1.25;
+        }
+    }
+
+    /* ===== Modals ===== */
+    #detail-modal .dm-card {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+    }
+
+    #detail-modal .dm-body {
+        padding: 1rem;
+        font-size: 0.875rem;
+    }
+
+    #detail-modal .dm-title {
+        font-size: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        #detail-modal .dm-body {
+            padding: 2rem;
+        }
+
+        #detail-modal .dm-title {
+            font-size: 2rem;
+        }
+    }
 </style>
 
 
