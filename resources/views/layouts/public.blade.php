@@ -115,11 +115,11 @@
     <div id="mobile-menu" class="pointer-events-none fixed inset-0 z-40 bg-white/95 pt-28 opacity-0 backdrop-blur-md transition-all duration-300 lg:hidden" aria-hidden="true">
         <div class="translate-y-4 px-6 py-8 transition-transform duration-300" data-mobile-panel>
             <nav class="space-y-2" aria-label="Navigasi mobile">
-                <a href="#home" data-nav-link class="block rounded-2xl px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-dj-green">Utama</a>
-                <a href="#tentang" data-nav-link class="block rounded-2xl px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-dj-green">Tentang Kami</a>
-                <a href="#produk" data-nav-link class="block rounded-2xl px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-dj-green">Produk</a>
-                <a href="#umkm" data-nav-link class="block rounded-2xl px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-dj-green">UMKM</a>
-                <a href="#kontak" data-nav-link class="block rounded-2xl px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-dj-green">Kontak</a>
+                <a href="#home" data-nav-link class="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-dj-green">Utama</a>
+                <a href="#tentang" data-nav-link class="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-dj-green">Tentang Kami</a>
+                <a href="#produk" data-nav-link class="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-dj-green">Produk</a>
+                <a href="#umkm" data-nav-link class="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-dj-green">UMKM</a>
+                <a href="#kontak" data-nav-link class="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-dj-green">Kontak</a>
             </nav>
             <div class="mt-8 border-t border-gray-200 pt-8">
                 @auth
