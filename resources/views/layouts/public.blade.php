@@ -115,11 +115,11 @@
     <div id="mobile-menu" class="pointer-events-none fixed inset-0 z-40 bg-white/95 pt-28 opacity-0 backdrop-blur-md transition-all duration-300 lg:hidden" aria-hidden="true">
         <div class="translate-y-4 px-6 py-8 transition-transform duration-300" data-mobile-panel>
             <nav class="space-y-1" aria-label="Navigasi mobile">
-                <a href="#home" data-nav-link class="block py-1 text-xs text-gray-700 hover:text-dj-green">Utama</a>
-                <a href="#tentang" data-nav-link class="block py-1 text-xs text-gray-700 hover:text-dj-green">Tentang Kami</a>
-                <a href="#produk" data-nav-link class="block py-1 text-xs text-gray-700 hover:text-dj-green">Produk</a>
-                <a href="#umkm" data-nav-link class="block py-1 text-xs text-gray-700 hover:text-dj-green">UMKM</a>
-                <a href="#kontak" data-nav-link class="block py-1 text-xs text-gray-700 hover:text-dj-green">Kontak</a>
+                <a href="#home" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Utama</a>
+                <a href="#tentang" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Tentang Kami</a>
+                <a href="#produk" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Produk</a>
+                <a href="#umkm" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">UMKM</a>
+                <a href="#kontak" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Kontak</a>
             </nav>
             <div class="mt-6 border-t border-gray-100 pt-6">
                 @auth
