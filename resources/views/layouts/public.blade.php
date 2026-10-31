@@ -121,7 +121,7 @@
                 <a href="#umkm" data-nav-link class="block py-1 text-xs text-gray-700 hover:text-dj-green">UMKM</a>
                 <a href="#kontak" data-nav-link class="block py-1 text-xs text-gray-700 hover:text-dj-green">Kontak</a>
             </nav>
-            <div class="mt-8 border-t border-gray-200 pt-8">
+            <div class="mt-6 border-t border-gray-100 pt-6">
                 @auth
                     <a href="{{ route('admin.dashboard') }}" class="flex items-center justify-between rounded-full bg-dj-dark py-2 pl-6 pr-2 text-base font-semibold text-white transition-colors hover:bg-dj-green">Dashboard Admin <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white"><svg class="h-5 w-5 text-dj-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7" /></svg></span></a>
                 @else
