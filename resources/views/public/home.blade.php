@@ -27,30 +27,31 @@
 
     /* ===== Mobile Optimizations ===== */
     @media (max-width: 1023px) {
-        /* Hero: Reduce min-height and adjust spacing */
+        /* Hero: Keep original hero sizing */
         #home {
-            min-height: auto;
-            height: 80vh;
+            min-height: 640px;
+            height: auto;
         }
 
-        /* Section: Consistent padding and spacing */
+        /* Section: Consistent spacing */
         section {
-            padding-top: 4rem;
-            padding-bottom: 4rem;
+            padding-top: 3rem;
+            padding-bottom: 3rem;
         }
 
-        /* Cards: Remove minimum heights to fit content */
-        .min-h-\[280px\] {
-            min-height: auto;
+        /* Cards: Ensure consistent layout in "Mengapa Djajan" */
+        .grid.grid-cols-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
         }
 
-        /* Featured Product: Stack layout */
+        /* Featured product stack */
         .md\\:col-span-2,
         .lg\\:col-span-2 {
             grid-column: auto;
         }
 
-        /* Card Overlap: Reset to normal flow */
+        /* Card overlap: reset absolute positioning for mobile */
         .lg\\:absolute,
         .lg\\:-bottom-10,
         .lg\\:right-10,
@@ -58,16 +59,17 @@
             position: static;
             width: 100%;
             transform: none;
+            margin-top: 1.5rem;
         }
 
-        /* CTA Section: Adjust typography and button sizing */
+        /* CTA: keep original scaling */
         #cta .font-display {
             font-size: 1.875rem;
             line-height: 1.25;
         }
     }
 
-    /* ===== Modals ===== */
+    /* ===== Modal mobile ===== */
     #detail-modal .dm-card {
         margin: 1rem;
         max-height: calc(100vh - 2rem);
