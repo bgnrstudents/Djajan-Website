@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pelanggan extends Authenticatable
 {
@@ -30,5 +31,15 @@ class Pelanggan extends Authenticatable
     protected function casts(): array
     {
         return ['email_verified_at' => 'datetime'];
+    }
+
+    public function alamatPengiriman(): HasMany
+    {
+        return $this->hasMany(PelangganAlamat::class, 'id_pelanggan', 'id_pelanggan');
+    }
+
+    public function favorit(): HasMany
+    {
+        return $this->hasMany(PelangganFavorit::class, 'id_pelanggan', 'id_pelanggan');
     }
 }

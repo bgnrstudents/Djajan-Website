@@ -24,6 +24,14 @@ Route::get('/katalog', [KatalogController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/pelanggan/logout', [PelangganAuthController::class, 'logout']);
+    Route::get('/pelanggan/profil', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'profile']);
+    Route::post('/pelanggan/profil_update', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'updateProfile']);
+    Route::get('/pelanggan/alamat_list', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'addresses']);
+    Route::post('/pelanggan/alamat_simpan', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'saveAddress']);
+    Route::post('/pelanggan/alamat_hapus', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'deleteAddress']);
+    Route::post('/pelanggan/alamat_utama', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'setPrimaryAddress']);
+    Route::get('/pelanggan/favorit', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'favorites']);
+    Route::post('/pelanggan/favorit_toggle', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'toggleFavorite']);
 
     Route::get('/profil_get', [ProfilController::class, 'show']);
     Route::post('/profil_update', [ProfilController::class, 'update']);
