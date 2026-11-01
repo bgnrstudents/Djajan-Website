@@ -12,6 +12,8 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class PelangganSettingsController extends Controller
 {
@@ -37,6 +39,9 @@ class PelangganSettingsController extends Controller
 
         $pelanggan = $request->user();
         $existing = Umkm::where('id_pelanggan', $pelanggan->id_pelanggan)->first();
+        if ($existing && $existing->status_verifikasi === 'dihapus') {
+            return $this->gagal('Akun UMKM ini sudah dihapus dan tidak dapat didaftarkan kembali.', 403);
+        }
         if ($existing && $existing->status_verifikasi === 'terverifikasi') {
             return $this->gagal('Akun UMKM Anda sudah terverifikasi.', 409);
         }
@@ -89,6 +94,7 @@ class PelangganSettingsController extends Controller
         if (!$umkm) {
             return $this->gagal('Anda belum mendaftarkan usaha.', 404);
         }
+
         if ($umkm->status_verifikasi !== 'terverifikasi') {
             return $this->gagal('Akun UMKM belum terverifikasi admin desa.', 403);
         }
@@ -99,6 +105,50 @@ class PelangganSettingsController extends Controller
             $umkm->fresh()->keFormatJson(),
             ['token' => $umkm->createToken('flutter-app')->plainTextToken],
         ));
+    }
+
+    public function deleteUmkm(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'konfirmasi' => ['required', 'in:HAPUS'],
+            'password' => ['required', 'string'],
+            'alasan' => ['required', 'string', 'min:10', 'max:500'],
+        ]);
+        if ($validator->fails()) {
+            return $this->gagal($validator->errors()->first(), 422);
+        }
+
+        $pelanggan = $request->user();
+        if (!Hash::check((string) $request->input('password'), (string) $pelanggan->password)) {
+            return $this->gagal('Password pelanggan tidak benar.', 403);
+        }
+
+        $umkm = Umkm::where('id_pelanggan', $pelanggan->id_pelanggan)->first();
+        if (!$umkm) {
+            return $this->gagal('Akun UMKM tidak ditemukan.', 404);
+        }
+        if ($umkm->status_verifikasi === 'dihapus') {
+            return $this->gagal('Akun UMKM ini sudah dihapus.', 409);
+        }
+
+        DB::transaction(function () use ($umkm, $request) {
+            Produk::where('id_umkm', $umkm->id_umkm)->delete();
+            $umkm->update([
+                'status_verifikasi' => 'dihapus',
+                'alasan_penghapusan' => trim((string) $request->input('alasan')),
+                'dihapus_pada' => now(),
+                'toko_aktif' => false,
+                'transfer_bank_aktif' => false,
+                'cod_aktif' => false,
+                'pickup_aktif' => false,
+                'kurir_warga_aktif' => false,
+            ]);
+        });
+
+        return $this->sukses(
+            'Akun UMKM berhasil dihapus permanen. Akun ini tidak dapat didaftarkan kembali.',
+            ['status_verifikasi' => 'dihapus']
+        );
     }
 
     public function updateProfile(Request $request): JsonResponse

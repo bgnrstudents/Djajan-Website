@@ -21,6 +21,7 @@ class Umkm extends Model
 
     protected $fillable = [
         'id_pelanggan', 'nama_usaha', 'spesialis', 'deskripsi_usaha', 'alamat',
+        'alasan_penghapusan', 'dihapus_pada',
         'no_telp_usaha', 'email_usaha', 'password', 'foto_profil', 'status_verifikasi',
         'toko_aktif', 'transfer_bank_aktif', 'bank_kode', 'bank_nama', 'no_rekening',
         'atas_nama', 'cod_aktif', 'skema_po', 'pickup_aktif', 'kurir_warga_aktif',
