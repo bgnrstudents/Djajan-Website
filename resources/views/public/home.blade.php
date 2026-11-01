@@ -127,11 +127,11 @@
 
             <h1 class="font-hero text-4xl font-semibold leading-[1.15] tracking-[-0.045em] text-white md:text-6xl lg:text-[4.5rem]">
                 Kenali dan dukung<br>
-                <span class="text-[#4CAF50]">UMKM lokal</span><br>
-                bersama Djajan.
+                <span >UMKM lokal</span><br>
+                bersama <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan.</span>
             </h1>
 
-            <p class="mt-7 max-w-lg text-base leading-relaxed text-white/75 md:text-lg">
+            <p class="mt-5 max-w-lg text-base leading-relaxed text-white/75 md:text-lg">
                 Temukan berbagai usaha dan produk lokal dari Desa Kreyongan Atas dalam satu platform. Kenali produknya, dukung usahanya, dan ikut menggerakkan ekonomi lokal.
             </p>
         </div>
