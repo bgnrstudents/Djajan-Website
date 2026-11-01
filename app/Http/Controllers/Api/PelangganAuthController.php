@@ -134,6 +134,18 @@ class PelangganAuthController extends Controller
         return $this->sukses('Berhasil keluar.');
     }
 
+    public function switchToCustomer(Request $request): JsonResponse
+    {
+        $umkm = $request->user();
+        $pelanggan = $umkm instanceof Umkm ? $umkm->pelanggan : null;
+        if (!$pelanggan) {
+            return $this->gagal('Akun pelanggan terkait tidak ditemukan.', 404);
+        }
+
+        $pelanggan->tokens()->delete();
+        return $this->sukses('Mode pelanggan aktif.', $this->dataDenganToken($pelanggan->fresh()));
+    }
+
     private function dataDenganToken(Pelanggan $pelanggan): array
     {
         $pelanggan->tokens()->delete();

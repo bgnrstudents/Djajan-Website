@@ -26,6 +26,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pelanggan/logout', [PelangganAuthController::class, 'logout']);
     Route::get('/pelanggan/profil', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'profile']);
     Route::post('/pelanggan/profil_update', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'updateProfile']);
+    Route::post('/pelanggan/umkm_daftar', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'registerUmkm']);
+    Route::post('/pelanggan/mode_umkm', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'switchToUmkm']);
+    Route::post('/pelanggan/mode_pelanggan', [PelangganAuthController::class, 'switchToCustomer']);
     Route::get('/pelanggan/alamat_list', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'addresses']);
     Route::post('/pelanggan/alamat_simpan', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'saveAddress']);
     Route::post('/pelanggan/alamat_hapus', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'deleteAddress']);

@@ -22,6 +22,84 @@ class PelangganSettingsController extends Controller
         return $this->sukses('Profil pelanggan dimuat.', $this->profileData($request->user()));
     }
 
+    public function registerUmkm(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'nama_usaha' => ['required', 'string', 'min:3', 'max:120'],
+            'spesialis' => ['required', 'string', 'min:3', 'max:150'],
+            'alamat' => ['required', 'string', 'min:10', 'max:255'],
+            'no_telp_usaha' => ['required', 'string', 'min:10', 'max:20'],
+            'email_usaha' => ['nullable', 'email', 'max:255'],
+        ]);
+        if ($validator->fails()) {
+            return $this->gagal($validator->errors()->first(), 400);
+        }
+
+        $pelanggan = $request->user();
+        $existing = Umkm::where('id_pelanggan', $pelanggan->id_pelanggan)->first();
+        if ($existing && $existing->status_verifikasi === 'terverifikasi') {
+            return $this->gagal('Akun UMKM Anda sudah terverifikasi.', 409);
+        }
+
+        $phone = $this->normalizePhone((string) $request->input('no_telp_usaha'));
+        $email = mb_strtolower(trim((string) $request->input('email_usaha', '')));
+        $duplicate = Umkm::query()
+            ->when($existing, fn ($query) => $query->where('id_umkm', '!=', $existing->id_umkm))
+            ->where(function ($query) use ($phone, $email) {
+                $query->where('no_telp_usaha', $phone);
+                if ($email !== '') {
+                    $query->orWhereRaw('LOWER(email_usaha) = ?', [$email]);
+                }
+            })->exists();
+        if ($duplicate) {
+            return $this->gagal('Nomor WhatsApp atau email usaha sudah digunakan.', 409);
+        }
+
+        $data = [
+            'id_pelanggan' => $pelanggan->id_pelanggan,
+            'nama_usaha' => trim((string) $request->input('nama_usaha')),
+            'spesialis' => trim((string) $request->input('spesialis')),
+            'alamat' => trim((string) $request->input('alamat')),
+            'no_telp_usaha' => $phone,
+            'email_usaha' => $email !== '' ? $email : null,
+            'status_verifikasi' => 'menunggu',
+            'toko_aktif' => false,
+            'transfer_bank_aktif' => false,
+            'cod_aktif' => false,
+            'pickup_aktif' => false,
+            'kurir_warga_aktif' => false,
+        ];
+        if ($umkm) {
+            $umkm->update($data);
+        } else {
+            $umkm = Umkm::create($data);
+        }
+
+        return $this->sukses(
+            'Pengajuan UMKM berhasil dikirim. Menunggu verifikasi admin desa.',
+            $this->umkmApplicationData($umkm->fresh()),
+            $existing ? 200 : 201
+        );
+    }
+
+    public function switchToUmkm(Request $request): JsonResponse
+    {
+        $umkm = Umkm::where('id_pelanggan', $request->user()->id_pelanggan)->first();
+        if (!$umkm) {
+            return $this->gagal('Anda belum mendaftarkan usaha.', 404);
+        }
+        if ($umkm->status_verifikasi !== 'terverifikasi') {
+            return $this->gagal('Akun UMKM belum terverifikasi admin desa.', 403);
+        }
+
+        $umkm->tokens()->delete();
+        return $this->sukses('Mode UMKM aktif.', array_merge(
+            ['role' => 'umkm'],
+            $umkm->fresh()->keFormatJson(),
+            ['token' => $umkm->createToken('flutter-app')->plainTextToken],
+        ));
+    }
+
     public function updateProfile(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -187,6 +265,27 @@ class PelangganSettingsController extends Controller
             'email' => $pelanggan->email ?? '',
             'no_telp' => $pelanggan->no_telp ?? '',
             'alamat' => $pelanggan->alamat ?? '',
+            'umkm' => $this->umkmApplicationData(
+                Umkm::where('id_pelanggan', $pelanggan->id_pelanggan)->first()
+            ),
+        ];
+    }
+
+    private function umkmApplicationData(?Umkm $umkm): ?array
+    {
+        if (!$umkm) {
+            return null;
+        }
+
+        return [
+            'id_umkm' => (int) $umkm->id_umkm,
+            'nama_usaha' => $umkm->nama_usaha,
+            'spesialis' => $umkm->spesialis ?? '',
+            'alamat' => $umkm->alamat ?? '',
+            'no_telp_usaha' => $umkm->no_telp_usaha ?? '',
+            'email_usaha' => $umkm->email_usaha ?? '',
+            'status_verifikasi' => $umkm->status_verifikasi,
+            'alasan_penolakan' => $umkm->alasan_penolakan ?? null,
         ];
     }
 
