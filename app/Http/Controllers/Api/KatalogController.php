@@ -63,6 +63,8 @@ class KatalogController extends Controller
                 'image_url' => $umkm->urlFotoProfil() ?? '',
                 'pickup_location' => $umkm->alamat ?? 'Desa Kreyongan Atas',
                 'courier_fee' => $umkm->kurir_warga_aktif ? (float) $umkm->biaya_pengantaran : null,
+                'cod_available' => (bool) $umkm->cod_aktif,
+                'pickup_available' => (bool) $umkm->pickup_aktif,
                 'rating' => 0.0,
                 'sold_count' => 0,
                 'is_verified' => true,
@@ -88,6 +90,8 @@ class KatalogController extends Controller
                 'courier_fee' => $product->umkm?->kurir_warga_aktif
                     ? (float) ($product->umkm?->biaya_pengantaran ?? 0)
                     : null,
+                'cod_available' => (bool) $product->umkm?->cod_aktif,
+                'pickup_available' => (bool) $product->umkm?->pickup_aktif,
                 'pickup_location' => $product->umkm?->alamat ?? 'Desa Kreyongan Atas',
             ])->values(),
             'kategori' => Kategori::where('aktif', true)

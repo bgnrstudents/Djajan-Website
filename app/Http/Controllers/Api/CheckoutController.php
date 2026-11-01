@@ -7,6 +7,7 @@ use App\Models\DetailPesanan;
 use App\Models\Pelanggan;
 use App\Models\Pesanan;
 use App\Models\Produk;
+use App\Models\Umkm;
 use App\Services\MidtransService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -69,7 +70,7 @@ class CheckoutController extends Controller
         $waktuDibutuhkan = $request->input('waktu_dibutuhkan');
         $keperluanAcara = trim((string) $request->input('keperluan_acara', ''));
         $biayaPengantaran = (int) $request->input('biaya_pengantaran', 0);
-        $biayaLayanan = (int) $request->input('biaya_layanan', 0);
+        $biayaLayanan = 0;
 
         if (!is_array($items) || count($items) === 0) {
             return $this->gagal('Item pesanan wajib diisi.', 422);
@@ -77,6 +78,10 @@ class CheckoutController extends Controller
 
         if (!in_array($metodePembayaran, ['midtrans', 'cod'], true)) {
             return $this->gagal('Metode pembayaran tidak valid.', 422);
+        }
+
+        if (!in_array($pengiriman, ['pickup', 'kurir'], true)) {
+            return $this->gagal('Metode pengiriman tidak valid.', 422);
         }
 
         $produkMap = [];
@@ -116,7 +121,9 @@ class CheckoutController extends Controller
                 return $this->gagal('Stok produk "' . $produk->nama_produk . '" tidak mencukupi.', 409);
             }
 
-            $harga = (int) ($item['harga_satuan'] ?? $produk->harga);
+            // Harga dan biaya tidak boleh dipercaya dari client karena menjadi
+            // dasar total pembayaran Midtrans maupun COD.
+            $harga = (int) $produk->harga;
             $subtotalItem = $harga * $jumlah;
             $subtotal += $subtotalItem;
             $totalQty += $jumlah;
@@ -134,10 +141,38 @@ class CheckoutController extends Controller
             return $this->gagal('Checkout saat ini hanya mendukung satu UMKM per transaksi.', 422);
         }
 
-        if (trim($alamat) === '') {
+        $umkm = Umkm::find($umkmIds[0]);
+        if (!$umkm || !(bool) $umkm->toko_aktif) {
+            return $this->gagal('Toko sedang tidak menerima pesanan.', 409);
+        }
+
+        if ($metodePembayaran === 'cod' && !(bool) $umkm->cod_aktif) {
+            return $this->gagal('Pembayaran COD tidak tersedia di toko ini.', 409);
+        }
+
+        if ($pengiriman === 'pickup' && !(bool) $umkm->pickup_aktif) {
+            return $this->gagal('Pickup tidak tersedia di toko ini.', 409);
+        }
+
+        if ($pengiriman === 'kurir' && !(bool) $umkm->kurir_warga_aktif) {
+            return $this->gagal('Pengantaran kurir tidak tersedia di toko ini.', 409);
+        }
+
+        if ($pengiriman === 'kurir' && (int) $umkm->biaya_pengantaran < 0) {
+            return $this->gagal('Biaya pengantaran toko tidak valid.', 422);
+        }
+
+        if ($pengiriman === 'pickup') {
+            $biayaPengantaran = 0;
+        } else {
+            $biayaPengantaran = (int) $umkm->biaya_pengantaran;
+        }
+
+        if ($pengiriman === 'kurir' && trim($alamat) === '') {
             return $this->gagal('Alamat tujuan wajib diisi.', 422);
         }
 
+        $biayaLayanan = max(0, $biayaLayanan);
         $totalHarga = $subtotal + $biayaPengantaran + $biayaLayanan;
         $orderId = $this->buildOrderId();
 
@@ -176,6 +211,7 @@ class CheckoutController extends Controller
                 'catatan' => $catatan,
                 'metode_pembayaran' => $metodePembayaran,
                 'status_pembayaran' => $statusPembayaran,
+                'payment_status' => $metodePembayaran === 'cod' ? 'cod_pending' : 'pending',
                 'biaya_pengantaran' => $biayaPengantaran,
                 'biaya_layanan' => $biayaLayanan,
                 'total_harga' => $totalHarga,
