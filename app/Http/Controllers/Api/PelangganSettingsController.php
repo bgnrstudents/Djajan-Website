@@ -21,7 +21,12 @@ class PelangganSettingsController extends Controller
 
     public function profile(Request $request): JsonResponse
     {
-        return $this->sukses('Profil pelanggan dimuat.', $this->profileData($request->user()));
+        $pelanggan = $request->user();
+        if (!$pelanggan instanceof Pelanggan) {
+            return $this->gagal('Sesi pelanggan tidak valid. Silakan aktifkan Mode Pelanggan lagi.', 401);
+        }
+
+        return $this->sukses('Profil pelanggan dimuat.', $this->profileData($pelanggan));
     }
 
     public function registerUmkm(Request $request): JsonResponse
@@ -163,6 +168,9 @@ class PelangganSettingsController extends Controller
         }
 
         $pelanggan = $request->user();
+        if (!$pelanggan instanceof Pelanggan) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
+        }
         $email = trim((string) $request->input('email'));
         if ($email !== '' && Pelanggan::where('email', $email)
             ->where('id_pelanggan', '!=', $pelanggan->id_pelanggan)->exists()) {
@@ -180,6 +188,10 @@ class PelangganSettingsController extends Controller
 
     public function addresses(Request $request): JsonResponse
     {
+        if (!($request->user() instanceof Pelanggan)) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
+        }
+
         $data = PelangganAlamat::where('id_pelanggan', $request->user()->id_pelanggan)
             ->orderByDesc('utama')->orderByDesc('updated_at')->get()
             ->map(fn (PelangganAlamat $address) => $this->addressData($address))
@@ -203,6 +215,10 @@ class PelangganSettingsController extends Controller
         ]);
         if ($validator->fails()) {
             return $this->gagal($validator->errors()->first(), 400);
+        }
+
+        if (!($request->user() instanceof Pelanggan)) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
         }
 
         $pelangganId = $request->user()->id_pelanggan;
@@ -242,6 +258,10 @@ class PelangganSettingsController extends Controller
 
     public function deleteAddress(Request $request): JsonResponse
     {
+        if (!($request->user() instanceof Pelanggan)) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
+        }
+
         $address = PelangganAlamat::where('id_pelanggan', $request->user()->id_pelanggan)
             ->whereKey($request->integer('id_alamat'))->first();
         if (!$address) {
@@ -258,6 +278,10 @@ class PelangganSettingsController extends Controller
 
     public function setPrimaryAddress(Request $request): JsonResponse
     {
+        if (!($request->user() instanceof Pelanggan)) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
+        }
+
         $address = PelangganAlamat::where('id_pelanggan', $request->user()->id_pelanggan)
             ->whereKey($request->integer('id_alamat'))->first();
         if (!$address) {
@@ -270,6 +294,10 @@ class PelangganSettingsController extends Controller
 
     public function favorites(Request $request): JsonResponse
     {
+        if (!($request->user() instanceof Pelanggan)) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
+        }
+
         $favorites = PelangganFavorit::where('id_pelanggan', $request->user()->id_pelanggan)
             ->get(['tipe', 'id_item']);
         return $this->sukses('Favorit dimuat.', [
@@ -280,6 +308,10 @@ class PelangganSettingsController extends Controller
 
     public function toggleFavorite(Request $request): JsonResponse
     {
+        if (!($request->user() instanceof Pelanggan)) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
+        }
+
         $validator = Validator::make($request->all(), [
             'tipe' => ['required', 'in:produk,umkm'],
             'id_item' => ['required', 'integer'],
