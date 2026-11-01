@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Home - <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan</span>')
+@section('title', 'Home - Djajan')
 
 @section('content')
 
@@ -39,7 +39,7 @@
             padding-bottom: 3rem;
         }
 
-        /* Cards: Ensure consistent layout in "Mengapa <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan</span>" */
+        /* Cards: Ensure consistent layout in "Mengapa Djajan" */
         .grid.grid-cols-3 {
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1rem;
@@ -125,15 +125,18 @@
     <div class="relative z-10 mx-auto flex h-full w-full max-w-7xl flex-col justify-center px-6 pb-20 pt-24 lg:px-8">
         <div class="max-w-2xl">
 
-            <h1 class="font-hero text-4xl font-semibold leading-[1.15] tracking-[-0.045em] text-white md:text-6xl lg:text-[4.5rem]">
+            <h1 class="font-hero text-5xl font-extrabold leading-[1.15] tracking-[-0.045em] text-white md:text-6xl lg:text-[4.5rem]">
                 Kenali dan dukung<br>
-                <span >UMKM lokal</span><br>
-                bersama <span class="font-wordmark text-[#4CAF50] font-extrabold"><span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan</span>.</span>
+                <span class="text-[#4CAF50] font-extrabold">UMKM lokal</span><br>
+                bersama <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan.</span>
             </h1>
 
-            <p class="mt-5 max-w-lg text-base leading-relaxed text-white/75 md:text-lg">
-                Temukan berbagai usaha dan produk lokal dari Desa Kreyongan Atas dalam satu platform. Kenali produknya, dukung usahanya, dan ikut menggerakkan ekonomi lokal.
-            </p>
+            <a href="#umkm" class="mt-8 inline-flex items-center gap-3 rounded-full bg-[#F59E0B] px-8 py-4 text-sm font-semibold text-[#111827] transition-all duration-300 hover:bg-[#FBBF24] shadow-lg">
+                Jelajahi UMKM
+                <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                </svg>
+            </a>
         </div>
     </div>
 </section>
@@ -155,7 +158,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                     </div>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-[#0F623F]">Mengapa <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan</span>?</span>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-[#0F623F]">Mengapa Djajan?</span>
                 </div>
 
                 {{-- Headline --}}
@@ -168,7 +171,7 @@
 
                 {{-- Subtitle --}}
                 <p class="text-sm md:text-base text-[#6B7280] leading-relaxed mb-8 max-w-sm">
-                    Tiga alasan mengapa <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan</span> menjadi pilihan tepat untuk mendukung UMKM lokal Desa Kreyongan Atas.
+                    Tiga alasan mengapa Djajan menjadi pilihan tepat untuk mendukung UMKM lokal Desa Kreyongan Atas.
                 </p>
 
                 {{-- CTA Buttons --}}
@@ -300,7 +303,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-[#0F623F]">Tentang <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan</span></span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-[#0F623F]">Tentang Djajan</span>
                 </div>
 
                 <h2 class="font-display text-2xl lg:text-3xl font-bold leading-[1.1] text-[#111827] tracking-tight mb-4">
@@ -309,7 +312,7 @@
                 </h2>
 
                 <p class="text-sm text-[#6B7280] leading-relaxed mb-5">
-                    <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan</span> lahir dari kebutuhan nyata — mengenalkan UMKM dan produk masyarakat Desa Kreyongan Atas agar lebih mudah ditemukan.
+                    Djajan lahir dari kebutuhan nyata — mengenalkan UMKM dan produk masyarakat Desa Kreyongan Atas agar lebih mudah ditemukan.
                 </p>
 
                 <div class="space-y-3 mb-6">
@@ -348,7 +351,7 @@
                     <p class="font-display text-sm font-medium text-[#111827] leading-snug italic">
                         Mengenalkan usaha lokal hari ini untuk membuka peluang di masa depan.
                     </p>
-                    <p class="text-[10px] text-[#6B7280] mt-1.5 font-bold uppercase tracking-wider">— Visi <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan</span></p>
+                    <p class="text-[10px] text-[#6B7280] mt-1.5 font-bold uppercase tracking-wider">— Visi Djajan</p>
                 </div>
 
             </div>
@@ -690,7 +693,7 @@
             {{-- Headline --}}
             <h2 class="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] text-white tracking-tight mb-5">
                 Belanja Lebih Mudah<br class="hidden md:block">
-                dengan <span class="text-[#F59E0B]">Aplikasi <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan</span>.</span>
+                dengan <span class="text-[#F59E0B]">Aplikasi Djajan.</span>
             </h2>
 
             {{-- Paragraf --}}
