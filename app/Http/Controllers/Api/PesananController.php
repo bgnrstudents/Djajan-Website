@@ -27,7 +27,7 @@ class PesananController extends Controller
 
         $pesanan = Pesanan::with(['items.produk', 'pelanggan'])
             ->where('id_umkm', $idUmkm)
-            ->orderByRaw("FIELD(status_pesanan, 'po_baru', 'diterima', 'selesai', 'ditolak')")
+            ->orderByRaw("FIELD(status_pesanan, 'po_baru', 'diterima', 'diproses', 'diantar', 'selesai', 'ditolak')")
             ->orderByDesc('tanggal_pesan')
             ->get();
 
@@ -63,7 +63,16 @@ class PesananController extends Controller
         if ($idPesanan === '') {
             return $this->gagal('Parameter id_pesanan wajib diisi.', 400);
         }
-        if (!in_array($status, ['po_baru', 'diterima', 'ditolak', 'selesai'], true)) {
+        $allowedTransitions = [
+            'po_baru' => ['diterima', 'ditolak'],
+            'diterima' => ['diproses', 'ditolak'],
+            'diproses' => ['diantar'],
+            'diantar' => ['selesai'],
+            'ditolak' => [],
+            'selesai' => [],
+        ];
+
+        if (!isset($allowedTransitions[$status])) {
             return $this->gagal('Status pesanan tidak valid.', 400);
         }
 
@@ -75,9 +84,10 @@ class PesananController extends Controller
         if (!$pesanan) {
             return $this->gagal('Pesanan tidak ditemukan.', 404);
         }
-        if ($pesanan->status_pesanan !== 'po_baru' && $status !== 'selesai') {
+        if (!in_array($status, $allowedTransitions[$pesanan->status_pesanan] ?? [], true)) {
             return $this->gagal(
-                'Pesanan ini sudah diproses sebelumnya (status: ' . $pesanan->status_pesanan . ').',
+                'Transisi status tidak valid dari "' . $pesanan->status_pesanan
+                    . '" ke "' . $status . '".',
                 409
             );
         }
@@ -102,7 +112,7 @@ class PesananController extends Controller
 
         $pesan = $status === 'diterima'
             ? 'Pesanan ' . $idPesanan . ' diterima. Stok produk sudah disesuaikan.'
-            : 'Status pesanan ' . $idPesanan . ' berhasil diperbarui.';
+            : 'Status pesanan ' . $idPesanan . ' berhasil diubah menjadi ' . $status . '.';
 
         $baru = $pesanan->fresh(['items.produk', 'pelanggan']);
 

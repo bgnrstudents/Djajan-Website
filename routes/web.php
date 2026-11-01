@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Models\Umkm;
 use App\Models\Produk;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 Route::get('/file_gambar/{folder}/{filename}', function (string $folder, string $filename) {
     abort_unless(in_array($folder, ['produk', 'profil'], true), 404);
@@ -51,10 +53,18 @@ Route::middleware('auth')
     ->group(function () {
 
         // Dashboard
-        Route::get('/', function () {
+        Route::get('/', function (Request $request) {
+            $mulai = $request->query('mulai', now()->startOfMonth()->toDateString());
+            $akhir = $request->query('akhir', now()->toDateString());
+            abort_if(
+                ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $mulai)
+                || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $akhir)
+                || $mulai > $akhir,
+                422
+            );
+            $statusAktif = ['diterima', 'diproses', 'diantar', 'selesai'];
+            $pesananPeriode = \App\Models\Pesanan::whereBetween('tanggal_pesan', [$mulai, $akhir]);
             // Statistik ringkas dari tabel `umkm` & `produk` yang asli
-            // (dipakai bareng aplikasi Flutter). Grafik & tabel "aktivitas
-            // terbaru" di bawahnya masih data contoh (belum di-hubungkan).
             $totalUmkmAktif = Umkm::where('status_verifikasi', 'terverifikasi')
                 ->where('toko_aktif', true)
                 ->count();
@@ -67,13 +77,35 @@ Route::middleware('auth')
                 ->latest('created_at')
                 ->take(5)
                 ->get();
+            $totalPesanan = (clone $pesananPeriode)->count();
+            $omzetPeriode = (int) (clone $pesananPeriode)
+                ->whereIn('status_pesanan', $statusAktif)
+                ->sum('total_harga');
+            $produkTerlaris = DB::table('detail_pesanan')
+                ->join('pesanan', 'pesanan.id_pesanan', '=', 'detail_pesanan.id_pesanan')
+                ->whereBetween('pesanan.tanggal_pesan', [$mulai, $akhir])
+                ->whereIn('pesanan.status_pesanan', $statusAktif)
+                ->select(
+                    'detail_pesanan.nama_produk',
+                    DB::raw('SUM(detail_pesanan.jumlah) as jumlah_terjual'),
+                    DB::raw('SUM(detail_pesanan.subtotal) as omzet')
+                )
+                ->groupBy('detail_pesanan.nama_produk')
+                ->orderByDesc('jumlah_terjual')
+                ->limit(5)
+                ->get();
 
             return view('admin.dashboard', compact(
                 'totalUmkmAktif',
                 'totalProduk',
                 'totalPengajuanBaru',
                 'totalPengguna',
-                'pengajuanTerbaru'
+                'pengajuanTerbaru',
+                'mulai',
+                'akhir',
+                'totalPesanan',
+                'omzetPeriode',
+                'produkTerlaris'
             ));
         })->name('dashboard');
 

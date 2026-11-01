@@ -257,7 +257,7 @@ class CheckoutController extends Controller
                     );
 
                     $order->update([
-                        'midtrans_order_id' => $transaksi['transaction_id'] ?: null,
+                        'midtrans_order_id' => $transaksi['transaction_id'] ?: $order->id_pesanan,
                         'snap_token' => $transaksi['token'] ?: null,
                         'payment_url' => $transaksi['redirect_url'] ?: null,
                         'payment_status' => 'pending',
@@ -307,7 +307,7 @@ class CheckoutController extends Controller
             return response()->json(['status' => 'invalid'], 400);
         }
 
-        $serverKey = (string) config('services.midtrans.server_key');
+        $serverKey = trim((string) config('services.midtrans.server_key'));
         if ($serverKey !== '' && !$midtransService->verifyCallback($payload, $serverKey)) {
             \Log::warning('Midtrans payment notification signature rejected', [
                 'order_id' => $orderId,
@@ -315,12 +315,32 @@ class CheckoutController extends Controller
             return response()->json(['status' => 'invalid_signature'], 403);
         }
 
-        $order = Pesanan::find($orderId);
+        $order = Pesanan::where('id_pesanan', $orderId)
+            ->orWhere('midtrans_order_id', $orderId)
+            ->first();
         if (!$order) {
             \Log::warning('Midtrans payment notification order not found', [
                 'order_id' => $orderId,
             ]);
             return response()->json(['status' => 'not_found'], 404);
+        }
+
+        if (!in_array($transactionStatus, ['capture', 'settlement', 'pending', 'deny', 'cancel', 'expire'], true)) {
+            \Log::warning('Midtrans payment notification status ignored', [
+                'order_id' => $orderId,
+                'transaction_status' => $transactionStatus,
+            ]);
+
+            return response()->json(['status' => 'ignored'], 200);
+        }
+
+        if (in_array($order->payment_status, ['paid', 'failed'], true)
+            && $transactionStatus === 'pending') {
+            return response()->json([
+                'status' => 'success',
+                'order_id' => $order->id_pesanan,
+                'payment_status' => $order->payment_status,
+            ]);
         }
 
         $newStatus = $order->status_pembayaran;
@@ -363,7 +383,8 @@ class CheckoutController extends Controller
         }
 
         try {
-            $payload = $midtransService->getTransactionStatus($order->id_pesanan);
+            $midtransOrderId = $order->midtrans_order_id ?: $order->id_pesanan;
+            $payload = $midtransService->getTransactionStatus($midtransOrderId);
         } catch (\Throwable $exception) {
             \Log::warning('Midtrans status sync failed', [
                 'order_id' => $order->id_pesanan,

@@ -8,6 +8,16 @@
     <p class="text-sm text-gray-500 mt-1">Ringkasan data aktual dari database.</p>
 </div>
 
+<form method="get" class="bg-white border border-gray-200 rounded-xl p-4 mb-6 flex flex-wrap items-end gap-3">
+    <label class="text-sm text-gray-600">Mulai
+        <input type="date" name="mulai" value="{{ $mulai }}" class="block mt-1 rounded-lg border-gray-300 text-sm">
+    </label>
+    <label class="text-sm text-gray-600">Akhir
+        <input type="date" name="akhir" value="{{ $akhir }}" class="block mt-1 rounded-lg border-gray-300 text-sm">
+    </label>
+    <button class="rounded-lg bg-djajan-primary px-4 py-2 text-sm font-medium text-white">Terapkan</button>
+</form>
+
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <a href="{{ route('admin.umkm.index', ['status' => 'terverifikasi']) }}" class="bg-djajan-primary rounded-xl p-5 text-white shadow-sm">
         <p class="text-sm text-white/80">UMKM Aktif</p>
@@ -29,6 +39,37 @@
         <p class="text-3xl font-bold text-djajan-neutral mt-2">{{ $totalPengajuanBaru }}</p>
         <p class="text-xs text-gray-500 mt-2">Perlu ditinjau admin</p>
     </a>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <p class="text-sm text-gray-600">Pesanan periode ini</p>
+        <p class="text-3xl font-bold text-djajan-neutral mt-2">{{ $totalPesanan }}</p>
+        <p class="text-xs text-gray-500 mt-2">{{ $mulai }} sampai {{ $akhir }}</p>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <p class="text-sm text-gray-600">Omzet periode ini</p>
+        <p class="text-3xl font-bold text-djajan-neutral mt-2">Rp {{ number_format($omzetPeriode, 0, ',', '.') }}</p>
+        <p class="text-xs text-gray-500 mt-2">Pesanan diterima sampai selesai</p>
+    </div>
+</div>
+
+<div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-6">
+    <div class="px-5 py-4 border-b border-gray-100">
+        <h2 class="text-base font-semibold text-djajan-neutral">Produk Terlaris</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead><tr class="bg-gray-50 text-left text-xs text-gray-500 uppercase"><th class="px-5 py-3">Produk</th><th class="px-5 py-3">Terjual</th><th class="px-5 py-3 text-right">Omzet</th></tr></thead>
+            <tbody class="divide-y divide-gray-100">
+            @forelse($produkTerlaris as $produk)
+                <tr><td class="px-5 py-4 font-medium">{{ $produk->nama_produk }}</td><td class="px-5 py-4">{{ (int) $produk->jumlah_terjual }}</td><td class="px-5 py-4 text-right">Rp {{ number_format((int) $produk->omzet, 0, ',', '.') }}</td></tr>
+            @empty
+                <tr><td colspan="3" class="px-5 py-10 text-center text-gray-500">Belum ada penjualan pada periode ini.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">

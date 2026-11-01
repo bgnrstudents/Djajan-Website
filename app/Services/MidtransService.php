@@ -8,7 +8,7 @@ class MidtransService
 {
     public function getTransactionStatus(string $orderId): array
     {
-        $serverKey = (string) config('services.midtrans.server_key');
+        $serverKey = $this->serverKey();
         if ($serverKey === '') {
             throw new \RuntimeException('MIDTRANS_SERVER_KEY belum diatur di environment.');
         }
@@ -40,7 +40,7 @@ class MidtransService
 
     public function createTransaction(string $orderId, int $amount, array $items, array $customer): array
     {
-        $serverKey = (string) config('services.midtrans.server_key');
+        $serverKey = $this->serverKey();
         if ($serverKey === '') {
             throw new \RuntimeException('MIDTRANS_SERVER_KEY belum diatur di environment.');
         }
@@ -67,9 +67,13 @@ class MidtransService
             ? 'https://app.midtrans.com/snap/v1/transactions'
             : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
 
+        $notificationUrl = rtrim(trim((string) config('app.url')), '/')
+            . '/api/pesanan/midtrans/callback';
+
         $response = Http::withHeaders([
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
+            'X-Override-Notification' => $notificationUrl,
         ])->withBasicAuth($serverKey, '')->post($endpoint, [
             'transaction_details' => [
                 'order_id' => $orderId,
@@ -112,10 +116,11 @@ class MidtransService
 
     public function verifyCallback(array $payload, string $serverKey): bool
     {
-        $orderId = (string) ($payload['order_id'] ?? '');
-        $statusCode = (string) ($payload['status_code'] ?? '');
-        $grossAmount = (string) ($payload['gross_amount'] ?? '');
-        $signatureKey = (string) ($payload['signature_key'] ?? '');
+        $orderId = $this->scalarPayloadValue($payload['order_id'] ?? null);
+        $statusCode = $this->scalarPayloadValue($payload['status_code'] ?? null);
+        $grossAmount = $this->scalarPayloadValue($payload['gross_amount'] ?? null);
+        $signatureKey = strtolower($this->scalarPayloadValue($payload['signature_key'] ?? null));
+        $serverKey = trim($serverKey);
 
         if ($orderId === '' || $statusCode === '' || $grossAmount === '' || $signatureKey === '') {
             return false;
@@ -124,5 +129,15 @@ class MidtransService
         $expected = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
 
         return hash_equals($expected, $signatureKey);
+    }
+
+    private function serverKey(): string
+    {
+        return trim((string) config('services.midtrans.server_key'));
+    }
+
+    private function scalarPayloadValue(mixed $value): string
+    {
+        return is_scalar($value) ? trim((string) $value) : '';
     }
 }
