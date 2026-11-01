@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/profil_get', [ProfilController::class, 'show']);
     Route::post('/profil_update', [ProfilController::class, 'update']);
+    Route::post('/profil_password', [ProfilController::class, 'updatePassword']);
     Route::post('/ongkir_simpan', [ProfilController::class, 'simpanOngkir']);
 
     Route::get('/produk_list', [ProdukController::class, 'index']);

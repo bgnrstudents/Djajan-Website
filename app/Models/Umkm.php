@@ -92,7 +92,10 @@ class Umkm extends Model
             'longitude'           => $this->longitude !== null ? (float) $this->longitude : null,
             'radius_gratis_km'    => (float) ($this->radius_gratis_km ?? 0),
             'jarak_maksimal_km'   => $this->jarak_maksimal_km !== null ? (float) $this->jarak_maksimal_km : null,
-            'zona_ongkir'         => [],
+            'zona_ongkir'         => $this->zonaOngkir
+                ->map(fn (UmkmZonaOngkir $zona) => $zona->keFormatJson())
+                ->values()
+                ->all(),
         ];
     }
 }

@@ -8,6 +8,9 @@ use App\Support\UploadFoto;
 use App\Support\ValidasiUmkm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use App\Models\UmkmZonaOngkir;
 
 /**
  * Pengganti backend/api/profil_get.php & profil_update.php.
@@ -118,10 +121,57 @@ class ProfilController extends Controller
                 : null;
         }
 
-        $umkm->radius_gratis_km  = $radiusGratis;
-        $umkm->jarak_maksimal_km = $jarakMaksimal;
-        $umkm->save();
+        $zona = json_decode((string) $request->input('zona', '[]'), true);
+        if (!is_array($zona)) {
+            return $this->gagal('Format zona ongkir tidak valid.', 400);
+        }
+        $batasSebelumnya = $radiusGratis;
+        $normalZona = [];
+        foreach ($zona as $baris) {
+            if (!is_array($baris)) {
+                return $this->gagal('Data zona ongkir tidak valid.', 400);
+            }
+            $min = (float) ($baris['jarak_min'] ?? -1);
+            $max = (float) ($baris['jarak_max'] ?? -1);
+            $biaya = (int) ($baris['biaya'] ?? -1);
+            if ($min < $batasSebelumnya || $max <= $min || $biaya < 0) {
+                return $this->gagal('Rentang zona ongkir harus berurutan dan tarif tidak boleh negatif.', 400);
+            }
+            $normalZona[] = ['jarak_min' => $min, 'jarak_max' => $max, 'biaya' => $biaya];
+            $batasSebelumnya = $max;
+        }
+        if ($normalZona !== [] && abs($batasSebelumnya - $jarakMaksimal) > 0.001) {
+            return $this->gagal('Jarak maksimal harus sama dengan akhir zona terakhir.', 400);
+        }
+
+        DB::transaction(function () use ($umkm, $radiusGratis, $jarakMaksimal, $normalZona): void {
+            $umkm->radius_gratis_km = $radiusGratis;
+            $umkm->jarak_maksimal_km = $jarakMaksimal;
+            $umkm->save();
+            UmkmZonaOngkir::where('id_umkm', $umkm->id_umkm)->delete();
+            foreach ($normalZona as $baris) {
+                UmkmZonaOngkir::create(['id_umkm' => $umkm->id_umkm] + $baris);
+            }
+        });
 
         return $this->sukses('Pengaturan ongkir berhasil disimpan ke database.', $umkm->fresh()->keFormatJson());
+    }
+
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'password_lama' => ['required', 'string'],
+            'password_baru' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+        $umkm = $request->user();
+        $lama = (string) $request->input('password_lama');
+        $tersimpan = (string) $umkm->password;
+        $valid = hash_equals($tersimpan, hash('sha256', $lama))
+            || (str_starts_with($tersimpan, '$2y$') && Hash::check($lama, $tersimpan));
+        if (!$valid) {
+            return $this->gagal('Kata sandi lama tidak sesuai.', 400);
+        }
+        $umkm->update(['password' => hash('sha256', (string) $request->input('password_baru'))]);
+        return $this->sukses('Kata sandi berhasil diperbarui.');
     }
 }
