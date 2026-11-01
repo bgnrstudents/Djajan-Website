@@ -155,7 +155,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                     </div>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-[#0F623F]">Mengapa Djajan?</span>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-[#0F623F]">Mengapa <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan</span>?</span>
                 </div>
 
                 {{-- Headline --}}
