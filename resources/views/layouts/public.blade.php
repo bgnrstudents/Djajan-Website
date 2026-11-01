@@ -77,7 +77,7 @@
             </a>
 
             <div class="absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 lg:flex">
-                <a href="#home" data-nav-link class="nav-link relative px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-dj-green">Utama</a>
+                <a href="#home" data-nav-link class="nav-link relative px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-dj-green">Beranda</a>
                 <a href="#tentang" data-nav-link class="nav-link relative px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-dj-green">Tentang Kami</a>
                 <a href="#produk" data-nav-link class="nav-link relative px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-dj-green">Produk</a>
                 <a href="#umkm" data-nav-link class="nav-link relative px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-dj-green">UMKM</a>
@@ -115,7 +115,7 @@
     <div id="mobile-menu" class="pointer-events-none fixed inset-0 z-40 bg-white/95 pt-28 opacity-0 backdrop-blur-md transition-all duration-300 lg:hidden" aria-hidden="true">
         <div class="translate-y-4 px-6 py-8 transition-transform duration-300" data-mobile-panel>
             <nav class="space-y-1" aria-label="Navigasi mobile">
-                <a href="#home" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Utama</a>
+                <a href="#home" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Beranda</a>
                 <a href="#tentang" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Tentang Kami</a>
                 <a href="#produk" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Produk</a>
                 <a href="#umkm" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">UMKM</a>
@@ -204,7 +204,7 @@
                         <div>
                             <h4 class="text-[11px] font-bold uppercase tracking-wider text-[#9B9B9B] mb-5">Navigasi</h4>
                             <ul class="space-y-3.5">
-                                <li><a href="#home" class="text-sm font-medium text-[#6B7280] hover:text-[#0F623F] transition-colors">Utama</a></li>
+                                <li><a href="#home" class="text-sm font-medium text-[#6B7280] hover:text-[#0F623F] transition-colors">Beranda</a></li>
                                 <li><a href="#tentang" class="text-sm font-medium text-[#6B7280] hover:text-[#0F623F] transition-colors">Tentang</a></li>
                                 <li><a href="#produk" class="text-sm font-medium text-[#6B7280] hover:text-[#0F623F] transition-colors">Produk</a></li>
                                 <li><a href="#umkm" class="text-sm font-medium text-[#6B7280] hover:text-[#0F623F] transition-colors">UMKM</a></li>
