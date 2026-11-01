@@ -112,7 +112,41 @@
         </nav>
     </div>
 
+    <!-- Mobile Menu -->
     <div id="mobile-menu" class="pointer-events-none fixed inset-0 z-40 bg-white/95 pt-28 opacity-0 backdrop-blur-md transition-all duration-300 lg:hidden" aria-hidden="true">
+        <style>
+            /* Mobile menu animations */
+            #mobile-menu.open {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            
+            #mobile-menu.open > div[data-mobile-panel] {
+                transform: translateY(0);
+            }
+            
+            /* Hover states for navigation */
+            #navbar a:not(#menu-toggle) {
+                position: relative;
+                transition: all 0.2s ease;
+            }
+            
+            #navbar a:not(#menu-toggle)::after {
+                content: '';
+                position: absolute;
+                bottom: -2px;
+                left: 0;
+                width: 0;
+                height: 2px;
+                background: #0F623F;
+                transition: width 0.3s ease;
+            }
+            
+            #navbar a:not(#menu-toggle):hover::after,
+            #navbar a:not(#menu-toggle).active::after {
+                width: 100%;
+            }
+        </style>
         <div class="translate-y-4 px-6 py-8 transition-transform duration-300" data-mobile-panel>
             <nav class="space-y-1" aria-label="Navigasi mobile">
                 <a href="#home" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Beranda</a>

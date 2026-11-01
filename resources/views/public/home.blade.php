@@ -7,13 +7,13 @@
 <style>
     /* ===== Carousel ===== */
     .slide-bg {
-        transition: opacity 1.2s ease-in-out, transform 9s ease-out;
-        transform: scale(1.06);
+        transition: opacity 1.5s ease-in-out, transform 12s ease-out;
+        transform: scale(1.08);
     }
 
     .slide-bg.active {
         opacity: 1 !important;
-        transform: scale(1);
+        transform: scale(1.02);
     }
 
     /* ===== Utilities halaman ===== */
@@ -109,7 +109,7 @@
 
     {{-- Slide 3: Pertanian lokal --}}
     <div id="slide-bg-2" class="slide-bg absolute inset-0 bg-cover bg-center opacity-0"
-        style="background-image:url('https://images.unsplash.com/photo-1592982537447-6f2a6a0c7c18?auto=format&fit=crop&w=1920&q=80')"></div>
+        style="background-image:url('https://plus.unsplash.com/premium_photo-1661962862470-a03bcc2fb415?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D')"></div>
 
     {{-- Slide 4: Komunitas desa --}}
     <div id="slide-bg-3" class="slide-bg absolute inset-0 bg-cover bg-center opacity-0"
@@ -121,35 +121,107 @@
 
     <div class="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/10"></div>
     <div class="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/50 to-transparent"></div>
+<div class="relative z-10 mx-auto flex h-full w-full max-w-7xl flex-col justify-center px-6 pb-20 pt-24 lg:px-8">
+    <div class="mx-auto max-w-2xl text-center">
 
-    <div class="relative z-10 mx-auto flex h-full w-full max-w-7xl flex-col justify-center px-6 pb-20 pt-24 lg:px-8">
-        <div class="max-w-2xl">
+        <h1 class="font-hero text-4xl font-semibold leading-[1.15] tracking-[-0.03em] text-white md:text-5xl lg:text-6xl">
+            Kenali dan dukung<br>
+            <span>UMKM lokal</span><br>
+            bersama <span class="font-wordmark italic text-[#4CAF50] font-extrabold">Djajan.</span>
+        </h1>
 
-            <h1 class="font-hero text-5xl font-extrabold leading-[1.15] tracking-[-0.045em] text-white md:text-6xl lg:text-[4.5rem]">
-                Kenali dan dukung<br>
-                <span class="text-[#4CAF50] font-extrabold">UMKM lokal</span><br>
-                bersama <span class="font-wordmark text-[#4CAF50] font-extrabold">Djajan.</span>
-            </h1>
+        <p class="mx-auto mt-5 max-w-lg text-base leading-relaxed text-white/75 md:text-lg">
+            Temukan berbagai usaha dan produk lokal dari Desa Kreyongan Atas dalam satu platform. Kenali produknya, dukung usahanya, dan ikut menggerakkan ekonomi lokal.
+        </p>
 
-            <a href="#umkm" class="mt-8 inline-flex items-center gap-3 rounded-full bg-[#F59E0B] px-8 py-4 text-sm font-semibold text-[#111827] transition-all duration-300 hover:bg-[#FBBF24] shadow-lg">
-                Jelajahi UMKM
-                <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <a href="#produk" class="group inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-[#022c22] shadow-md transition-all duration-300 hover:bg-emerald-50">
+                Lihat Produk
+                <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
             </a>
+            <a href="#umkm" class="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-medium text-white backdrop-blur-md transition-all duration-300 hover:bg-white/15">
+                Jelajahi UMKM
+            </a>
         </div>
+
     </div>
+</div>
+    
+    <!-- Carousel Script -->
+    <script>
+        (function() {
+            const slides = document.querySelectorAll('.slide-bg');
+            let currentSlide = 0;
+            const totalSlides = slides.length;
+            const transitionTime = 4000;
+            
+            function showNextSlide() {
+                // Remove active from current slide
+                slides[currentSlide].classList.remove('active');
+                slides[currentSlide].style.opacity = '0';
+                
+                // Move to next slide
+                currentSlide = (currentSlide + 1) % totalSlides;
+                
+                // Add active to next slide
+                slides[currentSlide].classList.add('active');
+                slides[currentSlide].style.opacity = '1';
+            }
+            
+            // Start the carousel
+            setInterval(showNextSlide, transitionTime);
+        })();
+    </script>
+    
+    <!-- Scroll Animation Script -->
+    <script>
+        (function() {
+            // Intersection Observer for scroll animations
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('revealed');
+                        revealObserver.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+            
+            // Observe all reveal items
+            document.querySelectorAll('.reveal-item').forEach(item => {
+                revealObserver.observe(item);
+            });
+            
+            // Enhanced hover effects for interactive elements
+            document.querySelectorAll('a, button').forEach(element => {
+                element.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+                
+                element.addEventListener('mouseleave', function() {
+                    this.style.transform = '';
+                });
+            });
+        })();
+    </script>
+
 </section>
 
 
 {{-- ==================== 02 · MENGAPA DJAJAN ==================== --}}
-<section id="tentang" class="px-6 lg:px-8 py-20 lg:py-28 bg-white">
+<section id="tentang" class="px-6 lg:px-8 py-20 lg:py-28 bg-white scroll-reveal">
     <div class="mx-auto max-w-7xl">
 
         <div class="flex flex-col lg:flex-row gap-10 lg:gap-14 items-stretch">
 
             {{-- KOLOM KIRI: Teks + CTA --}}
-            <div class="lg:w-[42%] flex-shrink-0 flex flex-col justify-center">
+            <div class="lg:w-[42%] flex-shrink-0 flex flex-col justify-center reveal-item">
 
                 {{-- Label --}}
                 <div class="inline-flex items-center gap-2.5 mb-5 w-fit">
@@ -162,7 +234,7 @@
                 </div>
 
                 {{-- Headline --}}
-                <h2 class="font-display text-3xl md:text-4xl font-bold leading-[1.1] text-[#111827] tracking-tight mb-5">
+                <h2 class="font-display text-3xl md:text-4xl font-bold leading-[1.1] text-[#111827] tracking-tight mb-5 reveal-item">
                     Platform yang Menghubungkan
                     <span class="text-[#0F623F]">Desa</span>
                     dengan
@@ -170,12 +242,12 @@
                 </h2>
 
                 {{-- Subtitle --}}
-                <p class="text-sm md:text-base text-[#6B7280] leading-relaxed mb-8 max-w-sm">
+                <p class="text-ms md:text-base text-[#6B7280] leading-relaxed mb-8 max-w-sm reveal-item">
                     Tiga alasan mengapa Djajan menjadi pilihan tepat untuk mendukung UMKM lokal Desa Kreyongan Atas.
                 </p>
 
                 {{-- CTA Buttons --}}
-                <div class="flex flex-wrap items-center gap-4">
+                <div class="flex flex-wrap items-center gap-4 reveal-item">
                     <a href="#umkm" class="group inline-flex items-center gap-2.5 rounded-full bg-[#0F623F] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0A4A2F] transition-all duration-300 shadow-lg shadow-[#0F623F]/20">
                         Jelajahi UMKM
                         <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
