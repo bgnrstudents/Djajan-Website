@@ -69,8 +69,9 @@ class PelangganSettingsController extends Controller
             'pickup_aktif' => false,
             'kurir_warga_aktif' => false,
         ];
-        if ($umkm) {
-            $umkm->update($data);
+        if ($existing) {
+            $existing->update($data);
+            $umkm = $existing;
         } else {
             $umkm = Umkm::create($data);
         }
