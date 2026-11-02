@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
+<html lang="id">
 
 <head>
     <meta charset="UTF-8">
@@ -13,6 +13,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Lora:ital,wght@0,600;0,700;1,600;1,700&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- GSAP Flag -->
+    <script>document.documentElement.classList.add('js', 'gsap-on');</script>
+    
     
     <script>
         tailwind.config = {
@@ -33,14 +37,19 @@
     </script>
 
     <style>
+        /* Prevent CSS smooth scroll from fighting GSAP ScrollToPlugin */
+        html {
+            scroll-behavior: auto !important;
+        }
+
         /* Smooth transitions untuk carousel */
         .slide-bg {
-            transition: opacity 1.2s ease-in-out, transform 8s ease-out;
-            transform: scale(1.05);
+            transition: none;
+            transform: none;
         }
         .slide-bg.active {
             opacity: 1 !important;
-            transform: scale(1);
+            transform: none !important;
         }
         
         /* Active desktop navigation: clean text with a subtle underline. */
@@ -342,9 +351,18 @@
 
         menuToggle.addEventListener('click', () => setMenu(menuToggle.getAttribute('aria-expanded') !== 'true'));
 
+        let isNavClicking = false;
+        let navClickTimer = null;
+
         navLinks.forEach((link) => link.addEventListener('click', () => {
-            const id = link.getAttribute('href').slice(1);
-            setActiveLink(id);
+            const href = link.getAttribute('href');
+            if (href && href.startsWith('#')) {
+                const id = href.slice(1);
+                setActiveLink(id);
+                isNavClicking = true;
+                clearTimeout(navClickTimer);
+                navClickTimer = setTimeout(() => { isNavClicking = false; }, 800);
+            }
             setMenu(false);
         }));
 
@@ -353,22 +371,41 @@
         });
 
         const sections = [...document.querySelectorAll('section[id]'), document.getElementById('kontak')].filter(Boolean);
+        let scrollTicking = false;
         const updateActiveSection = () => {
-            const navOffset = 150;
+            if (isNavClicking) return;
+            const navOffset = 160;
             const currentPosition = window.scrollY + navOffset;
             let activeSection = sections[0];
 
-            sections.forEach((section) => {
-                if (section.offsetTop <= currentPosition) activeSection = section;
-            });
+            for (let i = 0; i < sections.length; i++) {
+                if (sections[i].offsetTop <= currentPosition) {
+                    activeSection = sections[i];
+                }
+            }
 
-            setActiveLink(activeSection.id);
+            if (activeSection) {
+                setActiveLink(activeSection.id);
+            }
         };
 
-        window.addEventListener('scroll', updateActiveSection, { passive: true });
+        window.addEventListener('scroll', () => {
+            if (!scrollTicking) {
+                window.requestAnimationFrame(() => {
+                    updateActiveSection();
+                    scrollTicking = false;
+                });
+                scrollTicking = true;
+            }
+        }, { passive: true });
         window.addEventListener('hashchange', updateActiveSection);
         updateActiveSection();
     </script>
+
+    <!-- GSAP Core & Plugins (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js"></script>
 
     @stack('scripts')
 </body>
