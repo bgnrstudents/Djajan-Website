@@ -19,11 +19,12 @@ class Pesanan extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_pesanan', 'id_pelanggan', 'id_umkm', 'tanggal_pesan', 'waktu_dibutuhkan',
+        'id_pesanan', 'id_checkout', 'id_pelanggan', 'id_umkm', 'tanggal_pesan', 'waktu_dibutuhkan',
         'batas_konfirmasi', 'keperluan_acara', 'metode_pengiriman', 'alamat_tujuan',
         'catatan', 'metode_pembayaran', 'status_pembayaran', 'bukti_pembayaran',
         'biaya_pengantaran', 'biaya_layanan', 'total_harga', 'status_pesanan',
         'midtrans_order_id', 'snap_token', 'payment_url', 'payment_status',
+        'dibayar_pada',
     ];
 
     public function pelanggan(): BelongsTo
@@ -41,6 +42,11 @@ class Pesanan extends Model
         return $this->hasMany(DetailPesanan::class, 'id_pesanan', 'id_pesanan');
     }
 
+    public function checkout(): BelongsTo
+    {
+        return $this->belongsTo(CheckoutGroup::class, 'id_checkout', 'id_checkout');
+    }
+
     /**
      * Bentuk JSON persis sama dengan formatPesanan() di format.php lama.
      * $items berisi koleksi DetailPesanan (sudah di-load, mis. lewat with('items.produk')).
@@ -52,6 +58,7 @@ class Pesanan extends Model
 
         return [
             'id_pesanan'        => $this->id_pesanan,
+            'id_checkout'       => $this->id_checkout,
             'id_pelanggan'      => (int) $this->id_pelanggan,
             'id_umkm'           => (int) $this->id_umkm,
             'nama_umkm'         => $this->umkm?->nama_usaha ?? 'UMKM',
@@ -69,6 +76,7 @@ class Pesanan extends Model
             'metode_pembayaran' => $this->metode_pembayaran ?? '',
             'status_pembayaran' => $this->status_pembayaran ?? 'belum_bayar',
             'payment_status'    => $this->payment_status ?? ($this->status_pembayaran ?? 'pending'),
+            'dibayar_pada'      => $this->dibayar_pada,
             'midtrans_order_id' => $this->midtrans_order_id,
             'snap_token'        => $this->snap_token,
             'payment_url'       => $this->payment_url,

@@ -38,7 +38,13 @@ class MidtransService
         return is_array($payload) ? $payload : [];
     }
 
-    public function createTransaction(string $orderId, int $amount, array $items, array $customer): array
+    public function createTransaction(
+        string $orderId,
+        int $amount,
+        array $items,
+        array $customer,
+        int $expiryHours = 2,
+    ): array
     {
         $serverKey = $this->serverKey();
         if ($serverKey === '') {
@@ -84,6 +90,10 @@ class MidtransService
                 'first_name' => $customer['first_name'] ?? 'Pelanggan',
                 'email' => $customer['email'] ?? 'customer@example.com',
                 'phone' => $customer['phone'] ?? '',
+            ],
+            'expiry' => [
+                'unit' => 'hour',
+                'duration' => $expiryHours,
             ],
             'callbacks' => [
                 'finish' => url('/payment/finish?ngrok-skip-browser-warning=true'),
