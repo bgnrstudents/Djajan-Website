@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DetailPesanan;
 use App\Models\CheckoutGroup;
 use App\Models\Pelanggan;
+use App\Models\PelangganAlamat;
 use App\Models\Pesanan;
 use App\Models\Produk;
 use App\Models\Umkm;
@@ -15,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 class CheckoutController extends Controller
 {
@@ -354,6 +356,16 @@ class CheckoutController extends Controller
         $alamat = trim((string) $request->input('alamat_tujuan', ''));
         $prepared = [];
         $grandTotal = 0;
+        $deliveryAddress = null;
+        if ($request->filled('id_alamat')) {
+            $deliveryAddress = PelangganAlamat::where('id_pelanggan', $pelanggan->id_pelanggan)
+                ->whereKey($request->integer('id_alamat'))
+                ->first();
+            if (!$deliveryAddress) {
+                return $this->gagal('Alamat pengiriman tidak ditemukan.', 404);
+            }
+            $alamat = trim((string) $deliveryAddress->alamat);
+        }
         foreach ($groups as $group) {
             $items = $group['items'] ?? [];
             if (!is_array($items) || $items === []) {
@@ -407,7 +419,11 @@ class CheckoutController extends Controller
                 return $this->gagal('Alamat tujuan wajib diisi.', 422);
             }
 
-            $ongkir = $delivery === 'kurir' ? max(0, (int) $umkm->biaya_pengantaran) : 0;
+            try {
+                $ongkir = $this->calculateDeliveryFee($umkm, $delivery, $deliveryAddress);
+            } catch (InvalidArgumentException $error) {
+                return $this->gagal($error->getMessage(), 422);
+            }
             $total = $subtotal + $ongkir;
             $grandTotal += $total;
             $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'total', 'group');
@@ -753,5 +769,59 @@ class CheckoutController extends Controller
         $random = strtoupper(Str::random(6));
 
         return 'PO-' . $date . '-' . $random;
+    }
+
+    private function calculateDeliveryFee(Umkm $umkm, string $delivery, ?PelangganAlamat $address): int
+    {
+        if ($delivery === 'pickup') {
+            return 0;
+        }
+        if ($address?->latitude === null || $address?->longitude === null) {
+            throw new InvalidArgumentException(
+                'Alamat pengiriman harus memiliki koordinat GPS untuk layanan kurir.'
+            );
+        }
+        if ($umkm->latitude === null || $umkm->longitude === null) {
+            throw new InvalidArgumentException(
+                'Lokasi UMKM belum dikonfigurasi untuk menghitung ongkir.'
+            );
+        }
+
+        $distance = $this->distanceInKm(
+            (float) $address->latitude,
+            (float) $address->longitude,
+            (float) $umkm->latitude,
+            (float) $umkm->longitude,
+        );
+        $freeRadius = max(0, (float) ($umkm->radius_gratis_km ?? 0));
+        if ($distance <= $freeRadius) {
+            return 0;
+        }
+
+        $zone = $umkm->zonaOngkir()
+            ->orderBy('jarak_min')
+            ->get()
+            ->first(fn ($item) => $distance > (float) $item->jarak_min
+                && $distance <= (float) $item->jarak_max);
+        if ($zone) {
+            return max(0, (int) $zone->biaya);
+        }
+
+        throw new InvalidArgumentException(
+            'Alamat pengiriman berada di luar jangkauan kurir UMKM.'
+        );
+    }
+
+    private function distanceInKm(float $latitudeA, float $longitudeA, float $latitudeB, float $longitudeB): float
+    {
+        $earthRadius = 6371.0;
+        $latDelta = deg2rad($latitudeB - $latitudeA);
+        $lonDelta = deg2rad($longitudeB - $longitudeA);
+        $a = sin($latDelta / 2) ** 2
+            + cos(deg2rad($latitudeA))
+            * cos(deg2rad($latitudeB))
+            * sin($lonDelta / 2) ** 2;
+
+        return $earthRadius * 2 * asin(min(1, sqrt($a)));
     }
 }
