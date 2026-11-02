@@ -22,40 +22,41 @@ Route::get('/katalog', [KatalogController::class, 'index']);
 
 // rute token Sanctum
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::post('/pelanggan/logout', [PelangganAuthController::class, 'logout']);
-    Route::get('/pelanggan/profil', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'profile']);
-    Route::post('/pelanggan/profil_update', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'updateProfile']);
-    Route::post('/pelanggan/umkm_daftar', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'registerUmkm']);
-    Route::post('/pelanggan/umkm_hapus', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'deleteUmkm']);
-    Route::post('/pelanggan/mode_umkm', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'switchToUmkm']);
-    Route::post('/pelanggan/mode_pelanggan', [PelangganAuthController::class, 'switchToCustomer']);
-    Route::get('/pelanggan/alamat_list', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'addresses']);
-    Route::post('/pelanggan/alamat_simpan', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'saveAddress']);
-    Route::post('/pelanggan/alamat_hapus', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'deleteAddress']);
-    Route::post('/pelanggan/alamat_utama', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'setPrimaryAddress']);
-    Route::get('/pelanggan/favorit', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'favorites']);
-    Route::post('/pelanggan/favorit_toggle', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'toggleFavorite']);
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware('role:umkm');
+    Route::post('/pelanggan/logout', [PelangganAuthController::class, 'logout'])->middleware('role:pelanggan');
+    Route::get('/pelanggan/profil', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'profile'])->middleware('role:pelanggan');
+    Route::post('/pelanggan/profil_update', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'updateProfile'])->middleware('role:pelanggan');
+    Route::post('/pelanggan/umkm_daftar', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'registerUmkm'])->middleware('role:pelanggan');
+    Route::post('/pelanggan/umkm_hapus', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'deleteUmkm'])->middleware('role:pelanggan');
+    Route::post('/pelanggan/mode_umkm', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'switchToUmkm'])->middleware('role:pelanggan');
+    Route::post('/pelanggan/mode_pelanggan', [PelangganAuthController::class, 'switchToCustomer'])->middleware('role:umkm');
+    Route::get('/pelanggan/alamat_list', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'addresses'])->middleware('role:pelanggan');
+    Route::post('/pelanggan/alamat_simpan', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'saveAddress'])->middleware('role:pelanggan');
+    Route::post('/pelanggan/alamat_hapus', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'deleteAddress'])->middleware('role:pelanggan');
+    Route::post('/pelanggan/alamat_utama', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'setPrimaryAddress'])->middleware('role:pelanggan');
+    Route::get('/pelanggan/favorit', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'favorites'])->middleware('role:pelanggan');
+    Route::post('/pelanggan/favorit_toggle', [\App\Http\Controllers\Api\PelangganSettingsController::class, 'toggleFavorite'])->middleware('role:pelanggan');
 
-    Route::get('/profil_get', [ProfilController::class, 'show']);
-    Route::post('/profil_update', [ProfilController::class, 'update']);
-    Route::post('/profil_password', [ProfilController::class, 'updatePassword']);
-    Route::post('/ongkir_simpan', [ProfilController::class, 'simpanOngkir']);
+    Route::get('/profil_get', [ProfilController::class, 'show'])->middleware('role:umkm');
+    Route::post('/profil_update', [ProfilController::class, 'update'])->middleware('role:umkm');
+    Route::post('/profil_password', [ProfilController::class, 'updatePassword'])->middleware('role:umkm');
+    Route::post('/ongkir_simpan', [ProfilController::class, 'simpanOngkir'])->middleware('role:umkm');
 
-    Route::get('/produk_list', [ProdukController::class, 'index']);
-    Route::post('/produk_create', [ProdukController::class, 'store']);
-    Route::post('/produk_update', [ProdukController::class, 'update']);
-    Route::post('/produk_delete', [ProdukController::class, 'destroy']);
+    Route::get('/produk_list', [ProdukController::class, 'index'])->middleware('role:umkm');
+    Route::post('/produk_create', [ProdukController::class, 'store'])->middleware('role:umkm');
+    Route::post('/produk_update', [ProdukController::class, 'update'])->middleware('role:umkm');
+    Route::post('/produk_delete', [ProdukController::class, 'destroy'])->middleware('role:umkm');
 
-    Route::get('/pesanan_list', [PesananController::class, 'index']);
-    Route::get('/pesanan_detail', [PesananController::class, 'show']);
-    Route::post('/pesanan_status', [PesananController::class, 'updateStatus']);
+    Route::get('/pesanan_list', [PesananController::class, 'index'])->middleware('role:umkm');
+    Route::get('/pesanan_detail', [PesananController::class, 'show'])->middleware('role:umkm');
+    Route::post('/pesanan_status', [PesananController::class, 'updateStatus'])->middleware('role:umkm');
 
-    Route::get('/pesanan/saya', [\App\Http\Controllers\Api\CheckoutController::class, 'index']);
-    Route::get('/pesanan/saya/{id_pesanan}', [\App\Http\Controllers\Api\CheckoutController::class, 'show']);
-    Route::post('/pesanan/checkout', [\App\Http\Controllers\Api\CheckoutController::class, 'store']);
+    Route::get('/pesanan/saya', [\App\Http\Controllers\Api\CheckoutController::class, 'index'])->middleware('role:pelanggan');
+    Route::get('/pesanan/saya/group/{id_checkout}', [\App\Http\Controllers\Api\CheckoutController::class, 'group'])->middleware('role:pelanggan');
+    Route::get('/pesanan/saya/{id_pesanan}', [\App\Http\Controllers\Api\CheckoutController::class, 'show'])->middleware('role:pelanggan');
+    Route::post('/pesanan/checkout', [\App\Http\Controllers\Api\CheckoutController::class, 'storeMulti'])->middleware('role:pelanggan');
 
-    Route::get('/ringkasan', [DashboardController::class, 'ringkasan']);
+    Route::get('/ringkasan', [DashboardController::class, 'ringkasan'])->middleware('role:umkm');
 });
 
 Route::post('/pesanan/midtrans/callback', [\App\Http\Controllers\Api\CheckoutController::class, 'callback']);

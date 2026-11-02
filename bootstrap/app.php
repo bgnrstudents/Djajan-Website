@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
             guests: '/login',
             users: '/admin'
         );
+        $middleware->alias([
+            'role' => \App\Http\Middleware\EnsureRole::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
