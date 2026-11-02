@@ -138,7 +138,7 @@ class RegisterController extends Controller
                 'password' => hash('sha256', $password),
                 'status_verifikasi' => 'pending',
                 'toko_aktif' => 1,
-                'transfer_bank_aktif' => 1,
+                'transfer_bank_aktif' => 0,
                 'cod_aktif' => 1,
                 'pickup_aktif' => 1,
                 'kurir_warga_aktif' => 1,

@@ -40,7 +40,8 @@ class ProfilController extends Controller
             'bank_kode', 'bank_nama', 'no_rekening', 'atas_nama', 'skema_po',
         ];
         $kolomAngka   = ['biaya_pengantaran'];
-        $kolomBoolean = ['toko_aktif', 'transfer_bank_aktif', 'cod_aktif', 'pickup_aktif', 'kurir_warga_aktif'];
+        $kolomBoolean = ['toko_aktif', 'cod_aktif', 'pickup_aktif', 'kurir_warga_aktif'];
+        $umkm->transfer_bank_aktif = false;
 
         $adaPerubahan = false;
 
@@ -61,6 +62,14 @@ class ProfilController extends Controller
                 $nilai        = $request->input($k);
                 $umkm->{$k}   = in_array($nilai, [true, 1, '1', 'true'], true) ? 1 : 0;
                 $adaPerubahan = true;
+            }
+
+            if ($umkm->kurir_warga_aktif
+                && ($umkm->latitude === null || $umkm->longitude === null)) {
+                return $this->gagal(
+                    'Lokasi UMKM wajib diisi sebelum layanan kurir diaktifkan.',
+                    422
+                );
             }
         }
 
