@@ -365,6 +365,28 @@ class CheckoutController extends Controller
                 return $this->gagal('Alamat pengiriman tidak ditemukan.', 404);
             }
             $alamat = trim((string) $deliveryAddress->alamat);
+        } else {
+            // Fallback: cari alamat pelanggan yang memiliki koordinat GPS
+            $deliveryAddress = PelangganAlamat::where('id_pelanggan', $pelanggan->id_pelanggan)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->orderByDesc('utama')
+                ->orderByDesc('updated_at')
+                ->first();
+            if ($deliveryAddress && empty($alamat)) {
+                $alamat = trim((string) $deliveryAddress->alamat);
+            }
+        }
+
+        // Jika request menyertakan koordinat GPS langsung dan deliveryAddress belum memiliki koordinat
+        if ((!$deliveryAddress || $deliveryAddress->latitude === null) && $request->filled('latitude') && $request->filled('longitude')) {
+            if (!$deliveryAddress) {
+                $deliveryAddress = new PelangganAlamat();
+                $deliveryAddress->id_pelanggan = $pelanggan->id_pelanggan;
+                $deliveryAddress->alamat = $alamat;
+            }
+            $deliveryAddress->latitude = (float) $request->input('latitude');
+            $deliveryAddress->longitude = (float) $request->input('longitude');
         }
         foreach ($groups as $group) {
             $items = $group['items'] ?? [];
@@ -805,6 +827,17 @@ class CheckoutController extends Controller
                 && $distance <= (float) $item->jarak_max);
         if ($zone) {
             return max(0, (int) $zone->biaya);
+        }
+
+        // Fallback jika UMKM belum mengatur zona bertingkat tetapi memiliki tarif flat pengantaran
+        if ($umkm->zonaOngkir()->doesntExist()) {
+            $maxDistance = (float) ($umkm->jarak_maksimal_km ?? 0);
+            if ($maxDistance > 0 && $distance > $maxDistance) {
+                throw new InvalidArgumentException(
+                    'Alamat pengiriman berada di luar jangkauan kurir UMKM (' . $maxDistance . ' km).'
+                );
+            }
+            return max(0, (int) ($umkm->biaya_pengantaran ?? 0));
         }
 
         throw new InvalidArgumentException(
