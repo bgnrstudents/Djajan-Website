@@ -19,12 +19,12 @@ class Pesanan extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_pesanan', 'id_checkout', 'id_pelanggan', 'id_umkm', 'tanggal_pesan', 'waktu_dibutuhkan',
+        'id_pesanan', 'id_checkout', 'id_pelanggan', 'id_umkm', 'nama_umkm_snapshot', 'tanggal_pesan', 'waktu_dibutuhkan',
         'batas_konfirmasi', 'keperluan_acara', 'metode_pengiriman', 'alamat_tujuan',
         'catatan', 'metode_pembayaran', 'status_pembayaran', 'bukti_pembayaran',
-        'biaya_pengantaran', 'biaya_layanan', 'total_harga', 'status_pesanan',
+        'biaya_pengantaran', 'jarak_km', 'zona_ongkir_id', 'biaya_layanan', 'total_harga', 'status_pesanan',
         'midtrans_order_id', 'snap_token', 'payment_url', 'payment_status',
-        'dibayar_pada',
+        'dibayar_pada', 'alasan_batal', 'dibatalkan_oleh', 'dibatalkan_pada', 'status_refund',
     ];
 
     public function pelanggan(): BelongsTo
@@ -60,8 +60,8 @@ class Pesanan extends Model
             'id_pesanan'        => $this->id_pesanan,
             'id_checkout'       => $this->id_checkout,
             'id_pelanggan'      => (int) $this->id_pelanggan,
-            'id_umkm'           => (int) $this->id_umkm,
-            'nama_umkm'         => $this->umkm?->nama_usaha ?? 'UMKM',
+            'id_umkm'           => $this->id_umkm !== null ? (int) $this->id_umkm : null,
+            'nama_umkm'         => $this->nama_umkm_snapshot ?? $this->umkm?->nama_usaha ?? 'UMKM',
             'spesialis_umkm'    => $this->umkm?->spesialis ?? '',
             'alamat_umkm'       => $this->umkm?->alamat ?? '',
             'nama_pembeli'      => $this->pelanggan?->nama ?? '',
@@ -81,10 +81,16 @@ class Pesanan extends Model
             'snap_token'        => $this->snap_token,
             'payment_url'       => $this->payment_url,
             'biaya_pengantaran' => (int) $this->biaya_pengantaran,
+            'jarak_km'          => $this->jarak_km !== null ? (float) $this->jarak_km : null,
+            'zona_ongkir_id'    => $this->zona_ongkir_id !== null ? (int) $this->zona_ongkir_id : null,
             'biaya_layanan'     => (int) $this->biaya_layanan,
             'subtotal'          => $subtotal,
             'total_harga'       => (int) $this->total_harga,
             'status_pesanan'    => $this->status_pesanan,
+            'alasan_batal'      => $this->alasan_batal,
+            'dibatalkan_oleh'   => $this->dibatalkan_oleh,
+            'dibatalkan_pada'   => $this->dibatalkan_pada,
+            'status_refund'     => $this->status_refund ?? 'none',
             'items'             => $items->map(fn (DetailPesanan $i) => $i->keFormatJson())->values()->all(),
         ];
     }

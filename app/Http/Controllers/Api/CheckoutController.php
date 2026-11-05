@@ -22,11 +22,29 @@ class CheckoutController extends Controller
 {
     use ApiResponse;
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, MidtransService $midtransService): JsonResponse
     {
         $pelanggan = $request->user();
         if (!$pelanggan instanceof Pelanggan) {
             return $this->gagal('Sesi pelanggan tidak valid.', 401);
+        }
+
+        // Sinkronisasi otomatis untuk pesanan midtrans yang masih pending
+        $pendingOrders = Pesanan::where('id_pelanggan', $pelanggan->id_pelanggan)
+            ->where('metode_pembayaran', 'midtrans')
+            ->where(function ($q) {
+                $q->whereIn('payment_status', ['pending', 'cod_pending'])
+                  ->orWhereNull('payment_status')
+                  ->orWhere('status_pembayaran', 'pending')
+                  ->orWhere('status_pembayaran', 'belum_bayar');
+            })
+            ->whereNotIn('status_pesanan', ['selesai', 'ditolak'])
+            ->orderByDesc('tanggal_pesan')
+            ->take(5)
+            ->get();
+
+        foreach ($pendingOrders as $pendingOrder) {
+            $this->syncPaymentStatus($pendingOrder, $midtransService);
         }
 
         $orders = Pesanan::with('items.produk', 'umkm')
@@ -56,6 +74,86 @@ class CheckoutController extends Controller
         $this->syncPaymentStatus($order, $midtransService);
 
         return $this->sukses('Detail pesanan dimuat.', $order->keFormatJson());
+    }
+
+    public function cancel(Request $request, ?string $idPesanan = null): JsonResponse
+    {
+        $pelanggan = $request->user();
+        if (!$pelanggan instanceof Pelanggan) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
+        }
+
+        $id = trim((string) ($idPesanan ?? $request->input('id_pesanan', '')));
+        if ($id === '') {
+            return $this->gagal('Parameter id_pesanan wajib diisi.', 400);
+        }
+
+        $order = Pesanan::with(['items', 'umkm', 'pelanggan'])
+            ->where('id_pesanan', $id)
+            ->first();
+
+        if (!$order) {
+            return $this->gagal('Pesanan tidak ditemukan.', 404);
+        }
+
+        if ((int) $order->id_pelanggan !== (int) $pelanggan->id_pelanggan) {
+            return $this->gagal('Anda tidak memiliki akses untuk membatalkan pesanan ini.', 403);
+        }
+
+        if (in_array($order->status_pesanan, ['selesai', 'ditolak'], true)) {
+            return $this->gagal('Pesanan yang sudah ' . $order->status_pesanan . ' tidak dapat dibatalkan.', 409);
+        }
+
+        if (in_array($order->status_pesanan, ['diproses', 'diantar'], true)) {
+            return $this->gagal('Pesanan yang sedang diproses atau diantar tidak dapat dibatalkan.', 409);
+        }
+
+        $alasan = trim((string) $request->input('alasan', ''));
+        if ($alasan === '') {
+            $alasan = 'Dibatalkan oleh pelanggan.';
+        }
+
+        try {
+            DB::transaction(function () use ($order, $alasan) {
+                $statusLama = $order->status_pesanan;
+
+                // Kembalikan stok jika sebelumnya sudah diterima UMKM
+                if ($statusLama === 'diterima') {
+                    foreach ($order->items as $item) {
+                        if ($item->id_produk !== null) {
+                            Produk::where('id_produk', $item->id_produk)
+                                ->increment('stok', (int) $item->jumlah);
+                        }
+                    }
+                }
+
+                $isPaid = in_array($order->payment_status, ['paid', 'settlement', 'capture'], true) ||
+                    in_array($order->status_pembayaran, ['lunas', 'paid'], true);
+
+                $order->status_pesanan = 'ditolak';
+                $order->alasan_batal = $alasan;
+                $order->dibatalkan_oleh = 'pelanggan';
+                $order->dibatalkan_pada = now();
+
+                if ($isPaid) {
+                    $order->status_refund = 'perlu_refund';
+                } else {
+                    $order->status_refund = 'none';
+                    if ($order->metode_pembayaran === 'midtrans') {
+                        $order->payment_status = 'cancel';
+                        $order->status_pembayaran = 'batal';
+                    }
+                }
+
+                $order->save();
+            });
+        } catch (\Throwable $e) {
+            return $this->gagal('Gagal membatalkan pesanan: ' . $e->getMessage(), 500);
+        }
+
+        $order->refresh();
+
+        return $this->sukses('Pesanan berhasil dibatalkan.', $order->keFormatJson());
     }
 
     public function store(Request $request, MidtransService $midtransService): JsonResponse
@@ -205,6 +303,7 @@ class CheckoutController extends Controller
                 'id_pesanan' => $orderId,
                 'id_pelanggan' => $pelanggan->id_pelanggan,
                 'id_umkm' => $umkmIds[0],
+                'nama_umkm_snapshot' => $umkm->nama_usaha ?? 'UMKM',
                 'tanggal_pesan' => now()->toDateString(),
                 'waktu_dibutuhkan' => $waktuDibutuhkan ?? now()->addDay()->format('Y-m-d H:i:s'),
                 'batas_konfirmasi' => now()->addHours(24)->format('Y-m-d H:i:s'),
@@ -442,13 +541,22 @@ class CheckoutController extends Controller
             }
 
             try {
-                $ongkir = $this->calculateDeliveryFee($umkm, $delivery, $deliveryAddress);
+                $ongkirDetails = $this->calculateDeliveryDetails(
+                    $umkm,
+                    $delivery,
+                    $deliveryAddress,
+                    $request->filled('latitude') ? (float) $request->input('latitude') : null,
+                    $request->filled('longitude') ? (float) $request->input('longitude') : null
+                );
             } catch (InvalidArgumentException $error) {
                 return $this->gagal($error->getMessage(), 422);
             }
+            $ongkir = $ongkirDetails['biaya_ongkir'];
+            $jarakKm = $ongkirDetails['jarak_km'];
+            $zonaOngkirId = $ongkirDetails['zona_ongkir_id'];
             $total = $subtotal + $ongkir;
             $grandTotal += $total;
-            $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'total', 'group');
+            $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'jarakKm', 'zonaOngkirId', 'total', 'group');
         }
 
         $checkoutId = 'CHK-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(6));
@@ -468,6 +576,7 @@ class CheckoutController extends Controller
                     'id_checkout' => $checkoutId,
                     'id_pelanggan' => $pelanggan->id_pelanggan,
                     'id_umkm' => $entry['umkmId'],
+                    'nama_umkm_snapshot' => Umkm::find($entry['umkmId'])?->nama_usaha ?? 'UMKM',
                     'tanggal_pesan' => now()->toDateString(),
                     'waktu_dibutuhkan' => $entry['group']['waktu_dibutuhkan'] ?? now()->addDay()->format('Y-m-d H:i:s'),
                     'batas_konfirmasi' => now()->addHours(24)->format('Y-m-d H:i:s'),
@@ -479,6 +588,8 @@ class CheckoutController extends Controller
                     'status_pembayaran' => $payment === 'cod' ? 'bayar_di_tempat' : 'pending',
                     'payment_status' => $payment === 'cod' ? 'cod_pending' : 'pending',
                     'biaya_pengantaran' => $entry['ongkir'],
+                    'jarak_km' => $entry['jarakKm'],
+                    'zona_ongkir_id' => $entry['zonaOngkirId'],
                     'biaya_layanan' => 0,
                     'total_harga' => $entry['total'],
                     'status_pesanan' => 'po_baru',
@@ -572,52 +683,95 @@ class CheckoutController extends Controller
         $transactionStatus = (string) ($payload['transaction_status'] ?? '');
 
         \Log::info('Midtrans payment notification received', [
-            'order_id' => $orderId,
+            'order_id'           => $orderId,
             'transaction_status' => $transactionStatus,
-            'status_code' => $payload['status_code'] ?? null,
-            'gross_amount' => $payload['gross_amount'] ?? null,
+            'status_code'        => $payload['status_code'] ?? null,
+            'gross_amount'       => $payload['gross_amount'] ?? null,
+            'has_signature_key'  => isset($payload['signature_key']),
+            'full_payload_keys'  => array_keys($payload),
         ]);
 
         if ($orderId === '') {
-            return response()->json(['status' => 'invalid'], 400);
+            return response()->json(['status' => 'invalid'], 200);
         }
 
         $serverKey = trim((string) config('services.midtrans.server_key'));
         if ($serverKey === '') {
-            \Log::error('Midtrans callback rejected because server key is not configured', [
-                'order_id' => $orderId,
-            ]);
-            return response()->json(['status' => 'configuration_error'], 500);
+            \Log::error('Midtrans callback: server key not configured', compact('orderId'));
+            return response()->json(['status' => 'configuration_error'], 200);
         }
 
-        if (!$midtransService->verifyCallback($payload, $serverKey)) {
-            \Log::warning('Midtrans payment notification signature rejected', [
+        // ---------------------------------------------------------------
+        // Verifikasi signature — jika gagal, coba fallback via API
+        // ---------------------------------------------------------------
+        $signatureValid = $midtransService->verifyCallback($payload, $serverKey);
+
+        if (!$signatureValid) {
+            \Log::warning('Midtrans callback: signature mismatch, attempting API verification', [
                 'order_id' => $orderId,
             ]);
-            return response()->json(['status' => 'invalid_signature'], 403);
+
+            // Fallback: tanya langsung ke Midtrans API status transaksi ini
+            $apiPayload = $midtransService->verifyViaApi($orderId);
+
+            if (!empty($apiPayload) && isset($apiPayload['transaction_status'])) {
+                // API menjawab → notifikasi ini sah, gunakan data langsung dari API
+                $transactionStatus = (string) $apiPayload['transaction_status'];
+                $payload['gross_amount'] = $apiPayload['gross_amount'] ?? $payload['gross_amount'] ?? '0';
+                $payload['status_code'] = $apiPayload['status_code'] ?? $payload['status_code'] ?? '';
+                \Log::info('Midtrans callback: API verification succeeded', [
+                    'order_id'           => $orderId,
+                    'transaction_status' => $transactionStatus,
+                ]);
+                $signatureValid = true;
+            }
         }
 
+        if (!$signatureValid) {
+            \Log::warning('Midtrans callback: all verification failed — rejecting', [
+                'order_id' => $orderId,
+            ]);
+            // Tetap return 200 agar Midtrans tidak mengirim ulang terus-menerus
+            return response()->json(['status' => 'invalid_signature'], 200);
+        }
+
+        // ---------------------------------------------------------------
+        // Proses notifikasi — cari CheckoutGroup atau Pesanan
+        // ---------------------------------------------------------------
+        return $this->applyPaymentNotification($orderId, $transactionStatus, $payload);
+    }
+
+    /**
+     * Terapkan status pembayaran dari notifikasi Midtrans ke database.
+     */
+    private function applyPaymentNotification(string $orderId, string $transactionStatus, array $payload): JsonResponse
+    {
+        // ---- Coba CheckoutGroup dulu (multi-order checkout) ----
         $checkoutGroup = CheckoutGroup::where('id_checkout', $orderId)
             ->orWhere('midtrans_order_id', $orderId)
             ->first();
+
         if ($checkoutGroup) {
             $grossAmount = (float) ($payload['gross_amount'] ?? -1);
             if ($grossAmount < 0 || abs($grossAmount - (float) $checkoutGroup->total_harga) > 0.001) {
-                return response()->json(['status' => 'amount_mismatch'], 422);
+                \Log::warning('Midtrans callback: amount mismatch (group)', [
+                    'order_id' => $orderId,
+                    'expected' => $checkoutGroup->total_harga,
+                    'received' => $payload['gross_amount'] ?? null,
+                ]);
+                return response()->json(['status' => 'amount_mismatch'], 200);
             }
             if (in_array($checkoutGroup->payment_status, ['paid', 'failed'], true)) {
-                return response()->json(['status' => 'success', 'payment_status' => $checkoutGroup->payment_status]);
+                return response()->json(['status' => 'success', 'payment_status' => $checkoutGroup->payment_status], 200);
             }
-            $newStatus = in_array($transactionStatus, ['capture', 'settlement'], true)
-                ? 'paid'
-                : (in_array($transactionStatus, ['deny', 'cancel', 'expire'], true) ? 'failed' : 'pending');
+            $newStatus = $this->mapMidtransStatus($transactionStatus);
             $changes = ['payment_status' => $newStatus];
             if ($newStatus === 'paid') {
                 $changes['dibayar_pada'] = now();
             }
             $checkoutGroup->update($changes);
             $orderChanges = [
-                'payment_status' => $newStatus,
+                'payment_status'    => $newStatus,
                 'status_pembayaran' => $newStatus,
             ];
             if ($newStatus === 'failed') {
@@ -627,79 +781,86 @@ class CheckoutController extends Controller
                 $orderChanges['dibayar_pada'] = now();
             }
             Pesanan::where('id_checkout', $checkoutGroup->id_checkout)->update($orderChanges);
-            return response()->json(['status' => 'success', 'payment_status' => $newStatus]);
+
+            \Log::info('Midtrans callback: checkout group updated', [
+                'checkout_id'    => $checkoutGroup->id_checkout,
+                'payment_status' => $newStatus,
+            ]);
+
+            return response()->json(['status' => 'success', 'payment_status' => $newStatus], 200);
         }
 
+        // ---- Fallback: cari Pesanan tunggal ----
         $order = Pesanan::where('id_pesanan', $orderId)
             ->orWhere('midtrans_order_id', $orderId)
             ->first();
+
         if (!$order) {
-            \Log::warning('Midtrans payment notification order not found', [
-                'order_id' => $orderId,
-            ]);
-            return response()->json(['status' => 'not_found'], 404);
+            \Log::warning('Midtrans callback: order not found', compact('orderId'));
+            return response()->json(['status' => 'not_found'], 200);
         }
 
         $grossAmount = (float) ($payload['gross_amount'] ?? -1);
         if ($grossAmount < 0 || abs($grossAmount - (float) $order->total_harga) > 0.001) {
-            \Log::warning('Midtrans payment notification amount mismatch', [
+            \Log::warning('Midtrans callback: amount mismatch (order)', [
                 'order_id' => $order->id_pesanan,
-                'expected_amount' => (int) $order->total_harga,
-                'received_amount' => $payload['gross_amount'] ?? null,
+                'expected' => (int) $order->total_harga,
+                'received' => $payload['gross_amount'] ?? null,
             ]);
-            return response()->json(['status' => 'amount_mismatch'], 422);
+            return response()->json(['status' => 'amount_mismatch'], 200);
         }
 
         if (!in_array($transactionStatus, ['capture', 'settlement', 'pending', 'deny', 'cancel', 'expire'], true)) {
-            \Log::warning('Midtrans payment notification status ignored', [
-                'order_id' => $orderId,
-                'transaction_status' => $transactionStatus,
-            ]);
-
             return response()->json(['status' => 'ignored'], 200);
         }
 
         if (in_array($order->payment_status, ['paid', 'failed'], true)) {
             return response()->json([
-                'status' => 'success',
-                'order_id' => $order->id_pesanan,
+                'status'         => 'success',
+                'order_id'       => $order->id_pesanan,
                 'payment_status' => $order->payment_status,
-            ]);
+            ], 200);
         }
 
-        $newStatus = $order->status_pembayaran;
+        $newStatus = $this->mapMidtransStatus($transactionStatus);
         $newOrderStatus = $order->status_pesanan;
-
-        if (in_array($transactionStatus, ['capture', 'settlement'], true)) {
-            $newStatus = 'paid';
-        } elseif (in_array($transactionStatus, ['pending'], true)) {
-            $newStatus = 'pending';
-        } elseif (in_array($transactionStatus, ['deny', 'cancel', 'expire'], true)) {
-            $newStatus = 'failed';
+        if ($newStatus === 'failed') {
             $newOrderStatus = 'ditolak';
         }
 
         $changes = [
             'status_pembayaran' => $newStatus,
-            'payment_status' => $newStatus,
-            'status_pesanan' => $newOrderStatus,
+            'payment_status'    => $newStatus,
+            'status_pesanan'    => $newOrderStatus,
         ];
         if ($newStatus === 'paid') {
             $changes['dibayar_pada'] = now();
         }
         $order->update($changes);
 
-        \Log::info('Midtrans payment notification applied', [
-            'order_id' => $order->id_pesanan,
+        \Log::info('Midtrans callback: order updated', [
+            'order_id'       => $order->id_pesanan,
             'payment_status' => $newStatus,
-            'order_status' => $newOrderStatus,
+            'order_status'   => $newOrderStatus,
         ]);
 
         return response()->json([
-            'status' => 'success',
-            'order_id' => $order->id_pesanan,
+            'status'         => 'success',
+            'order_id'       => $order->id_pesanan,
             'payment_status' => $newStatus,
-        ]);
+        ], 200);
+    }
+
+    /**
+     * Map Midtrans transaction_status ke status internal.
+     */
+    private function mapMidtransStatus(string $transactionStatus): string
+    {
+        return match (true) {
+            in_array($transactionStatus, ['capture', 'settlement'], true) => 'paid',
+            in_array($transactionStatus, ['deny', 'cancel', 'expire'], true) => 'failed',
+            default => 'pending',
+        };
     }
 
     private function syncPaymentStatus(Pesanan $order, MidtransService $midtransService): void
@@ -709,15 +870,20 @@ class CheckoutController extends Controller
             return;
         }
 
+        $midtransOrderId = $order->midtrans_order_id ?: ($order->id_checkout ?: $order->id_pesanan);
+
         try {
-            $midtransOrderId = $order->midtrans_order_id ?: $order->id_pesanan;
             $payload = $midtransService->getTransactionStatus($midtransOrderId);
         } catch (\Throwable $exception) {
-            \Log::warning('Midtrans status sync failed', [
-                'order_id' => $order->id_pesanan,
-                'message' => $exception->getMessage(),
-            ]);
-            return;
+            // Fallback ke verifyViaApi (mencoba Snap endpoint jika Core API 403)
+            $payload = $midtransService->verifyViaApi($midtransOrderId);
+            if (empty($payload)) {
+                \Log::warning('Midtrans status sync failed', [
+                    'order_id' => $order->id_pesanan,
+                    'message' => $exception->getMessage(),
+                ]);
+                return;
+            }
         }
 
         $transactionStatus = (string) ($payload['transaction_status'] ?? '');
@@ -740,6 +906,17 @@ class CheckoutController extends Controller
             ];
             if ($newStatus === 'paid') {
                 $changes['dibayar_pada'] = now();
+            } elseif ($newOrderStatus === 'ditolak' && $order->status_pesanan !== 'ditolak') {
+                if ($order->status_pesanan === 'diterima') {
+                    foreach ($order->items as $item) {
+                        if ($item->id_produk !== null) {
+                            Produk::where('id_produk', $item->id_produk)->increment('stok', (int) $item->jumlah);
+                        }
+                    }
+                }
+                $changes['alasan_batal'] = 'Pembayaran dibatalkan atau kedaluwarsa (' . $transactionStatus . ').';
+                $changes['dibatalkan_oleh'] = 'sistem';
+                $changes['dibatalkan_pada'] = now();
             }
             $order->update($changes);
             $order->refresh();
@@ -752,15 +929,23 @@ class CheckoutController extends Controller
             || in_array($group->payment_status, ['paid', 'failed'], true)) {
             return;
         }
+
+        $midtransOrderId = $group->midtrans_order_id ?: $group->id_checkout;
+
         try {
-            $payload = $midtransService->getTransactionStatus($group->midtrans_order_id ?: $group->id_checkout);
+            $payload = $midtransService->getTransactionStatus($midtransOrderId);
         } catch (\Throwable $exception) {
-            \Log::warning('Midtrans checkout group status sync failed', [
-                'checkout_id' => $group->id_checkout,
-                'message' => $exception->getMessage(),
-            ]);
-            return;
+            // Fallback ke verifyViaApi
+            $payload = $midtransService->verifyViaApi($midtransOrderId);
+            if (empty($payload)) {
+                \Log::warning('Midtrans checkout group status sync failed', [
+                    'checkout_id' => $group->id_checkout,
+                    'message' => $exception->getMessage(),
+                ]);
+                return;
+            }
         }
+
         $status = (string) ($payload['transaction_status'] ?? '');
         $newStatus = in_array($status, ['capture', 'settlement'], true)
             ? 'paid'
@@ -793,31 +978,121 @@ class CheckoutController extends Controller
         return 'PO-' . $date . '-' . $random;
     }
 
-    private function calculateDeliveryFee(Umkm $umkm, string $delivery, ?PelangganAlamat $address): int
+    public function hitungOngkir(Request $request): JsonResponse
     {
-        if ($delivery === 'pickup') {
-            return 0;
+        $pelanggan = $request->user();
+        if (!$pelanggan instanceof Pelanggan) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
         }
-        if ($address?->latitude === null || $address?->longitude === null) {
+
+        $idUmkm = (int) $request->input('id_umkm', 0);
+        if ($idUmkm <= 0) {
+            return $this->gagal('ID UMKM wajib diisi.', 422);
+        }
+
+        $umkm = Umkm::find($idUmkm);
+        if (!$umkm) {
+            return $this->gagal('UMKM tidak ditemukan.', 404);
+        }
+
+        $delivery = trim((string) $request->input('metode_pengiriman', 'kurir'));
+        if (!in_array($delivery, ['pickup', 'kurir'], true)) {
+            return $this->gagal('Metode pengiriman tidak valid.', 422);
+        }
+
+        $deliveryAddress = null;
+        if ($request->filled('id_alamat')) {
+            $deliveryAddress = PelangganAlamat::where('id_pelanggan', $pelanggan->id_pelanggan)
+                ->whereKey($request->integer('id_alamat'))
+                ->first();
+        } else {
+            $deliveryAddress = PelangganAlamat::where('id_pelanggan', $pelanggan->id_pelanggan)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->orderByDesc('utama')
+                ->orderByDesc('updated_at')
+                ->first();
+        }
+
+        $lat = $request->filled('latitude') ? (float) $request->input('latitude') : null;
+        $lon = $request->filled('longitude') ? (float) $request->input('longitude') : null;
+
+        try {
+            $details = $this->calculateDeliveryDetails($umkm, $delivery, $deliveryAddress, $lat, $lon);
+            return $this->sukses('Perhitungan ongkir berhasil.', [
+                'id_umkm' => (int) $umkm->id_umkm,
+                'nama_umkm' => $umkm->nama_usaha,
+                'metode_pengiriman' => $delivery,
+                'jarak_km' => $details['jarak_km'],
+                'biaya_ongkir' => $details['biaya_ongkir'],
+                'gratis' => $details['gratis'],
+                'zona_ongkir_id' => $details['zona_ongkir_id'],
+                'pesan' => $details['pesan'],
+                'di_luar_jangkauan' => false,
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return $this->gagal($e->getMessage(), 422, [
+                'di_luar_jangkauan' => true,
+                'metode_pengiriman' => $delivery,
+            ]);
+        }
+    }
+
+    public function calculateDeliveryDetails(
+        Umkm $umkm,
+        string $delivery,
+        ?PelangganAlamat $address = null,
+        ?float $latitude = null,
+        ?float $longitude = null
+    ): array {
+        if ($delivery === 'pickup') {
+            return [
+                'jarak_km' => null,
+                'biaya_ongkir' => 0,
+                'gratis' => true,
+                'zona_ongkir_id' => null,
+                'pesan' => 'Ambil sendiri di toko (Gratis)',
+            ];
+        }
+
+        $custLat = $latitude ?? ($address?->latitude !== null ? (float) $address->latitude : null);
+        $custLon = $longitude ?? ($address?->longitude !== null ? (float) $address->longitude : null);
+
+        if ($custLat === null || $custLon === null) {
             throw new InvalidArgumentException(
                 'Alamat pengiriman harus memiliki koordinat GPS untuk layanan kurir.'
             );
         }
+
         if ($umkm->latitude === null || $umkm->longitude === null) {
             throw new InvalidArgumentException(
                 'Lokasi UMKM belum dikonfigurasi untuk menghitung ongkir.'
             );
         }
 
-        $distance = $this->distanceInKm(
-            (float) $address->latitude,
-            (float) $address->longitude,
+        $distance = round($this->distanceInKm(
+            $custLat,
+            $custLon,
             (float) $umkm->latitude,
             (float) $umkm->longitude,
-        );
+        ), 2);
+
+        $maxDistance = (float) ($umkm->jarak_maksimal_km ?? 0);
+        if ($maxDistance > 0 && $distance > $maxDistance) {
+            throw new InvalidArgumentException(
+                'Alamat pengiriman berada di luar jangkauan kurir UMKM (' . $maxDistance . ' km).'
+            );
+        }
+
         $freeRadius = max(0, (float) ($umkm->radius_gratis_km ?? 0));
         if ($distance <= $freeRadius) {
-            return 0;
+            return [
+                'jarak_km' => $distance,
+                'biaya_ongkir' => 0,
+                'gratis' => true,
+                'zona_ongkir_id' => null,
+                'pesan' => 'Gratis ongkir (radius ' . $freeRadius . ' km)',
+            ];
         }
 
         $zone = $umkm->zonaOngkir()
@@ -825,24 +1100,38 @@ class CheckoutController extends Controller
             ->get()
             ->first(fn ($item) => $distance > (float) $item->jarak_min
                 && $distance <= (float) $item->jarak_max);
+
         if ($zone) {
-            return max(0, (int) $zone->biaya);
+            $fee = max(0, (int) $zone->biaya);
+            return [
+                'jarak_km' => $distance,
+                'biaya_ongkir' => $fee,
+                'gratis' => $fee === 0,
+                'zona_ongkir_id' => (int) $zone->id_zona,
+                'pesan' => 'Tarif zona (' . $zone->jarak_min . ' - ' . $zone->jarak_max . ' km)',
+            ];
         }
 
         // Fallback jika UMKM belum mengatur zona bertingkat tetapi memiliki tarif flat pengantaran
         if ($umkm->zonaOngkir()->doesntExist()) {
-            $maxDistance = (float) ($umkm->jarak_maksimal_km ?? 0);
-            if ($maxDistance > 0 && $distance > $maxDistance) {
-                throw new InvalidArgumentException(
-                    'Alamat pengiriman berada di luar jangkauan kurir UMKM (' . $maxDistance . ' km).'
-                );
-            }
-            return max(0, (int) ($umkm->biaya_pengantaran ?? 0));
+            $flatFee = max(0, (int) ($umkm->biaya_pengantaran ?? 0));
+            return [
+                'jarak_km' => $distance,
+                'biaya_ongkir' => $flatFee,
+                'gratis' => $flatFee === 0,
+                'zona_ongkir_id' => null,
+                'pesan' => 'Tarif flat kurir UMKM',
+            ];
         }
 
         throw new InvalidArgumentException(
             'Alamat pengiriman berada di luar jangkauan kurir UMKM.'
         );
+    }
+
+    private function calculateDeliveryFee(Umkm $umkm, string $delivery, ?PelangganAlamat $address, ?float $latitude = null, ?float $longitude = null): int
+    {
+        return $this->calculateDeliveryDetails($umkm, $delivery, $address, $latitude, $longitude)['biaya_ongkir'];
     }
 
     private function distanceInKm(float $latitudeA, float $longitudeA, float $latitudeB, float $longitudeB): float
