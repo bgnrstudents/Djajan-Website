@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Support\UploadFoto;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laravel\Sanctum\HasApiTokens;
 
-class Umkm extends Model
+class Umkm extends Authenticatable
 {
     use HasApiTokens;
 

@@ -133,12 +133,88 @@ class MidtransService
         $serverKey = trim($serverKey);
 
         if ($orderId === '' || $statusCode === '' || $grossAmount === '' || $signatureKey === '') {
+            \Log::warning('Midtrans verifyCallback: missing fields', [
+                'has_order_id'     => $orderId !== '',
+                'has_status_code'  => $statusCode !== '',
+                'has_gross_amount' => $grossAmount !== '',
+                'has_signature'    => $signatureKey !== '',
+            ]);
             return false;
         }
 
-        $expected = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+        $input    = $orderId . $statusCode . $grossAmount . $serverKey;
+        $expected = hash('sha512', $input);
 
-        return hash_equals($expected, $signatureKey);
+        $match = hash_equals($expected, $signatureKey);
+
+        if (!$match) {
+            \Log::warning('Midtrans verifyCallback: signature mismatch', [
+                'order_id'       => $orderId,
+                'status_code'    => $statusCode,
+                'gross_amount'   => $grossAmount,
+                'expected_sig'   => substr($expected, 0, 16) . '...',
+                'received_sig'   => substr($signatureKey, 0, 16) . '...',
+                'server_key_len' => strlen($serverKey),
+            ]);
+        }
+
+        return $match;
+    }
+
+    /**
+     * Fallback: verifikasi notifikasi dengan langsung memanggil Midtrans
+     * GET /v2/{order_id}/status dan membandingkan transaction_status.
+     *
+     * Dipakai saat signature lokal gagal (misalnya server key tidak sinkron).
+     */
+    public function verifyViaApi(string $orderId): array
+    {
+        $serverKey = $this->serverKey();
+        if ($serverKey === '') {
+            return [];
+        }
+
+        $isProduction = (bool) config('services.midtrans.is_production');
+
+        // Coba Core API
+        $endpoint = $isProduction
+            ? 'https://api.midtrans.com/v2/' . rawurlencode($orderId) . '/status'
+            : 'https://api.sandbox.midtrans.com/v2/' . rawurlencode($orderId) . '/status';
+
+        $response = Http::acceptJson()
+            ->withBasicAuth($serverKey, '')
+            ->timeout(10)
+            ->get($endpoint);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return is_array($data) ? $data : [];
+        }
+
+        // Jika Core API gagal (403), coba Snap status endpoint
+        if ($response->status() === 403) {
+            $snapEndpoint = $isProduction
+                ? 'https://app.midtrans.com/snap/v1/transactions/' . rawurlencode($orderId) . '/status'
+                : 'https://app.sandbox.midtrans.com/snap/v1/transactions/' . rawurlencode($orderId) . '/status';
+
+            $snapResponse = Http::acceptJson()
+                ->withBasicAuth($serverKey, '')
+                ->timeout(10)
+                ->get($snapEndpoint);
+
+            if ($snapResponse->successful()) {
+                $data = $snapResponse->json();
+                return is_array($data) ? $data : [];
+            }
+        }
+
+        \Log::warning('Midtrans verifyViaApi failed', [
+            'order_id' => $orderId,
+            'status'   => $response->status(),
+            'body'     => $response->body(),
+        ]);
+
+        return [];
     }
 
     private function serverKey(): string
