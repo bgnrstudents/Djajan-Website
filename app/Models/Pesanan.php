@@ -62,6 +62,7 @@ class Pesanan extends Model
             'id_pelanggan'      => (int) $this->id_pelanggan,
             'id_umkm'           => $this->id_umkm !== null ? (int) $this->id_umkm : null,
             'nama_umkm'         => $this->nama_umkm_snapshot ?? $this->umkm?->nama_usaha ?? 'UMKM',
+            'no_telp_umkm'      => $this->umkm?->no_telp_usaha ?? '',
             'spesialis_umkm'    => $this->umkm?->spesialis ?? '',
             'alamat_umkm'       => $this->umkm?->alamat ?? '',
             'nama_pembeli'      => $this->pelanggan?->nama ?? '',
