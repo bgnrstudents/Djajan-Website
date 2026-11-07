@@ -23,6 +23,7 @@ class Pesanan extends Model
         'batas_konfirmasi', 'keperluan_acara', 'metode_pengiriman', 'alamat_tujuan',
         'catatan', 'metode_pembayaran', 'status_pembayaran', 'bukti_pembayaran',
         'biaya_pengantaran', 'jarak_km', 'zona_ongkir_id', 'biaya_layanan', 'total_harga', 'status_pesanan',
+        'waktu_diantar', 'waktu_selesai',
         'midtrans_order_id', 'snap_token', 'payment_url', 'payment_status',
         'dibayar_pada', 'alasan_batal', 'dibatalkan_oleh', 'dibatalkan_pada', 'status_refund',
     ];
@@ -88,6 +89,8 @@ class Pesanan extends Model
             'subtotal'          => $subtotal,
             'total_harga'       => (int) $this->total_harga,
             'status_pesanan'    => $this->status_pesanan,
+            'waktu_diantar'     => $this->waktu_diantar,
+            'waktu_selesai'     => $this->waktu_selesai,
             'alasan_batal'      => $this->alasan_batal,
             'dibatalkan_oleh'   => $this->dibatalkan_oleh,
             'dibatalkan_pada'   => $this->dibatalkan_pada,

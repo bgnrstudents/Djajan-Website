@@ -179,6 +179,12 @@ class PesananController extends Controller
                 $statusLama = $pesanan->status_pesanan;
                 $pesanan->status_pesanan = $status;
 
+                if ($status === 'diantar') {
+                    $pesanan->waktu_diantar = now();
+                } elseif ($status === 'selesai') {
+                    $pesanan->waktu_selesai = now();
+                }
+
                 if ($status === 'diterima') {
                     $driver = DB::connection()->getDriverName();
                     foreach ($pesanan->items as $item) {

@@ -156,6 +156,66 @@ class CheckoutController extends Controller
         return $this->sukses('Pesanan berhasil dibatalkan.', $order->keFormatJson());
     }
 
+    public function complete(Request $request, ?string $id_pesanan = null): JsonResponse
+    {
+        $pelanggan = $request->user();
+        if (!$pelanggan instanceof Pelanggan) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
+        }
+
+        $id = $id_pesanan ?? $request->input('id_pesanan');
+        if (!$id) {
+            return $this->gagal('ID pesanan wajib diisi.', 422);
+        }
+
+        $order = Pesanan::with(['items', 'umkm', 'pelanggan'])
+            ->where('id_pesanan', $id)
+            ->first();
+
+        if (!$order) {
+            return $this->gagal('Pesanan tidak ditemukan.', 404);
+        }
+
+        if ((int) $order->id_pelanggan !== (int) $pelanggan->id_pelanggan) {
+            return $this->gagal('Anda tidak memiliki akses untuk menyelesaikan pesanan ini.', 403);
+        }
+
+        if ($order->status_pesanan === 'selesai') {
+            return $this->sukses('Pesanan sudah selesai.', $order->keFormatJson());
+        }
+
+        if ($order->status_pesanan === 'ditolak') {
+            return $this->gagal('Pesanan yang sudah dibatalkan tidak dapat diselesaikan.', 409);
+        }
+
+        if (!in_array($order->status_pesanan, ['diantar', 'diproses'], true)) {
+            return $this->gagal(
+                'Pesanan belum dapat diselesaikan karena status saat ini masih "' . $order->status_pesanan . '".',
+                409
+            );
+        }
+
+        try {
+            DB::transaction(function () use ($order) {
+                $order->status_pesanan = 'selesai';
+                $order->status_pembayaran = 'lunas';
+                $order->waktu_selesai = now();
+                if ($order->payment_status === 'cod_pending') {
+                    $order->payment_status = 'paid';
+                    $order->dibayar_pada = now();
+                }
+                $order->save();
+            });
+        } catch (\Throwable $e) {
+            return $this->gagal('Gagal menyelesaikan pesanan: ' . $e->getMessage(), 500);
+        }
+
+        return $this->sukses(
+            'Pesanan berhasil diselesaikan. Terima kasih telah berbelanja!',
+            $order->fresh()->keFormatJson()
+        );
+    }
+
     public function store(Request $request, MidtransService $midtransService): JsonResponse
     {
         $pelanggan = $request->user();

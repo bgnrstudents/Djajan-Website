@@ -56,6 +56,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pesanan/saya/{id_pesanan}', [\App\Http\Controllers\Api\CheckoutController::class, 'show'])->middleware('role:pelanggan');
     Route::post('/pesanan/saya/{id_pesanan}/batal', [\App\Http\Controllers\Api\CheckoutController::class, 'cancel'])->middleware('role:pelanggan');
     Route::post('/pesanan/batal', [\App\Http\Controllers\Api\CheckoutController::class, 'cancel'])->middleware('role:pelanggan');
+    Route::post('/pesanan/saya/{id_pesanan}/selesai', [\App\Http\Controllers\Api\CheckoutController::class, 'complete'])->middleware('role:pelanggan');
+    Route::post('/pesanan/selesai', [\App\Http\Controllers\Api\CheckoutController::class, 'complete'])->middleware('role:pelanggan');
     Route::post('/pesanan/checkout', [\App\Http\Controllers\Api\CheckoutController::class, 'storeMulti'])->middleware('role:pelanggan');
     Route::post('/ongkir_hitung', [\App\Http\Controllers\Api\CheckoutController::class, 'hitungOngkir'])->middleware('role:pelanggan');
     Route::post('/pesanan/ongkir_hitung', [\App\Http\Controllers\Api\CheckoutController::class, 'hitungOngkir'])->middleware('role:pelanggan');
