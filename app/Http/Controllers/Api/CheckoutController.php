@@ -248,7 +248,7 @@ class CheckoutController extends Controller
         }
 
         if ($metodePembayaran === 'cod' && !(bool) $umkm->cod_aktif) {
-            return $this->gagal('Pembayaran COD tidak tersedia di toko ini.', 409);
+            return $this->gagal("Pembayaran COD tidak tersedia di toko {$umkm->nama_usaha}.", 409);
         }
 
         if ($pengiriman === 'pickup' && !(bool) $umkm->pickup_aktif) {
@@ -528,7 +528,7 @@ class CheckoutController extends Controller
                 return $this->gagal('Metode pengiriman tidak valid.', 422);
             }
             if ($payment === 'cod' && !$umkm->cod_aktif) {
-                return $this->gagal('Pembayaran COD tidak tersedia di toko ini.', 409);
+                return $this->gagal("Pembayaran COD tidak tersedia di toko {$umkm->nama_usaha}.", 409);
             }
             if ($delivery === 'pickup' && !$umkm->pickup_aktif) {
                 return $this->gagal('Pickup tidak tersedia di toko ini.', 409);
