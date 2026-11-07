@@ -1064,21 +1064,23 @@ class CheckoutController extends Controller
             );
         }
 
-        if ($umkm->latitude === null || $umkm->longitude === null) {
-            throw new InvalidArgumentException(
-                'Lokasi UMKM belum dikonfigurasi untuk menghitung ongkir.'
-            );
-        }
+        // Koordinat default Desa Kreyongan Atas (-8.1585, 113.7025) jika UMKM belum set titik
+        $umkmLat = $umkm->latitude !== null ? (float) $umkm->latitude : -8.1585000;
+        $umkmLon = $umkm->longitude !== null ? (float) $umkm->longitude : 113.7025000;
 
         $distance = round($this->distanceInKm(
             $custLat,
             $custLon,
-            (float) $umkm->latitude,
-            (float) $umkm->longitude,
+            $umkmLat,
+            $umkmLon,
         ), 2);
 
+        // Batas maksimal jangkauan kurir UMKM (default 10 KM untuk kurir warga desa)
         $maxDistance = (float) ($umkm->jarak_maksimal_km ?? 0);
-        if ($maxDistance > 0 && $distance > $maxDistance) {
+        if ($maxDistance <= 0) {
+            $maxDistance = 10.0;
+        }
+        if ($distance > $maxDistance) {
             throw new InvalidArgumentException(
                 'Alamat pengiriman berada di luar jangkauan kurir UMKM (' . $maxDistance . ' km).'
             );
@@ -1112,9 +1114,20 @@ class CheckoutController extends Controller
             ];
         }
 
-        // Fallback jika UMKM belum mengatur zona bertingkat tetapi memiliki tarif flat pengantaran
+        // Fallback jika UMKM belum mengatur zona bertingkat tetapi memiliki tarif pengantaran
         if ($umkm->zonaOngkir()->doesntExist()) {
             $flatFee = max(0, (int) ($umkm->biaya_pengantaran ?? 0));
+            if ($flatFee <= 0) {
+                // Skema tarif kurir warga dinamis: Rp 3.000 (0-1 km) + Rp 1.500/km berikutnya
+                $dynamicFee = 3000 + (int) (max(0, ceil($distance - 1)) * 1500);
+                return [
+                    'jarak_km' => $distance,
+                    'biaya_ongkir' => $dynamicFee,
+                    'gratis' => false,
+                    'zona_ongkir_id' => null,
+                    'pesan' => 'Tarif kurir warga desa (~' . $distance . ' km)',
+                ];
+            }
             return [
                 'jarak_km' => $distance,
                 'biaya_ongkir' => $flatFee,

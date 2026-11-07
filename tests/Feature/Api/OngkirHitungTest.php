@@ -222,4 +222,43 @@ class OngkirHitungTest extends TestCase
         $this->assertEquals(4000, $historyResponse->json('data.biaya_pengantaran'));
         $this->assertEquals(44000, $historyResponse->json('data.total_harga')); // (2 * 20.000) + 4.000
     }
+
+    public function test_fallback_koordinat_kreyongan_dan_tarif_kurir_dinamis(): void
+    {
+        // UMKM baru tanpa koordinat dan tanpa zona ongkir (null coords, flat fee 0)
+        $umkmPolos = Umkm::create([
+            'nama_usaha' => 'Camilan Kreyongan Asli',
+            'id_pelanggan' => $this->pelanggan->id_pelanggan,
+            'alamat' => 'Desa Kreyongan Atas',
+            'latitude' => null,
+            'longitude' => null,
+            'toko_aktif' => true,
+            'pickup_aktif' => true,
+            'kurir_warga_aktif' => true,
+            'biaya_pengantaran' => 0,
+        ]);
+
+        // Alamat berjarak ~1.5 km dari pusat Kreyongan (-8.1585, 113.7025)
+        // Titik uji: -8.1700, 113.7025 (jarak ~1.28 km -> 3000 + 1 * 1500 = 4500)
+        $response = $this->actingAs($this->pelanggan, 'sanctum')
+            ->postJson('/api/ongkir_hitung', [
+                'id_umkm' => $umkmPolos->id_umkm,
+                'metode_pengiriman' => 'kurir',
+                'latitude' => -8.170000,
+                'longitude' => 113.702500,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'sukses' => true,
+                'data' => [
+                    'metode_pengiriman' => 'kurir',
+                    'gratis' => false,
+                ],
+            ]);
+
+        $this->assertGreaterThan(0, $response->json('data.biaya_ongkir'));
+        $this->assertNotNull($response->json('data.jarak_km'));
+        $this->assertStringContainsString('kurir warga desa', $response->json('data.pesan'));
+    }
 }
