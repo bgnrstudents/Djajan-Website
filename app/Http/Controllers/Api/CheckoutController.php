@@ -1219,4 +1219,13 @@ class CheckoutController extends Controller
 
         return $earthRadius * 2 * asin(min(1, sqrt($a)));
     }
+
+    public function strukHtml(string $id_pesanan)
+    {
+        $pesanan = Pesanan::with(['items.produk', 'umkm', 'pelanggan'])
+            ->where('id_pesanan', $id_pesanan)
+            ->firstOrFail();
+
+        return view('pesanan.struk', compact('pesanan'));
+    }
 }

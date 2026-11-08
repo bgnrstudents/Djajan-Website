@@ -43,6 +43,9 @@ Route::get('/payment/finish', function () {
     );
 });
 
+Route::get('/pesanan/{id_pesanan}/struk', [\App\Http\Controllers\Api\CheckoutController::class, 'strukHtml'])
+    ->name('pesanan.struk');
+
 
 // ======================================================
 // ADMIN
