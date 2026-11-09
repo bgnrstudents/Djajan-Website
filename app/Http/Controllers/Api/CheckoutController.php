@@ -333,6 +333,26 @@ class CheckoutController extends Controller
             return $this->gagal('Alamat tujuan wajib diisi.', 422);
         }
 
+        $isPreOrder = collect($produkMap)->contains(function ($entry) {
+            $mode = strtolower(str_replace(['-', '_', ' '], '', (string) $entry['produk']->mode_penjualan));
+            return $mode === 'preorder';
+        });
+
+        if ($isPreOrder) {
+            if ($metodePembayaran === 'cod') {
+                return $this->gagal(
+                    'Pembayaran COD tidak tersedia untuk pesanan Pre-Order/Katering. Silakan gunakan pembayaran digital (Midtrans/QRIS) untuk jaminan kepastian pesanan & modal bahan dapur UMKM.',
+                    422
+                );
+            }
+            if (empty($waktuDibutuhkan)) {
+                return $this->gagal(
+                    'Tanggal dan jam kebutuhan acara wajib dipilih untuk pesanan Pre-Order.',
+                    422
+                );
+            }
+        }
+
         $biayaLayanan = max(0, $biayaLayanan);
         $totalHarga = $subtotal + $biayaPengantaran + $biayaLayanan;
         $orderId = $this->buildOrderId();
@@ -361,16 +381,20 @@ class CheckoutController extends Controller
             $produkMap,
             $destLat,
             $destLon,
+            $isPreOrder,
             $request,
         ) {
+            $waktuKebutuhanFinal = $waktuDibutuhkan ?? ($isPreOrder ? now()->addDay()->format('Y-m-d H:i:s') : now()->addMinutes(30)->format('Y-m-d H:i:s'));
+            $batasKonfirmasi = $isPreOrder ? now()->addHours(24)->format('Y-m-d H:i:s') : now()->addMinutes(30)->format('Y-m-d H:i:s');
+
             $order = Pesanan::create([
                 'id_pesanan' => $orderId,
                 'id_pelanggan' => $pelanggan->id_pelanggan,
                 'id_umkm' => $umkmIds[0],
                 'nama_umkm_snapshot' => $umkm->nama_usaha ?? 'UMKM',
                 'tanggal_pesan' => now()->toDateString(),
-                'waktu_dibutuhkan' => $waktuDibutuhkan ?? now()->addDay()->format('Y-m-d H:i:s'),
-                'batas_konfirmasi' => now()->addHours(24)->format('Y-m-d H:i:s'),
+                'waktu_dibutuhkan' => $waktuKebutuhanFinal,
+                'batas_konfirmasi' => $batasKonfirmasi,
                 'keperluan_acara' => $keperluanAcara,
                 'metode_pengiriman' => $pengiriman,
                 'alamat_tujuan' => $alamat,
@@ -606,6 +630,28 @@ class CheckoutController extends Controller
                 return $this->gagal('Alamat tujuan wajib diisi.', 422);
             }
 
+            $isPreOrder = collect($produkMap)->contains(function ($entry) {
+                $mode = strtolower(str_replace(['-', '_', ' '], '', (string) $entry['produk']->mode_penjualan));
+                return $mode === 'preorder';
+            });
+
+            if ($isPreOrder) {
+                if ($payment === 'cod') {
+                    return $this->gagal(
+                        'Pembayaran COD tidak tersedia untuk pesanan Pre-Order/Katering. Silakan gunakan pembayaran digital (Midtrans/QRIS) untuk jaminan kepastian pesanan & modal bahan dapur UMKM.',
+                        422
+                    );
+                }
+
+                $waktuDibutuhkan = $group['waktu_dibutuhkan'] ?? null;
+                if (empty($waktuDibutuhkan)) {
+                    return $this->gagal(
+                        'Tanggal dan jam kebutuhan acara wajib dipilih untuk pesanan Pre-Order.',
+                        422
+                    );
+                }
+            }
+
             try {
                 $ongkirDetails = $this->calculateDeliveryDetails(
                     $umkm,
@@ -624,7 +670,7 @@ class CheckoutController extends Controller
             $destLon = $request->filled('longitude') ? (float) $request->input('longitude') : ($deliveryAddress?->longitude !== null ? (float) $deliveryAddress->longitude : null);
             $total = $subtotal + $ongkir;
             $grandTotal += $total;
-            $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'jarakKm', 'zonaOngkirId', 'total', 'group', 'destLat', 'destLon');
+            $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'jarakKm', 'zonaOngkirId', 'total', 'group', 'destLat', 'destLon', 'isPreOrder');
         }
 
         $checkoutId = 'CHK-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(6));
@@ -639,6 +685,10 @@ class CheckoutController extends Controller
 
             $orders = [];
             foreach ($prepared as $entry) {
+                $isPreOrderEntry = $entry['isPreOrder'] ?? false;
+                $waktuKebutuhan = $entry['group']['waktu_dibutuhkan'] ?? ($isPreOrderEntry ? now()->addDay()->format('Y-m-d H:i:s') : now()->addMinutes(30)->format('Y-m-d H:i:s'));
+                $batasKonfirmasi = $isPreOrderEntry ? now()->addHours(24)->format('Y-m-d H:i:s') : now()->addMinutes(30)->format('Y-m-d H:i:s');
+
                 $order = Pesanan::create([
                     'id_pesanan' => $this->buildOrderId(),
                     'id_checkout' => $checkoutId,
@@ -646,8 +696,8 @@ class CheckoutController extends Controller
                     'id_umkm' => $entry['umkmId'],
                     'nama_umkm_snapshot' => Umkm::find($entry['umkmId'])?->nama_usaha ?? 'UMKM',
                     'tanggal_pesan' => now()->toDateString(),
-                    'waktu_dibutuhkan' => $entry['group']['waktu_dibutuhkan'] ?? now()->addDay()->format('Y-m-d H:i:s'),
-                    'batas_konfirmasi' => now()->addHours(24)->format('Y-m-d H:i:s'),
+                    'waktu_dibutuhkan' => $waktuKebutuhan,
+                    'batas_konfirmasi' => $batasKonfirmasi,
                     'keperluan_acara' => trim((string) ($entry['group']['keperluan_acara'] ?? '')),
                     'metode_pengiriman' => $entry['delivery'],
                     'alamat_tujuan' => $alamat,
