@@ -339,6 +339,8 @@ class CheckoutController extends Controller
 
         $statusPesanan = 'po_baru';
         $statusPembayaran = $metodePembayaran === 'midtrans' ? 'pending' : 'bayar_di_tempat';
+        $destLat = $request->filled('latitude') ? (float) $request->input('latitude') : null;
+        $destLon = $request->filled('longitude') ? (float) $request->input('longitude') : null;
 
         return DB::transaction(function () use (
             $midtransService,
@@ -357,6 +359,8 @@ class CheckoutController extends Controller
             $totalHarga,
             $umkmIds,
             $produkMap,
+            $destLat,
+            $destLon,
             $request,
         ) {
             $order = Pesanan::create([
@@ -370,6 +374,8 @@ class CheckoutController extends Controller
                 'keperluan_acara' => $keperluanAcara,
                 'metode_pengiriman' => $pengiriman,
                 'alamat_tujuan' => $alamat,
+                'latitude_tujuan' => $destLat,
+                'longitude_tujuan' => $destLon,
                 'catatan' => $catatan,
                 'metode_pembayaran' => $metodePembayaran,
                 'status_pembayaran' => $statusPembayaran,
@@ -614,9 +620,11 @@ class CheckoutController extends Controller
             $ongkir = $ongkirDetails['biaya_ongkir'];
             $jarakKm = $ongkirDetails['jarak_km'];
             $zonaOngkirId = $ongkirDetails['zona_ongkir_id'];
+            $destLat = $request->filled('latitude') ? (float) $request->input('latitude') : ($deliveryAddress?->latitude !== null ? (float) $deliveryAddress->latitude : null);
+            $destLon = $request->filled('longitude') ? (float) $request->input('longitude') : ($deliveryAddress?->longitude !== null ? (float) $deliveryAddress->longitude : null);
             $total = $subtotal + $ongkir;
             $grandTotal += $total;
-            $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'jarakKm', 'zonaOngkirId', 'total', 'group');
+            $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'jarakKm', 'zonaOngkirId', 'total', 'group', 'destLat', 'destLon');
         }
 
         $checkoutId = 'CHK-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(6));
@@ -643,6 +651,8 @@ class CheckoutController extends Controller
                     'keperluan_acara' => trim((string) ($entry['group']['keperluan_acara'] ?? '')),
                     'metode_pengiriman' => $entry['delivery'],
                     'alamat_tujuan' => $alamat,
+                    'latitude_tujuan' => $entry['destLat'] ?? null,
+                    'longitude_tujuan' => $entry['destLon'] ?? null,
                     'catatan' => trim((string) ($entry['group']['catatan'] ?? '')),
                     'metode_pembayaran' => $payment,
                     'status_pembayaran' => $payment === 'cod' ? 'bayar_di_tempat' : 'pending',

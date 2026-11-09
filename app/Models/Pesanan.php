@@ -21,6 +21,7 @@ class Pesanan extends Model
     protected $fillable = [
         'id_pesanan', 'id_checkout', 'id_pelanggan', 'id_umkm', 'nama_umkm_snapshot', 'tanggal_pesan', 'waktu_dibutuhkan',
         'batas_konfirmasi', 'keperluan_acara', 'metode_pengiriman', 'alamat_tujuan',
+        'latitude_tujuan', 'longitude_tujuan',
         'catatan', 'metode_pembayaran', 'status_pembayaran', 'bukti_pembayaran',
         'biaya_pengantaran', 'jarak_km', 'zona_ongkir_id', 'biaya_layanan', 'total_harga', 'status_pesanan',
         'waktu_diantar', 'waktu_selesai',
@@ -74,6 +75,10 @@ class Pesanan extends Model
             'keperluan_acara'   => $this->keperluan_acara ?? '',
             'metode_pengiriman' => $this->metode_pengiriman ?? '',
             'alamat_tujuan'     => $this->alamat_tujuan ?? '',
+            'latitude_tujuan'   => $this->latitude_tujuan !== null ? (float) $this->latitude_tujuan : null,
+            'longitude_tujuan'  => $this->longitude_tujuan !== null ? (float) $this->longitude_tujuan : null,
+            'latitude_umkm'     => $this->umkm?->latitude !== null ? (float) $this->umkm->latitude : -8.1585,
+            'longitude_umkm'    => $this->umkm?->longitude !== null ? (float) $this->umkm->longitude : 113.7025,
             'catatan'           => $this->catatan ?? '',
             'metode_pembayaran' => $this->metode_pembayaran ?? '',
             'status_pembayaran' => $this->status_pembayaran ?? 'belum_bayar',
