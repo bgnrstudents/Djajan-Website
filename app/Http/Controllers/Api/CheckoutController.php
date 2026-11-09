@@ -11,6 +11,7 @@ use App\Models\Pesanan;
 use App\Models\Produk;
 use App\Models\Umkm;
 use App\Services\MidtransService;
+use App\Services\OrderCancellationService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -73,10 +74,24 @@ class CheckoutController extends Controller
 
         $this->syncPaymentStatus($order, $midtransService);
 
+        // Auto-cancel lazy check jika batas konfirmasi UMKM telah lewat
+        if ($order->status_pesanan === 'po_baru' && $order->batas_konfirmasi && $order->batas_konfirmasi <= now()) {
+            app(OrderCancellationService::class)->cancelOrder(
+                $order,
+                'sistem',
+                'Batas waktu konfirmasi UMKM telah berakhir.'
+            );
+            $order->refresh();
+        }
+
         return $this->sukses('Detail pesanan dimuat.', $order->keFormatJson());
     }
 
-    public function cancel(Request $request, ?string $idPesanan = null): JsonResponse
+    public function cancel(
+        Request $request,
+        ?string $idPesanan = null,
+        OrderCancellationService $cancellationService = null
+    ): JsonResponse
     {
         $pelanggan = $request->user();
         if (!$pelanggan instanceof Pelanggan) {
@@ -114,39 +129,8 @@ class CheckoutController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($order, $alasan) {
-                $statusLama = $order->status_pesanan;
-
-                // Kembalikan stok jika sebelumnya sudah diterima UMKM
-                if ($statusLama === 'diterima') {
-                    foreach ($order->items as $item) {
-                        if ($item->id_produk !== null) {
-                            Produk::where('id_produk', $item->id_produk)
-                                ->increment('stok', (int) $item->jumlah);
-                        }
-                    }
-                }
-
-                $isPaid = in_array($order->payment_status, ['paid', 'settlement', 'capture'], true) ||
-                    in_array($order->status_pembayaran, ['lunas', 'paid'], true);
-
-                $order->status_pesanan = 'ditolak';
-                $order->alasan_batal = $alasan;
-                $order->dibatalkan_oleh = 'pelanggan';
-                $order->dibatalkan_pada = now();
-
-                if ($isPaid) {
-                    $order->status_refund = 'perlu_refund';
-                } else {
-                    $order->status_refund = 'none';
-                    if ($order->metode_pembayaran === 'midtrans') {
-                        $order->payment_status = 'cancel';
-                        $order->status_pembayaran = 'batal';
-                    }
-                }
-
-                $order->save();
-            });
+            $service = $cancellationService ?? app(OrderCancellationService::class);
+            $order = $service->cancelOrder($order, 'pelanggan', $alasan);
         } catch (\Throwable $e) {
             return $this->gagal('Gagal membatalkan pesanan: ' . $e->getMessage(), 500);
         }

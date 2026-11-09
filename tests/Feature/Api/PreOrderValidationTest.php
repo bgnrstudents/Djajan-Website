@@ -150,3 +150,4 @@ class PreOrderValidationTest extends TestCase
         $this->assertStringContainsString('Tanggal dan jam kebutuhan acara wajib dipilih', $response->json('pesan'));
     }
 }
+

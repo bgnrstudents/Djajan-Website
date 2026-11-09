@@ -217,6 +217,107 @@ class MidtransService
         return [];
     }
 
+    /**
+     * Memanggil Midtrans API Refund (POST /v2/{order_id}/refund).
+     *
+     * Berhasil untuk payment method yang mendukung direct refund (QRIS, Kartu Kredit).
+     * Mengembalikan array response dari Midtrans atau array dengan status error jika tidak didukung.
+     */
+    public function refundTransaction(string $orderId, int $amount, string $reason): array
+    {
+        $serverKey = $this->serverKey();
+        if ($serverKey === '') {
+            return [
+                'error' => true,
+                'message' => 'MIDTRANS_SERVER_KEY belum diatur di environment.',
+            ];
+        }
+
+        $endpoint = (bool) config('services.midtrans.is_production')
+            ? 'https://api.midtrans.com/v2/' . rawurlencode($orderId) . '/refund'
+            : 'https://api.sandbox.midtrans.com/v2/' . rawurlencode($orderId) . '/refund';
+
+        $payload = [
+            'refund_key' => 'REF-' . $orderId . '-' . time(),
+            'amount' => $amount,
+            'reason' => $reason,
+        ];
+
+        try {
+            $response = Http::acceptJson()
+                ->withBasicAuth($serverKey, '')
+                ->timeout(10)
+                ->post($endpoint, $payload);
+
+            \Log::info('Midtrans refund attempt', [
+                'order_id' => $orderId,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return is_array($data) ? $data : ['status_code' => (string) $response->status()];
+            }
+
+            return [
+                'error' => true,
+                'status_code' => $response->status(),
+                'message' => $response->json('status_message') ?? $response->body(),
+            ];
+        } catch (\Throwable $e) {
+            \Log::warning('Midtrans refund request failed', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+            return [
+                'error' => true,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Membatalkan transaksi pending di Midtrans (POST /v2/{order_id}/cancel).
+     */
+    public function cancelTransaction(string $orderId): array
+    {
+        $serverKey = $this->serverKey();
+        if ($serverKey === '') {
+            return [];
+        }
+
+        $endpoint = (bool) config('services.midtrans.is_production')
+            ? 'https://api.midtrans.com/v2/' . rawurlencode($orderId) . '/cancel'
+            : 'https://api.sandbox.midtrans.com/v2/' . rawurlencode($orderId) . '/cancel';
+
+        try {
+            $response = Http::acceptJson()
+                ->withBasicAuth($serverKey, '')
+                ->timeout(10)
+                ->post($endpoint);
+
+            \Log::info('Midtrans cancel attempt', [
+                'order_id' => $orderId,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return is_array($data) ? $data : [];
+            }
+
+            return [];
+        } catch (\Throwable $e) {
+            \Log::warning('Midtrans cancel request failed', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
     private function serverKey(): string
     {
         return trim((string) config('services.midtrans.server_key'));

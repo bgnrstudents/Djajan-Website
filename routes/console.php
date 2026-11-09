@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote')->hourly();
 
 Schedule::command('pesanan:auto-complete')->hourly();
+Schedule::command('pesanan:auto-cancel')->everyFiveMinutes();
