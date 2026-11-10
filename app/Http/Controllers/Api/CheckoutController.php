@@ -368,8 +368,13 @@ class CheckoutController extends Controller
             $isPreOrder,
             $request,
         ) {
-            $waktuKebutuhanFinal = $waktuDibutuhkan ?? ($isPreOrder ? now()->addDay()->format('Y-m-d H:i:s') : now()->addMinutes(30)->format('Y-m-d H:i:s'));
-            $batasKonfirmasi = $isPreOrder ? now()->addHours(24)->format('Y-m-d H:i:s') : now()->addMinutes(30)->format('Y-m-d H:i:s');
+            $waktuKebutuhanFinal = $isPreOrder
+                ? ($waktuDibutuhkan ?? now()->addDay()->format('Y-m-d H:i:s'))
+                : now()->addMinutes(30)->format('Y-m-d H:i:s');
+            $batasKonfirmasi = $isPreOrder
+                ? now()->addHours(24)->format('Y-m-d H:i:s')
+                : now()->addMinutes(30)->format('Y-m-d H:i:s');
+            $keperluanAcaraFinal = $isPreOrder ? $keperluanAcara : '';
 
             $order = Pesanan::create([
                 'id_pesanan' => $orderId,
@@ -379,7 +384,7 @@ class CheckoutController extends Controller
                 'tanggal_pesan' => now()->toDateString(),
                 'waktu_dibutuhkan' => $waktuKebutuhanFinal,
                 'batas_konfirmasi' => $batasKonfirmasi,
-                'keperluan_acara' => $keperluanAcara,
+                'keperluan_acara' => $keperluanAcaraFinal,
                 'metode_pengiriman' => $pengiriman,
                 'alamat_tujuan' => $alamat,
                 'latitude_tujuan' => $destLat,
@@ -670,8 +675,15 @@ class CheckoutController extends Controller
             $orders = [];
             foreach ($prepared as $entry) {
                 $isPreOrderEntry = $entry['isPreOrder'] ?? false;
-                $waktuKebutuhan = $entry['group']['waktu_dibutuhkan'] ?? ($isPreOrderEntry ? now()->addDay()->format('Y-m-d H:i:s') : now()->addMinutes(30)->format('Y-m-d H:i:s'));
-                $batasKonfirmasi = $isPreOrderEntry ? now()->addHours(24)->format('Y-m-d H:i:s') : now()->addMinutes(30)->format('Y-m-d H:i:s');
+                $waktuKebutuhan = $isPreOrderEntry
+                    ? ($entry['group']['waktu_dibutuhkan'] ?? now()->addDay()->format('Y-m-d H:i:s'))
+                    : now()->addMinutes(30)->format('Y-m-d H:i:s');
+                $batasKonfirmasi = $isPreOrderEntry
+                    ? now()->addHours(24)->format('Y-m-d H:i:s')
+                    : now()->addMinutes(30)->format('Y-m-d H:i:s');
+                $keperluanAcara = $isPreOrderEntry
+                    ? trim((string) ($entry['group']['keperluan_acara'] ?? ''))
+                    : '';
 
                 $order = Pesanan::create([
                     'id_pesanan' => $this->buildOrderId(),
@@ -682,7 +694,7 @@ class CheckoutController extends Controller
                     'tanggal_pesan' => now()->toDateString(),
                     'waktu_dibutuhkan' => $waktuKebutuhan,
                     'batas_konfirmasi' => $batasKonfirmasi,
-                    'keperluan_acara' => trim((string) ($entry['group']['keperluan_acara'] ?? '')),
+                    'keperluan_acara' => $keperluanAcara,
                     'metode_pengiriman' => $entry['delivery'],
                     'alamat_tujuan' => $alamat,
                     'latitude_tujuan' => $entry['destLat'] ?? null,

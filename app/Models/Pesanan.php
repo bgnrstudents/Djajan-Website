@@ -49,6 +49,34 @@ class Pesanan extends Model
         return $this->belongsTo(CheckoutGroup::class, 'id_checkout', 'id_checkout');
     }
 
+    public function isPreorder(): bool
+    {
+        if (!empty($this->keperluan_acara) && trim($this->keperluan_acara) !== '-') {
+            return true;
+        }
+
+        $items = $this->relationLoaded('items') ? $this->items : $this->items()->with('produk')->get();
+        foreach ($items as $item) {
+            $produk = $item->relationLoaded('produk') ? $item->produk : $item->produk()->first();
+            if ($produk) {
+                $mode = strtolower(str_replace(['-', '_', ' '], '', (string) $produk->mode_penjualan));
+                if ($mode === 'preorder') {
+                    return true;
+                }
+            }
+        }
+
+        // Fallback: Jika batas konfirmasi > 2 jam dari waktu_dibutuhkan
+        if ($this->batas_konfirmasi && $this->waktu_dibutuhkan) {
+            $diffHours = abs(strtotime($this->batas_konfirmasi) - strtotime($this->waktu_dibutuhkan)) / 3600;
+            if ($diffHours >= 2) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Bentuk JSON persis sama dengan formatPesanan() di format.php lama.
      * $items berisi koleksi DetailPesanan (sudah di-load, mis. lewat with('items.produk')).
@@ -57,6 +85,7 @@ class Pesanan extends Model
     {
         $items    = $this->items;
         $subtotal = $items->sum(fn (DetailPesanan $i) => (int) $i->subtotal);
+        $isPo     = $this->isPreorder();
 
         return [
             'id_pesanan'        => $this->id_pesanan,
@@ -94,6 +123,8 @@ class Pesanan extends Model
             'subtotal'          => $subtotal,
             'total_harga'       => (int) $this->total_harga,
             'status_pesanan'    => $this->status_pesanan,
+            'is_preorder'       => $isPo,
+            'tipe_pesanan'      => $isPo ? 'pre_order' : 'ready',
             'waktu_diantar'     => $this->waktu_diantar,
             'waktu_selesai'     => $this->waktu_selesai,
             'alasan_batal'      => $this->alasan_batal,
