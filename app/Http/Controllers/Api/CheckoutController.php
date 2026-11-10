@@ -1168,9 +1168,9 @@ class CheckoutController extends Controller
             );
         }
 
-        // Koordinat default Desa Kreyongan Atas (-8.1585, 113.7025) jika UMKM belum set titik
-        $umkmLat = $umkm->latitude !== null ? (float) $umkm->latitude : -8.1585000;
-        $umkmLon = $umkm->longitude !== null ? (float) $umkm->longitude : 113.7025000;
+        // Koordinat default Desa Kreyongan Atas (-8.1556187, 113.7027475) jika UMKM belum set titik
+        $umkmLat = $umkm->latitude !== null ? (float) $umkm->latitude : -8.1556187;
+        $umkmLon = $umkm->longitude !== null ? (float) $umkm->longitude : 113.7027475;
 
         $distance = round($this->distanceInKm(
             $custLat,
