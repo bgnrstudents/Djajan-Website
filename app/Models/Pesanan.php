@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Pesanan extends Model
 {
@@ -47,6 +48,11 @@ class Pesanan extends Model
     public function checkout(): BelongsTo
     {
         return $this->belongsTo(CheckoutGroup::class, 'id_checkout', 'id_checkout');
+    }
+
+    public function ulasan(): HasOne
+    {
+        return $this->hasOne(UlasanPesanan::class, 'id_pesanan', 'id_pesanan');
     }
 
     public function isPreorder(): bool
@@ -131,6 +137,10 @@ class Pesanan extends Model
             'dibatalkan_oleh'   => $this->dibatalkan_oleh,
             'dibatalkan_pada'   => $this->dibatalkan_pada,
             'status_refund'     => $this->status_refund ?? 'none',
+            'ulasan'            => $this->ulasan ? [
+                'rating'   => (int) $this->ulasan->rating,
+                'komentar' => $this->ulasan->komentar,
+            ] : null,
             'items'             => $items->map(fn (DetailPesanan $i) => $i->keFormatJson())->values()->all(),
         ];
     }

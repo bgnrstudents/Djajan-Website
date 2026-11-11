@@ -23,6 +23,9 @@ class KatalogController extends Controller
             ->where('status_verifikasi', 'terverifikasi')
             ->where('toko_aktif', true)
             ->withCount(['produk' => fn ($query) => $query->where('status_ketersediaan', true)])
+            ->withCount(['pesanan as sold_count' => fn ($query) => $query->where('status_pesanan', 'selesai')])
+            ->withAvg('ulasan as rating_avg', 'rating')
+            ->withCount('ulasan as review_count')
             ->when($cari !== '', function ($query) use ($cari) {
                 $query->where(function ($inner) use ($cari) {
                     $inner->where('nama_usaha', 'like', "%{$cari}%")
@@ -38,7 +41,9 @@ class KatalogController extends Controller
                 $query->where('status_verifikasi', 'terverifikasi')
                     ->where('toko_aktif', true);
             })
-            ->with('umkm')
+            ->with(['umkm' => function ($query) {
+                $query->withAvg('ulasan as rating_avg', 'rating');
+            }])
             ->when($cari !== '', function ($query) use ($cari) {
                 $query->where(function ($inner) use ($cari) {
                     $inner->where('nama_produk', 'like', "%{$cari}%")
@@ -65,8 +70,9 @@ class KatalogController extends Controller
                 'courier_fee' => $umkm->kurir_warga_aktif ? (float) $umkm->biaya_pengantaran : null,
                 'cod_available' => (bool) $umkm->cod_aktif,
                 'pickup_available' => (bool) $umkm->pickup_aktif,
-                'rating' => 0.0,
-                'sold_count' => 0,
+                'rating' => round((float) ($umkm->rating_avg ?? 0.0), 1),
+                'sold_count' => (int) ($umkm->sold_count ?? 0),
+                'review_count' => (int) ($umkm->review_count ?? 0),
                 'is_verified' => true,
                 'phone' => $umkm->no_telp_usaha ?? '',
                 'product_count' => (int) $umkm->produk_count,
@@ -78,7 +84,7 @@ class KatalogController extends Controller
                 'umkm_name' => $product->umkm?->nama_usaha ?? '',
                 'umkm_type' => $product->umkm?->spesialis ?: 'UMKM Kuliner Desa',
                 'price' => (int) $product->harga,
-                'rating' => 0.0,
+                'rating' => round((float) ($product->umkm?->rating_avg ?? 0.0), 1),
                 'category' => $product->kategori ?: 'Semua',
                 'order_type' => $product->mode_penjualan === 'pre_order'
                     ? 'Pre-Order'

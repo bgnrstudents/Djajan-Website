@@ -19,6 +19,8 @@ Route::post('/pelanggan/login', [PelangganAuthController::class, 'login']);
 Route::post('/auth/google', [PelangganAuthController::class, 'google']);
 Route::get('/kategori', [KategoriController::class, 'index']);
 Route::get('/katalog', [KatalogController::class, 'index']);
+Route::get('/umkm/ulasan', [\App\Http\Controllers\Api\UlasanController::class, 'umkmReviews']);
+Route::get('/umkm_ulasan', [\App\Http\Controllers\Api\UlasanController::class, 'umkmReviews']);
 
 // rute token Sanctum
 Route::middleware('auth:sanctum')->group(function () {
@@ -59,6 +61,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pesanan/saya/{id_pesanan}/selesai', [\App\Http\Controllers\Api\CheckoutController::class, 'complete'])->middleware('role:pelanggan');
     Route::post('/pesanan/selesai', [\App\Http\Controllers\Api\CheckoutController::class, 'complete'])->middleware('role:pelanggan');
     Route::post('/pesanan/checkout', [\App\Http\Controllers\Api\CheckoutController::class, 'storeMulti'])->middleware('role:pelanggan');
+    Route::post('/pesanan/ulasan', [\App\Http\Controllers\Api\UlasanController::class, 'store'])->middleware('role:pelanggan');
+    Route::post('/pesanan_ulasan', [\App\Http\Controllers\Api\UlasanController::class, 'store'])->middleware('role:pelanggan');
     Route::post('/ongkir_hitung', [\App\Http\Controllers\Api\CheckoutController::class, 'hitungOngkir'])->middleware('role:pelanggan');
     Route::post('/pesanan/ongkir_hitung', [\App\Http\Controllers\Api\CheckoutController::class, 'hitungOngkir'])->middleware('role:pelanggan');
 

@@ -56,6 +56,11 @@ class Umkm extends Authenticatable
             ->orderByDesc('tanggal_verifikasi');
     }
 
+    public function ulasan(): HasMany
+    {
+        return $this->hasMany(UlasanPesanan::class, 'id_umkm', 'id_umkm');
+    }
+
     public function urlFotoProfil(): ?string
     {
         return UploadFoto::url($this->foto_profil, 'profil');
