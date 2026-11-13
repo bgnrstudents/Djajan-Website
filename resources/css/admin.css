@@ -1,0 +1,613 @@
+:root {
+    color-scheme: light;
+    --admin-canvas: #f4f7f5;
+    --admin-surface: #ffffff;
+    --admin-surface-muted: #f7faf8;
+    --admin-border: #e4ebe6;
+    --admin-text: #17231d;
+    --admin-muted: #68766e;
+    --admin-subtle: #8b9890;
+    --admin-primary: #0f623f;
+    --admin-primary-hover: #0b4e32;
+    --admin-shadow: 0 12px 32px rgb(26 55 39 / 6%), 0 2px 6px rgb(26 55 39 / 3%);
+    --admin-chart-grid: #e4ebe6;
+    --admin-chart-label: #89968e;
+}
+
+html[data-admin-theme="dark"] {
+    color-scheme: dark;
+    --admin-canvas: #111a16;
+    --admin-surface: #19231e;
+    --admin-surface-muted: #202c26;
+    --admin-border: #2b3a31;
+    --admin-text: #edf4ef;
+    --admin-muted: #bdc9c1;
+    --admin-subtle: #91a096;
+    --admin-primary: #4aa879;
+    --admin-primary-hover: #61bb8d;
+    --admin-shadow: 0 16px 38px rgb(0 0 0 / 19%), 0 2px 8px rgb(0 0 0 / 14%);
+    --admin-chart-grid: #34433a;
+    --admin-chart-label: #9baa9f;
+}
+
+body.admin-shell {
+    min-width: 320px;
+    background: var(--admin-canvas);
+    color: var(--admin-text);
+    transition: background-color 180ms ease, color 180ms ease;
+}
+
+body.admin-shell #sidebar-container,
+body.admin-shell #sidebar-container > div:first-child,
+body.admin-shell header,
+body.admin-shell main {
+    background-color: var(--admin-surface);
+    border-color: var(--admin-border);
+}
+
+body.admin-shell main {
+    background-color: var(--admin-canvas);
+}
+
+body.admin-shell #sidebar-container {
+    box-shadow: 8px 0 30px rgb(26 55 39 / 3%);
+}
+
+body.admin-shell header {
+    box-shadow: 0 2px 12px rgb(26 55 39 / 3%);
+}
+
+body.admin-shell main > * {
+    animation: admin-enter 360ms cubic-bezier(.2, .7, .2, 1) both;
+}
+
+body.admin-shell main > *:nth-child(2) {
+    animation-delay: 35ms;
+}
+
+body.admin-shell main > *:nth-child(3) {
+    animation-delay: 70ms;
+}
+
+body.admin-shell main > *:nth-child(4) {
+    animation-delay: 105ms;
+}
+
+body.admin-shell main h1,
+body.admin-shell main .h3 {
+    color: var(--admin-text);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    letter-spacing: -.025em;
+}
+
+body.admin-shell .bg-white {
+    background-color: var(--admin-surface);
+}
+
+body.admin-shell .bg-gray-50,
+body.admin-shell .bg-gray-50\/50,
+body.admin-shell .bg-gray-50\/60,
+body.admin-shell .bg-gray-50\/80,
+body.admin-shell .bg-gray-100 {
+    background-color: var(--admin-surface-muted);
+}
+
+body.admin-shell .border-gray-100,
+body.admin-shell .border-gray-200,
+body.admin-shell .border-gray-300,
+body.admin-shell .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--admin-border);
+}
+
+body.admin-shell .text-djajan-neutral,
+body.admin-shell .text-gray-900,
+body.admin-shell .text-gray-800,
+body.admin-shell .text-gray-700 {
+    color: var(--admin-text);
+}
+
+body.admin-shell .text-gray-600,
+body.admin-shell .text-gray-500 {
+    color: var(--admin-muted);
+}
+
+body.admin-shell .text-gray-400 {
+    color: var(--admin-subtle);
+}
+
+body.admin-shell .text-gray-300 {
+    color: var(--admin-muted);
+}
+
+body.admin-shell .hover\:bg-gray-50:hover,
+body.admin-shell .hover\:bg-gray-100:hover {
+    background-color: var(--admin-surface-muted);
+}
+
+body.admin-shell .ring-gray-200 {
+    --tw-ring-color: var(--admin-border);
+}
+
+body.admin-shell input:not([type="checkbox"]):not([type="radio"]),
+body.admin-shell select,
+body.admin-shell textarea,
+body.admin-shell .form-control {
+    color: var(--admin-text);
+    background-color: var(--admin-surface);
+    border-color: var(--admin-border);
+}
+
+body.admin-shell input::placeholder,
+body.admin-shell textarea::placeholder {
+    color: var(--admin-subtle);
+}
+
+body.admin-shell input:focus,
+body.admin-shell select:focus,
+body.admin-shell textarea:focus {
+    outline-color: var(--admin-primary);
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-primary) 16%, transparent);
+}
+
+body.admin-shell table {
+    color: var(--admin-text);
+}
+
+body.admin-shell thead,
+body.admin-shell thead tr,
+body.admin-shell th {
+    background-color: var(--admin-surface-muted);
+}
+
+body.admin-shell tbody tr {
+    transition: background-color 150ms ease;
+}
+
+body.admin-shell .bg-emerald-50,
+body.admin-shell .bg-emerald-50\/60 {
+    background-color: color-mix(in srgb, #16814e 14%, var(--admin-surface));
+}
+
+body.admin-shell .text-emerald-800,
+body.admin-shell .text-emerald-700 {
+    color: #16814e;
+}
+
+body.admin-shell .border-emerald-200,
+body.admin-shell .border-green-200,
+body.admin-shell .border-amber-200,
+body.admin-shell .border-red-200,
+body.admin-shell .border-red-400 {
+    border-color: color-mix(in srgb, #16814e 36%, var(--admin-border));
+}
+
+body.admin-shell .border-amber-200\/60 {
+    border-color: color-mix(in srgb, var(--admin-primary) 24%, var(--admin-border));
+}
+
+body.admin-shell .bg-amber-50 {
+    background-color: color-mix(in srgb, var(--admin-primary) 10%, var(--admin-surface));
+}
+
+body.admin-shell .text-amber-900,
+body.admin-shell .text-amber-800,
+body.admin-shell .text-amber-700 {
+    color: var(--admin-primary);
+}
+
+body.admin-shell .bg-amber-500 {
+    background-color: var(--admin-primary);
+}
+
+body.admin-shell .bg-red-50 {
+    background-color: var(--admin-surface-muted);
+}
+
+body.admin-shell .text-red-700,
+body.admin-shell .text-red-600,
+body.admin-shell .text-red-500 {
+    color: var(--admin-text);
+}
+
+body.admin-shell .bg-blue-50 {
+    background-color: var(--admin-surface-muted);
+}
+
+body.admin-shell .text-blue-800 {
+    color: var(--admin-text);
+}
+
+body.admin-shell .bg-red-600,
+body.admin-shell .bg-red-500 {
+    background-color: var(--admin-primary);
+}
+
+body.admin-shell .hover\:bg-red-50:hover,
+body.admin-shell .hover\:bg-red-100:hover {
+    background-color: var(--admin-surface-muted);
+}
+
+body.admin-shell .hover\:text-red-600:hover {
+    color: var(--admin-primary);
+}
+
+body.admin-shell .rounded-xl.border,
+body.admin-shell .rounded-2xl.border,
+body.admin-shell .card {
+    box-shadow: var(--admin-shadow);
+}
+
+body.admin-shell .card {
+    color: var(--admin-text);
+    background-color: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 1rem;
+}
+
+body.admin-shell .hover\:bg-gray-50\/60:hover,
+body.admin-shell .hover\:bg-gray-50\/80:hover {
+    background-color: var(--admin-surface-muted);
+}
+
+body.admin-shell button,
+body.admin-shell a,
+body.admin-shell input,
+body.admin-shell select,
+body.admin-shell textarea {
+    transition-duration: 160ms;
+}
+
+body.admin-shell main button:not(:disabled):active {
+    transform: translateY(1px);
+}
+
+body.admin-shell main button:focus-visible,
+body.admin-shell main a:focus-visible,
+body.admin-shell header button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--admin-primary) 42%, transparent);
+    outline-offset: 2px;
+}
+
+body.admin-shell #sidebar-container nav a {
+    transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+body.admin-shell #sidebar-container nav a:hover {
+    transform: translateX(2px);
+}
+
+body.admin-shell #notification-dropdown {
+    background-color: var(--admin-surface);
+    border-color: var(--admin-border);
+    box-shadow: var(--admin-shadow);
+}
+
+body.admin-shell #notification-dropdown .border-gray-100 {
+    border-color: var(--admin-border);
+}
+
+body.admin-shell .admin-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    border: 1px solid transparent;
+}
+
+body.admin-shell .admin-theme-toggle:hover {
+    border-color: var(--admin-border);
+}
+
+body.admin-shell main .stat-card {
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--admin-shadow);
+    animation: admin-enter 440ms cubic-bezier(.2, .7, .2, 1) both;
+    transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+body.admin-shell main .stat-card:nth-child(2) {
+    animation-delay: 50ms;
+}
+
+body.admin-shell main .stat-card:nth-child(3) {
+    animation-delay: 100ms;
+}
+
+body.admin-shell main .stat-card:nth-child(4) {
+    animation-delay: 150ms;
+}
+
+body.admin-shell main .stat-card:not(.stat-card-primary):hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 34px rgb(26 55 39 / 10%), 0 4px 10px rgb(26 55 39 / 5%);
+}
+
+body.admin-shell main .stat-card-primary {
+    background-image: linear-gradient(135deg, #0f623f, #0a4b31);
+    box-shadow: 0 16px 30px rgb(15 98 63 / 20%), inset 0 1px rgb(255 255 255 / 13%);
+}
+
+body.admin-shell main .stat-card-primary::after {
+    position: absolute;
+    top: -55px;
+    right: -42px;
+    width: 160px;
+    height: 160px;
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: 50%;
+    background: rgb(255 255 255 / 4%);
+    content: "";
+    pointer-events: none;
+}
+
+.stat-icon {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 13px;
+    box-shadow: inset 0 1px rgb(255 255 255 / 70%), 0 3px 8px rgb(17 35 25 / 5%);
+}
+
+#trend-chart-container {
+    perspective: 900px;
+}
+
+#trend-chart .trend-area,
+#trend-chart .trend-line {
+    transform-origin: center;
+}
+
+body.admin-shell main .granularity-button[aria-pressed="true"] {
+    background-color: var(--admin-surface);
+    color: var(--admin-primary);
+    box-shadow: 0 1px 3px rgb(20 40 29 / 12%);
+}
+
+html[data-admin-theme="dark"] body.admin-shell #sidebar-container .bg-white,
+html[data-admin-theme="dark"] body.admin-shell header .bg-white,
+html[data-admin-theme="dark"] body.admin-shell #notification-dropdown .bg-white {
+    background-color: var(--admin-surface);
+}
+
+html[data-admin-theme="dark"] body.admin-shell .bg-djajan-primary {
+    background-color: #174b35;
+}
+
+html[data-admin-theme="dark"] body.admin-shell main .stat-card-primary {
+    background-image: linear-gradient(135deg, #174b35, #123a2a);
+}
+
+html[data-admin-theme="dark"] body.admin-shell .text-djajan-primary {
+    color: #71ca98;
+}
+
+html[data-admin-theme="dark"] body.admin-shell .border-djajan-primary {
+    border-color: #4aa879;
+}
+
+html[data-admin-theme="dark"] body.admin-shell .text-green-700,
+html[data-admin-theme="dark"] body.admin-shell .text-emerald-700,
+html[data-admin-theme="dark"] body.admin-shell .text-emerald-800 {
+    color: #71ca98;
+}
+
+html[data-admin-theme="dark"] body.admin-shell .text-amber-700 {
+    color: #71ca98;
+}
+
+html[data-admin-theme="dark"] body.admin-shell .text-amber-900,
+html[data-admin-theme="dark"] body.admin-shell .text-amber-800 {
+    color: #71ca98;
+}
+
+html[data-admin-theme="dark"] body.admin-shell .text-red-700,
+html[data-admin-theme="dark"] body.admin-shell .text-red-600,
+html[data-admin-theme="dark"] body.admin-shell .text-red-500,
+html[data-admin-theme="dark"] body.admin-shell .text-blue-800 {
+    color: var(--admin-text);
+}
+
+html[data-admin-theme="dark"] body.admin-shell .bg-red-600,
+html[data-admin-theme="dark"] body.admin-shell .bg-red-500 {
+    background-color: #174b35;
+}
+
+html[data-admin-theme="dark"] body.admin-shell .bg-emerald-50,
+html[data-admin-theme="dark"] body.admin-shell .bg-emerald-50\/60 {
+    background-color: rgb(26 91 58 / 28%);
+}
+
+html[data-admin-theme="dark"] body.admin-shell .bg-amber-50 {
+    background-color: rgb(26 91 58 / 28%);
+}
+
+html[data-admin-theme="dark"] body.admin-shell .bg-amber-500 {
+    background-color: #71ca98;
+}
+
+html[data-admin-theme="dark"] body.admin-shell .bg-red-50,
+html[data-admin-theme="dark"] body.admin-shell .bg-blue-50 {
+    background-color: var(--admin-surface-muted);
+}
+
+html[data-admin-theme="dark"] body.admin-shell .hover\:bg-red-50:hover,
+html[data-admin-theme="dark"] body.admin-shell .hover\:bg-red-100:hover {
+    background-color: var(--admin-surface-muted);
+}
+
+html[data-admin-theme="dark"] body.admin-shell .hover\:text-red-600:hover {
+    color: #71ca98;
+}
+
+html[data-admin-theme="dark"] body.admin-shell .border-emerald-200,
+html[data-admin-theme="dark"] body.admin-shell .border-green-200,
+html[data-admin-theme="dark"] body.admin-shell .border-red-200,
+html[data-admin-theme="dark"] body.admin-shell .border-amber-200,
+html[data-admin-theme="dark"] body.admin-shell .border-red-400 {
+    border-color: #3a5545;
+}
+
+html[data-admin-theme="dark"] body.admin-shell .border-amber-200\/60 {
+    border-color: #3a5545;
+}
+
+#trend-chart {
+    --chart-green: #0f623f;
+    --chart-grid: var(--admin-chart-grid);
+    --chart-label: var(--admin-chart-label);
+    overflow: visible;
+}
+
+html[data-admin-theme="dark"] #trend-chart {
+    --chart-green: #64c48d;
+}
+
+#trend-chart .trend-area {
+    fill: url(#trend-area-gradient);
+    animation: chart-area-in 700ms cubic-bezier(.2, .7, .2, 1) both;
+}
+
+#trend-chart .trend-depth {
+    fill: color-mix(in srgb, var(--chart-green) 12%, transparent);
+}
+
+#trend-chart .trend-line {
+    fill: none;
+    stroke: var(--chart-green);
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 4px 5px color-mix(in srgb, var(--chart-green) 30%, transparent));
+    stroke-dasharray: 1200;
+    stroke-dashoffset: 1200;
+    animation: chart-line-in 900ms ease-out forwards;
+}
+
+#trend-chart .trend-point {
+    cursor: crosshair;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: r 150ms ease, filter 150ms ease;
+}
+
+#trend-chart .trend-point:hover,
+#trend-chart .trend-point:focus {
+    r: 7;
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--chart-green) 65%, transparent));
+    outline: none;
+}
+
+#comparison-chart > div {
+    animation: admin-enter 360ms ease both;
+}
+
+#comparison-chart .comparison-track {
+    height: 9px;
+    background: var(--admin-surface-muted);
+    box-shadow: inset 0 1px 2px rgb(17 35 25 / 9%);
+}
+
+#comparison-chart .comparison-bar {
+    width: 0;
+    background: linear-gradient(90deg, #0f623f, #56ae78);
+    box-shadow: 0 2px 7px rgb(15 98 63 / 25%);
+    transition: width 650ms cubic-bezier(.2, .7, .2, 1);
+}
+
+html[data-admin-theme="dark"] #comparison-chart .comparison-bar {
+    background: linear-gradient(90deg, #1d714d, #65c58e);
+    box-shadow: 0 2px 9px rgb(52 156 99 / 24%);
+}
+
+.ranking-medal {
+    display: inline-flex;
+    min-width: 28px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: var(--admin-surface-muted);
+    color: var(--admin-muted);
+}
+
+.ranking-medal.is-top {
+    color: #0f623f;
+    background: linear-gradient(145deg, #eef8f1, #cce8d5);
+    box-shadow: inset 0 1px rgb(255 255 255 / 90%), 0 2px 5px rgb(15 98 63 / 12%);
+}
+
+html[data-admin-theme="dark"] .ranking-medal.is-top {
+    color: #9de0b5;
+    background: linear-gradient(145deg, #244c36, #1d3929);
+    box-shadow: inset 0 1px rgb(255 255 255 / 9%), 0 2px 5px rgb(0 0 0 / 18%);
+}
+
+@keyframes admin-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes chart-area-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes chart-line-in {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@media (max-width: 640px) {
+    body.admin-shell main {
+        padding: 1rem;
+    }
+
+    body.admin-shell #notification-dropdown {
+        position: fixed;
+        top: 4.5rem;
+        right: .75rem;
+        left: .75rem;
+        width: auto;
+    }
+
+    body.admin-shell main h1 {
+        font-size: 1.4rem;
+        line-height: 1.9rem;
+    }
+
+    #trend-chart {
+        min-width: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.admin-shell *,
+    body.admin-shell *::before,
+    body.admin-shell *::after,
+    #trend-chart .trend-area,
+    #trend-chart .trend-line {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+    }
+}

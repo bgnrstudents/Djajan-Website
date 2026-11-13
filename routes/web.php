@@ -2,13 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PublicSite\HomeController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\UmkmController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Models\Umkm;
 use App\Models\Produk;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Http\Request;
 
 Route::get('/file_gambar/{folder}/{filename}', function (string $folder, string $filename) {
     abort_unless(in_array($folder, ['produk', 'profil'], true), 404);
@@ -50,67 +50,15 @@ Route::get('/pesanan/{id_pesanan}/struk', [\App\Http\Controllers\Api\CheckoutCon
 // ======================================================
 // ADMIN
 // ======================================================
-Route::middleware('auth')
+Route::middleware(['auth', 'administrator'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
 
-        // Dashboard
-        Route::get('/', function (Request $request) {
-            $mulai = $request->query('mulai', now()->startOfMonth()->toDateString());
-            $akhir = $request->query('akhir', now()->toDateString());
-            abort_if(
-                ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $mulai)
-                || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $akhir)
-                || $mulai > $akhir,
-                422
-            );
-            $statusAktif = ['diterima', 'diproses', 'diantar', 'selesai'];
-            $pesananPeriode = \App\Models\Pesanan::whereBetween('tanggal_pesan', [$mulai, $akhir]);
-            // Statistik ringkas dari tabel `umkm` & `produk` yang asli
-            $totalUmkmAktif = Umkm::where('status_verifikasi', 'terverifikasi')
-                ->where('toko_aktif', true)
-                ->count();
-
-            $totalProduk = Produk::count();
-
-            $totalPengajuanBaru = Umkm::whereIn('status_verifikasi', ['pending', 'menunggu'])->count();
-            $totalPengguna = Umkm::count();
-            $pengajuanTerbaru = Umkm::whereIn('status_verifikasi', ['pending', 'menunggu'])
-                ->latest('created_at')
-                ->take(5)
-                ->get();
-            $totalPesanan = (clone $pesananPeriode)->count();
-            $omzetPeriode = (int) (clone $pesananPeriode)
-                ->whereIn('status_pesanan', $statusAktif)
-                ->sum('total_harga');
-            $produkTerlaris = DB::table('detail_pesanan')
-                ->join('pesanan', 'pesanan.id_pesanan', '=', 'detail_pesanan.id_pesanan')
-                ->whereBetween('pesanan.tanggal_pesan', [$mulai, $akhir])
-                ->whereIn('pesanan.status_pesanan', $statusAktif)
-                ->select(
-                    'detail_pesanan.nama_produk',
-                    DB::raw('SUM(detail_pesanan.jumlah) as jumlah_terjual'),
-                    DB::raw('SUM(detail_pesanan.subtotal) as omzet')
-                )
-                ->groupBy('detail_pesanan.nama_produk')
-                ->orderByDesc('jumlah_terjual')
-                ->limit(5)
-                ->get();
-
-            return view('admin.dashboard', compact(
-                'totalUmkmAktif',
-                'totalProduk',
-                'totalPengajuanBaru',
-                'totalPengguna',
-                'pengajuanTerbaru',
-                'mulai',
-                'akhir',
-                'totalPesanan',
-                'omzetPeriode',
-                'produkTerlaris'
-            ));
-        })->name('dashboard');
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/omzet-data', [DashboardController::class, 'data'])->name('omzet.data');
+        Route::get('/notifications/pending-verifications', [NotificationController::class, 'pendingVerifications'])
+            ->name('notifications.pending-verifications');
 
 
         // ==================================================
@@ -159,7 +107,7 @@ Route::middleware('auth')
     });
 
 Route::get('/dashboard', fn () => redirect()->route('admin.dashboard'))
-    ->middleware('auth')
+    ->middleware(['auth', 'administrator'])
     ->name('dashboard');
 
 require __DIR__ . '/auth.php';

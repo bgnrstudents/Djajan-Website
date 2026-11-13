@@ -4,13 +4,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
     <title>@yield('title', 'Admin - Djajan')</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script>
+        (() => {
+            try {
+                const theme = localStorage.getItem('djajan-admin-theme');
+                document.documentElement.dataset.adminTheme = theme === 'dark' ? 'dark' : 'light';
+            } catch (error) {
+                document.documentElement.dataset.adminTheme = 'light';
+                console.warn('Preferensi tema admin tidak dapat dibaca.', error);
+            }
+        })();
+    </script>
+    @vite(['resources/css/app.css', 'resources/css/admin.css', 'resources/js/app.js'])
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bree+Serif&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
@@ -18,6 +30,7 @@
                 extend: {
                     fontFamily: {
                         'heading': ['"Plus Jakarta Sans"', 'sans-serif'],
+                        'brand': ['"Bree Serif"', 'Georgia', 'serif'],
                         'body': ['Inter', 'sans-serif'],
                     },
                     colors: {
@@ -33,7 +46,7 @@
     </script>
 </head>
 
-<body class="bg-djajan-light antialiased text-djajan-neutral font-body">
+<body class="admin-shell bg-djajan-light antialiased text-djajan-neutral font-body">
 
     <div class="flex h-screen overflow-hidden" x-data="{ sidebarOpen: false }">
 
@@ -48,10 +61,10 @@
             id="sidebar-container"
             class="fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 transition-transform duration-200 ease-in-out -translate-x-full lg:translate-x-0 h-screen">
             {{-- Brand Header --}}
-            <div class="h-16 flex items-center justify-between px-6 border-b border-gray-200 bg-white flex-shrink-0">
+            <div class="h-16 flex items-center justify-center px-6 border-b border-gray-200 bg-white flex-shrink-0">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5">
                     <img src="{{ asset('logo_djajan.png') }}" alt="Logo Djajan" class="w-8 h-8 object-contain">
-                    <span class="text-xl font-bold text-djajan-neutral font-heading tracking-tight">Djajan</span>
+                    <span class="text-xl font-bold text-djajan-primary font-brand tracking-tight">Djajan</span>
                 </a>
                 <button onclick="toggleSidebar(false)" class="lg:hidden p-1.5 text-gray-400 hover:text-gray-600 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -207,13 +220,57 @@
 
                 {{-- Right Actions --}}
                 <div class="flex items-center gap-3">
-                    <button type="button" class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors" title="Notifikasi">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    <button
+                        id="admin-theme-toggle"
+                        type="button"
+                        class="admin-theme-toggle rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100"
+                        aria-label="Aktifkan mode gelap"
+                        aria-pressed="false"
+                        title="Aktifkan mode gelap">
+                        <svg class="theme-icon-light" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="4"></circle>
+                            <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path>
                         </svg>
-                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-djajan-tertiary rounded-full ring-2 ring-white"></span>
+                        <svg class="theme-icon-dark hidden" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6.5 6.5 0 0 0 8.268 8.268c.344-.215.825-.003.803.401"></path>
+                        </svg>
                     </button>
+
+                    <div class="relative" id="admin-notifications">
+                        <button
+                            id="notification-toggle"
+                            type="button"
+                            class="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100"
+                            title="Notifikasi pengajuan UMKM"
+                            aria-label="Notifikasi pengajuan UMKM"
+                            aria-expanded="false"
+                            aria-controls="notification-dropdown">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                            <span id="notification-count" class="absolute -right-0.5 -top-0.5 hidden min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-4 text-white ring-2 ring-white"></span>
+                        </button>
+
+                        <section
+                            id="notification-dropdown"
+                            class="absolute right-0 top-full z-50 mt-2 hidden w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+                            aria-label="Pengajuan verifikasi UMKM">
+                            <div class="flex items-start justify-between border-b border-gray-100 px-4 py-3">
+                                <div>
+                                    <h2 class="text-sm font-semibold text-gray-900">Pengajuan verifikasi</h2>
+                                    <p id="notification-summary" class="mt-0.5 text-xs text-gray-500">Memuat pengajuan...</p>
+                                </div>
+                                <span class="mt-1 h-2 w-2 rounded-full bg-gray-300" id="notification-status" title="Status pembaruan"></span>
+                            </div>
+                            <div id="notification-list" class="max-h-80 overflow-y-auto" aria-live="polite">
+                                <p class="px-4 py-6 text-center text-sm text-gray-500">Memuat pengajuan...</p>
+                            </div>
+                            <a href="{{ route('admin.umkm.verifikasi') }}" class="block border-t border-gray-100 px-4 py-3 text-center text-sm font-semibold text-djajan-primary hover:bg-gray-50">
+                                Buka semua pengajuan
+                            </a>
+                        </section>
+                    </div>
 
                     <div class="h-8 w-px bg-gray-200 hidden sm:block"></div>
 
@@ -238,6 +295,34 @@
     </div>
 
     <script>
+        (() => {
+            const button = document.getElementById('admin-theme-toggle');
+            const lightIcon = button.querySelector('.theme-icon-light');
+            const darkIcon = button.querySelector('.theme-icon-dark');
+
+            function applyTheme(theme) {
+                document.documentElement.dataset.adminTheme = theme;
+                const isDark = theme === 'dark';
+                lightIcon.classList.toggle('hidden', isDark);
+                darkIcon.classList.toggle('hidden', !isDark);
+                button.setAttribute('aria-pressed', String(isDark));
+                button.setAttribute('aria-label', isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap');
+                button.title = isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap';
+                document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#111a16' : '#ffffff');
+            }
+
+            applyTheme(document.documentElement.dataset.adminTheme === 'dark' ? 'dark' : 'light');
+            button.addEventListener('click', () => {
+                const theme = document.documentElement.dataset.adminTheme === 'dark' ? 'light' : 'dark';
+                applyTheme(theme);
+                try {
+                    localStorage.setItem('djajan-admin-theme', theme);
+                } catch (error) {
+                    console.warn('Preferensi tema admin tidak dapat disimpan.', error);
+                }
+            });
+        })();
+
         function toggleSidebar(show) {
             const sidebar = document.getElementById('sidebar-container');
             const backdrop = document.getElementById('sidebar-backdrop');
@@ -249,6 +334,119 @@
                 backdrop.classList.add('hidden');
             }
         }
+
+        (() => {
+            const toggle = document.getElementById('notification-toggle');
+            const dropdown = document.getElementById('notification-dropdown');
+            const list = document.getElementById('notification-list');
+            const count = document.getElementById('notification-count');
+            const summary = document.getElementById('notification-summary');
+            const status = document.getElementById('notification-status');
+            const endpoint = @json(route('admin.notifications.pending-verifications'));
+            let requestController = null;
+
+            function renderNotifications(data) {
+                count.textContent = data.count > 99 ? '99+' : String(data.count);
+                count.classList.toggle('hidden', data.count === 0);
+                toggle.setAttribute('aria-label', `Notifikasi pengajuan UMKM: ${data.count} menunggu`);
+                summary.textContent = data.count === 0
+                    ? 'Tidak ada pengajuan yang menunggu.'
+                    : `${data.count} pengajuan menunggu ditinjau.`;
+                list.replaceChildren();
+
+                if (data.applications.length === 0) {
+                    const empty = document.createElement('p');
+                    empty.className = 'px-4 py-8 text-center text-sm text-gray-500';
+                    empty.textContent = 'Semua pengajuan sudah ditinjau.';
+                    list.appendChild(empty);
+                    return;
+                }
+
+                data.applications.forEach(application => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-start gap-3 border-b border-gray-100 px-4 py-3 last:border-b-0';
+
+                    const indicator = document.createElement('span');
+                    indicator.className = 'mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500';
+
+                    const details = document.createElement('div');
+                    details.className = 'min-w-0 flex-1';
+                    const name = document.createElement('p');
+                    name.className = 'truncate text-sm font-semibold text-gray-800';
+                    name.textContent = application.nama_usaha;
+                    const date = document.createElement('p');
+                    date.className = 'mt-0.5 text-xs text-gray-500';
+                    date.textContent = application.created_at
+                        ? `Terdaftar ${application.created_at}`
+                        : 'Pengajuan baru';
+                    const action = document.createElement('a');
+                    action.href = application.url;
+                    action.className = 'mt-2 inline-flex items-center gap-1 text-xs font-semibold text-djajan-primary hover:underline';
+                    action.textContent = 'Tinjau dan verifikasi';
+                    details.append(name, date, action);
+                    item.append(indicator, details);
+                    list.appendChild(item);
+                });
+            }
+
+            async function refreshNotifications() {
+                if (document.hidden) return;
+                requestController?.abort();
+                requestController = new AbortController();
+
+                try {
+                    const response = await fetch(endpoint, {
+                        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin',
+                        signal: requestController.signal
+                    });
+                    if (!response.ok) throw new Error(`Notifikasi gagal dimuat (${response.status})`);
+                    renderNotifications(await response.json());
+                    status.className = 'mt-1 h-2 w-2 rounded-full bg-green-500';
+                    status.title = 'Diperbarui otomatis';
+                } catch (error) {
+                    if (error.name === 'AbortError') return;
+                    status.className = 'mt-1 h-2 w-2 rounded-full bg-red-500';
+                    status.title = 'Pembaruan notifikasi gagal';
+                    if (list.childElementCount === 0) {
+                        const message = document.createElement('p');
+                        message.className = 'px-4 py-6 text-center text-sm text-red-600';
+                        message.textContent = 'Notifikasi belum dapat dimuat. Coba lagi beberapa saat.';
+                        list.appendChild(message);
+                    }
+                    console.error('Gagal memuat notifikasi pengajuan UMKM:', error);
+                }
+            }
+
+            toggle.addEventListener('click', () => {
+                const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+                toggle.setAttribute('aria-expanded', String(!isOpen));
+                dropdown.classList.toggle('hidden', isOpen);
+                if (!isOpen) refreshNotifications();
+            });
+
+            document.addEventListener('click', event => {
+                if (!event.target.closest('#admin-notifications')) {
+                    dropdown.classList.add('hidden');
+                    toggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape') {
+                    dropdown.classList.add('hidden');
+                    toggle.setAttribute('aria-expanded', 'false');
+                    toggle.focus();
+                }
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) refreshNotifications();
+            });
+
+            refreshNotifications();
+            window.setInterval(refreshNotifications, 30000);
+        })();
     </script>
     @stack('scripts')
 </body>
