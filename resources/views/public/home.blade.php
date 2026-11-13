@@ -765,10 +765,10 @@
         <div class="relative">
 
             {{-- FOTO --}}
-            <div class="relative w-full rounded-2xl overflow-hidden shadow-xl" style="aspect-ratio: 21/9;">
-                <img src="https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=1600&q=85"
-                    alt="Pemandangan Desa Kreyongan Atas"
-                    class="w-full h-full object-cover">
+            <div class="relative w-full rounded-2xl overflow-hidden shadow-xl" style="aspect-ratio: 16/10;">
+                <img src="https://images.unsplash.com/photo-1667380385292-ad611bbe2296?auto=format&amp;fit=crop&amp;w=2000&amp;q=85"
+                    alt="Pedagang sayur melayani pembeli di pasar lokal Malang, Jawa Timur"
+                    class="w-full h-full object-cover" style="object-position: 50% 40%;" decoding="async">
 
                 <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
 
@@ -776,7 +776,7 @@
                     <svg class="w-3.5 h-3.5 text-[#0F623F]" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                     </svg>
-                    <span class="text-[11px] font-semibold text-[#111827]">Kreyongan Atas, Jawa Barat</span>
+                    <span class="text-[11px] font-semibold text-[#111827]">Kreyongan Atas,Jember, Jawa Timur</span>
                 </div>
             </div>
 
@@ -873,10 +873,17 @@ $kategoriList = $displayProducts->pluck('kategori')->filter()->unique()->values(
                 </p>
             </div>
 
-            <a href="#" class="rv link-line self-start text-sm font-semibold text-[#111827] hover:text-[#0F623F] lg:self-auto">
-                Lihat semua produk
-            </a>
         </div>
+
+        <link rel="stylesheet" href="{{ asset('css/menu-book.css') }}">
+
+        {{-- BUKU MENU 3D (data dari database lewat $products). --}}
+        @if($products->isNotEmpty())
+        @include('public.partials.menu-book')
+        @endif
+
+        {{-- Daftar produk klasik: tetap ada sebagai cadangan bila buku gagal dimuat / JavaScript mati. --}}
+        <div id="product-classic" @if($products->isNotEmpty()) data-has-book @endif>
 
         {{-- Filter kategori --}}
         @if($kategoriList->count() > 1)
@@ -962,6 +969,8 @@ $kategoriList = $displayProducts->pluck('kategori')->filter()->unique()->values(
         </div>
         @endif
 
+        </div>{{-- /#product-classic --}}
+
     </div>
 </section>
 
@@ -969,10 +978,58 @@ $kategoriList = $displayProducts->pluck('kategori')->filter()->unique()->values(
 {{-- ==================== 05 · UMKM ==================== --}}
 <section id="umkm" class="relative overflow-hidden bg-[#FAFAF9] px-6 py-20 lg:px-8 lg:py-28">
 
-    <span class="bgword" data-parallax-x="0.1" aria-hidden="true" style="left:auto;right:-2rem">UMKM</span>
+    <span class="bgword" data-parallax-x="0.1" aria-hidden="true" style="left:auto;right:-2rem">LOKASI</span>
 
     <div class="relative mx-auto max-w-7xl">
 
+        <style>
+            #village-map { width: 100%; height: min(62vh, 560px); min-height: 420px; background: #e7ece8; }
+            .maplibregl-map { font-family: Inter, sans-serif; }
+            .maplibregl-ctrl-group { overflow: hidden; border: 1px solid rgba(15,98,63,.14) !important; border-radius: 12px !important; box-shadow: 0 4px 16px rgba(2,44,34,.12) !important; }
+            .maplibregl-ctrl-group button { width: 36px !important; height: 36px !important; }
+            .maplibregl-ctrl-attrib { border-radius: 8px 0 0 0; font-size: 10px; }
+            .map-destination-pin { position: relative; width: 30px; height: 30px; border: 3px solid #fff; border-radius: 50% 50% 50% 0; background: #0f623f; box-shadow: 0 4px 12px rgba(2,44,34,.35); transform: rotate(-45deg); }
+            .map-destination-pin::after { position: absolute; top: 7px; left: 7px; width: 10px; height: 10px; border-radius: 50%; background: #fff; content: ''; }
+            .map-user-pin { position: relative; width: 20px; height: 20px; border: 3px solid #fff; border-radius: 50%; background: #2879d0; box-shadow: 0 2px 10px rgba(2,44,34,.35); }
+            .map-user-pin::after { position: absolute; inset: -8px; border: 1px solid rgba(40,121,208,.45); border-radius: 50%; content: ''; }
+            @media (max-width: 767px) { #village-map { height: 380px; min-height: 340px; } }
+        </style>
+        <div class="mb-9 max-w-3xl">
+            <p class="mb-4 text-xs font-bold uppercase tracking-[.2em] text-[#0F623F]">Peta </p>
+            <h2 class="font-display text-4xl font-bold leading-[1.08] tracking-tight text-[#111827] lg:text-5xl">Kreongan Atas,<br><span class="text-[#0F623F]">Jemberlor.</span></h2>
+            <p class="mt-5 max-w-2xl text-base leading-relaxed text-[#4B5563] lg:text-lg">Jelajahi lokasi Kreongan Atas, Kecamatan Patrang, Kabupaten Jember melalui peta jalan dan bangunan</p>
+        </div>
+        <div class="grid gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,.75fr)] lg:gap-6">
+            <div class="relative overflow-hidden rounded-[1.5rem] border border-[#DDE3DF] bg-white shadow-[0_20px_60px_rgba(2,44,34,.12)]">
+                <div id="village-map" role="application" aria-label="Peta 3D Kreongan Atas, Jemberlor, Kabupaten Jember"></div>
+                <div class="pointer-events-none absolute left-4 top-4 z-10 rounded-full border border-white/60 bg-white/90 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[.12em] text-[#0F623F] shadow-sm backdrop-blur-md">Peta</div>
+                <div id="map-load-message" class="absolute inset-0 z-20 flex items-center justify-center bg-[#edf1ed] px-6 text-center text-sm font-medium text-[#52635a]">Memuat peta 3D Kreongan Atas...</div>
+                <div id="map-load-error" class="absolute inset-0 z-20 hidden flex-col items-center justify-center gap-3 bg-[#edf1ed] px-6 text-center">
+                    <p class="text-sm font-semibold text-[#163f30]">Peta 3D tidak dapat dimuat saat ini.</p>
+                    <a href="https://www.google.com/maps/search/?api=1&query=-8.1506695%2C113.7019339" target="_blank" rel="noopener" class="text-sm font-semibold text-[#0F623F] underline">Buka lokasi di Google Maps</a>
+                </div>
+            </div>
+            <aside class="flex flex-col justify-between rounded-[1.5rem] border border-[#E1E7E2] bg-white p-6 shadow-[0_16px_44px_rgba(2,44,34,.08)] sm:p-7">
+                <div>
+                    <div class="mb-5 flex items-center gap-3">
+                        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-[#E9F4ED] text-[#0F623F]" aria-hidden="true"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                        <div><h3 class="font-display text-xl font-bold text-[#111827]">Kreongan Atas</h3><p class="text-sm text-[#6B7280]">Jemberlor, Patrang, Jember</p></div>
+                    </div>
+                    <p class="mb-6 text-sm leading-relaxed text-[#6B7280]">Titik lokasi berdasarkan pin Kreongan Atas di Google Maps. Lokasi perangkat hanya digunakan setelah Anda memilih tombol di bawah.</p>
+                    <button id="locate-me" type="button" class="inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-full bg-[#0F623F] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#0A4A2F] disabled:cursor-wait disabled:opacity-70" aria-describedby="location-help">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/><circle cx="12" cy="12" r="8"/></svg><span id="locate-label">Lokasi Saya</span>
+                    </button>
+                    <p id="location-help" class="mt-3 text-xs leading-relaxed text-[#6B7280]">Browser akan meminta izin GPS. Anda tetap dapat menjelajahi peta tanpa membagikan lokasi.</p>
+                </div>
+                <div class="mt-7 border-t border-[#E8ECE9] pt-5">
+                    <p id="map-distance" class="text-sm font-semibold leading-relaxed text-[#163f30]" aria-live="polite">Aktifkan lokasi untuk menghitung jarak Anda ke Kreongan Atas.</p>
+                    <p id="map-status" class="mt-2 text-xs leading-relaxed text-[#6B7280]" role="status" aria-live="polite">Rute jalan dan estimasi waktu ditampilkan jika layanan routing tersedia.</p>
+                    <a href="https://www.google.com/maps/search/?api=1&query=-8.1506695%2C113.7019339" target="_blank" rel="noopener" class="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#0F623F] hover:underline">Buka lokasi di Google Maps<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></a>
+                    <p class="mt-4 text-[10px] leading-relaxed text-[#8A948E]">Peta © OpenStreetMap contributors · Data vektor © OpenMapTiles</p>
+                </div>
+            </aside>
+        </div>
+        @if(false)
         <div class="mb-12 flex flex-col gap-8 lg:mb-16 lg:flex-row lg:items-end lg:justify-between">
             <div class="rv-group max-w-2xl">
                 <p class="rv mb-4 text-xs font-bold uppercase tracking-[.2em] text-[#0F623F]">Produk Lokal</p>
@@ -1127,6 +1184,7 @@ $kategoriList = $displayProducts->pluck('kategori')->filter()->unique()->values(
             </div>
             @endforelse
         </div>
+        @endif
     </div>
 </section>
 
@@ -1455,8 +1513,11 @@ $kategoriList = $displayProducts->pluck('kategori')->filter()->unique()->values(
             document.body.style.overflow = '';
         };
 
-        document.querySelectorAll('[data-detail-modal]').forEach(btn => {
-            btn.addEventListener('click', () => open(btn.dataset));
+        // Delegasi event: tombol detail di buku menu (yang dibuat/dikloning
+        // StPageFlip) maupun di daftar klasik sama-sama memakai modal ini.
+        document.addEventListener('click', e => {
+            const btn = e.target.closest('[data-detail-modal]');
+            if (btn) open(btn.dataset);
         });
         modal.querySelectorAll('[data-modal-close]').forEach(b => b.addEventListener('click', close));
         modal.addEventListener('click', e => {
@@ -1570,8 +1631,210 @@ $kategoriList = $displayProducts->pluck('kategori')->filter()->unique()->values(
     })();
 </script>
 
+<!-- Buku Menu 3D: StPageFlip (MIT) + logika -->
+<script src="{{ asset('js/vendor/page-flip.browser.js') }}"></script>
+<script src="{{ asset('js/menu-book.js') }}"></script>
+<script>
+    // Jaring pengaman: bila skrip buku tidak termuat, tampilkan daftar klasik.
+    if (!window.djajanMenuBook) document.documentElement.classList.add('mb-failed');
+</script>
+
 <!-- GSAP Animations for Home -->
 <script src="{{ asset('js/home-gsap.js') }}"></script>
 
+
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
+<script>
+    (() => {
+        const mapElement = document.getElementById('village-map');
+        if (!mapElement) return;
+
+        const destination = { latitude: -8.1506695, longitude: 113.7019339 };
+        const loadMessage = document.getElementById('map-load-message');
+        const loadError = document.getElementById('map-load-error');
+        const locateButton = document.getElementById('locate-me');
+        const locateLabel = document.getElementById('locate-label');
+        const distanceText = document.getElementById('map-distance');
+        const statusText = document.getElementById('map-status');
+        let map;
+        let userMarker;
+
+        const showMapError = (message) => {
+            loadMessage.classList.add('hidden');
+            loadError.classList.remove('hidden');
+            loadError.classList.add('flex');
+            statusText.textContent = message;
+        };
+
+        if (!window.maplibregl) {
+            showMapError('Library peta tidak dapat dimuat. Coba buka lokasi melalui Google Maps.');
+            return;
+        }
+
+        try {
+            map = new maplibregl.Map({
+                container: mapElement,
+                style: 'https://tiles.openfreemap.org/styles/liberty',
+                center: [destination.longitude, destination.latitude],
+                zoom: 14,
+                pitch: 55,
+                bearing: -18,
+                maxPitch: 60,
+                attributionControl: true,
+            });
+            map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
+            map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+        } catch (error) {
+            console.error('MapLibre initialization failed:', error);
+            showMapError('Peta gagal diinisialisasi pada browser ini.');
+            return;
+        }
+
+        map.on('error', (event) => {
+            if (!map.isStyleLoaded()) showMapError('Peta 3D tidak dapat dimuat. Periksa koneksi internet Anda.');
+        });
+
+        map.once('load', () => {
+            map.resize();
+            loadMessage.classList.add('hidden');
+            statusText.textContent = 'Geser peta untuk menjelajah; gunakan kontrol kemiringan untuk melihat bangunan 3D.';
+
+            if (map.getLayer('building-3d')) {
+                map.setPaintProperty('building-3d', 'fill-extrusion-color', '#cdd9ce');
+                map.setPaintProperty('building-3d', 'fill-extrusion-opacity', 0.88);
+            }
+
+            map.addSource('user-route', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: [] }
+            });
+            map.addLayer({
+                id: 'user-route-casing',
+                type: 'line',
+                source: 'user-route',
+                layout: { 'line-cap': 'round', 'line-join': 'round' },
+                paint: { 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.9 }
+            });
+            map.addLayer({
+                id: 'user-route-line',
+                type: 'line',
+                source: 'user-route',
+                layout: { 'line-cap': 'round', 'line-join': 'round' },
+                paint: { 'line-color': '#0f623f', 'line-width': 4.5, 'line-opacity': 0.95 }
+            });
+
+            const destinationElement = document.createElement('div');
+            destinationElement.className = 'map-destination-pin';
+            destinationElement.setAttribute('aria-label', 'Lokasi Kreongan Atas');
+            new maplibregl.Marker({ element: destinationElement, anchor: 'bottom' })
+                .setLngLat([destination.longitude, destination.latitude])
+                .setPopup(new maplibregl.Popup({ offset: 24 }).setText('Kreongan Atas, Jemberlor'))
+                .addTo(map);
+        });
+
+        const formatKm = (meters) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(meters / 1000);
+        const formatDuration = (seconds) => {
+            const minutes = Math.max(1, Math.round(seconds / 60));
+            return minutes >= 60 ? `${Math.floor(minutes / 60)} jam ${minutes % 60} menit` : `${minutes} menit`;
+        };
+
+        const straightLineMeters = (first, second) => {
+            const radians = (value) => value * Math.PI / 180;
+            const latitudeDelta = radians(second.latitude - first.latitude);
+            const longitudeDelta = radians(second.longitude - first.longitude);
+            const arc = Math.sin(latitudeDelta / 2) ** 2
+                + Math.cos(radians(first.latitude)) * Math.cos(radians(second.latitude))
+                * Math.sin(longitudeDelta / 2) ** 2;
+            return 6371000 * 2 * Math.atan2(Math.sqrt(arc), Math.sqrt(1 - arc));
+        };
+
+        const drawLine = (coordinates, dashed = false) => {
+            const source = map.getSource('user-route');
+            if (!source) return;
+            source.setData({
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates } }]
+            });
+            map.setPaintProperty('user-route-line', 'line-dasharray', dashed ? [2, 1.5] : [1, 0]);
+        };
+
+        const handlePosition = async (position) => {
+            const user = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+            const userCoordinates = [user.longitude, user.latitude];
+            const directDistance = straightLineMeters(user, destination);
+            const userElement = document.createElement('div');
+            userElement.className = 'map-user-pin';
+            userElement.setAttribute('aria-label', 'Lokasi Anda');
+
+            if (userMarker) userMarker.remove();
+            userMarker = new maplibregl.Marker({ element: userElement, anchor: 'center' })
+                .setLngLat(userCoordinates)
+                .setPopup(new maplibregl.Popup({ offset: 14 }).setText('Lokasi Anda'))
+                .addTo(map);
+
+            locateButton.disabled = true;
+            locateLabel.textContent = 'Menghitung rute...';
+            distanceText.textContent = 'Menghitung jarak ke Kreongan Atas...';
+            const bounds = [
+                [Math.min(user.longitude, destination.longitude), Math.min(user.latitude, destination.latitude)],
+                [Math.max(user.longitude, destination.longitude), Math.max(user.latitude, destination.latitude)]
+            ];
+            map.fitBounds(bounds, {
+                padding: window.matchMedia('(max-width: 767px)').matches ? 60 : 90,
+                maxZoom: 14,
+                duration: 900
+            });
+
+            try {
+                const coordinates = `${user.longitude},${user.latitude};${destination.longitude},${destination.latitude}`;
+                const response = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson&steps=false`);
+                if (!response.ok) throw new Error('Routing service unavailable');
+                const result = await response.json();
+                const route = result.routes?.[0];
+                if (result.code !== 'Ok' || !route) throw new Error('No road route found');
+
+                drawLine(route.geometry.coordinates);
+                distanceText.textContent = `Lokasi Anda berjarak sekitar ${formatKm(route.distance)} km melalui jalan raya menuju Kreongan Atas.`;
+                statusText.textContent = `Estimasi berkendara: sekitar ${formatDuration(route.duration)}. Rute dihitung oleh OSRM.`;
+            } catch (error) {
+                drawLine([userCoordinates, [destination.longitude, destination.latitude]], true);
+                distanceText.textContent = `Lokasi Anda berjarak sekitar ${formatKm(directDistance)} km garis lurus dari Kreongan Atas.`;
+                statusText.textContent = 'Jarak ini bukan jarak perjalanan melalui jalan raya; layanan rute jalan tidak tersedia.';
+            } finally {
+                locateButton.disabled = false;
+                locateLabel.textContent = 'Lokasi Saya';
+            }
+        };
+
+        locateButton.addEventListener('click', () => {
+            if (!window.isSecureContext) {
+                statusText.textContent = 'GPS memerlukan koneksi HTTPS atau localhost. Peta tetap dapat digunakan tanpa lokasi.';
+                return;
+            }
+            if (!navigator.geolocation) {
+                statusText.textContent = 'Browser ini tidak mendukung lokasi perangkat. Peta tetap dapat digunakan.';
+                return;
+            }
+
+            locateButton.disabled = true;
+            locateLabel.textContent = 'Meminta izin GPS...';
+            statusText.textContent = 'Izinkan akses lokasi pada prompt browser untuk menghitung jarak.';
+            navigator.geolocation.getCurrentPosition(handlePosition, (error) => {
+                locateButton.disabled = false;
+                locateLabel.textContent = 'Lokasi Saya';
+                const messages = {
+                    1: 'Izin lokasi ditolak. Peta tetap dapat digunakan tanpa GPS.',
+                    2: 'Lokasi perangkat tidak dapat ditemukan. Periksa pengaturan GPS Anda.',
+                    3: 'Permintaan lokasi terlalu lama. Silakan coba lagi.'
+                };
+                statusText.textContent = messages[error.code] || 'Lokasi tidak tersedia. Silakan coba lagi nanti.';
+            }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+        });
+    })();
+</script>
 
 @endpush

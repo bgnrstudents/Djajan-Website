@@ -52,21 +52,148 @@
             transform: none !important;
         }
         
-        /* Active desktop navigation: clean text with a subtle underline. */
+        .public-navbar,
+        .public-navbar nav,
+        .nav-link,
+        .mobile-nav-link {
+            transition: background-color 280ms ease, border-color 280ms ease, box-shadow 280ms ease, backdrop-filter 280ms ease, color 200ms ease, transform 280ms ease;
+        }
+
+        .public-navbar {
+            width: max-content;
+            max-width: calc(100% - 2rem);
+        }
+
+        .public-navbar nav {
+            border: 1px solid transparent;
+            background: transparent;
+            box-shadow: none;
+            backdrop-filter: blur(0);
+            -webkit-backdrop-filter: blur(0);
+            justify-content: center;
+            padding: 0.625rem 1.25rem;
+        }
+
+        .public-navbar.is-scrolled nav {
+            border-color: rgba(229, 231, 235, 0.62);
+            background: rgba(255, 255, 255, 0.72);
+            box-shadow: 0 8px 28px rgba(2, 44, 34, 0.1);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+        }
+
+        .desktop-nav-links {
+            display: flex;
+            position: static;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
         .nav-link::after {
             content: '';
             position: absolute;
-            right: 0.75rem;
-            bottom: 0.2rem;
-            left: 0.75rem;
+            right: 0.5rem;
+            bottom: 0.25rem;
+            left: 0.5rem;
             height: 2px;
             border-radius: 9999px;
-            background: #064e3b;
+            background: #86efac;
             transform: scaleX(0);
             transform-origin: center;
             transition: transform 200ms ease;
         }
+        .nav-link { color: rgba(255, 255, 255, 0.9); }
+        .nav-link:hover, .nav-link.is-active { color: #fff; }
         .nav-link.is-active::after { transform: scaleX(1); }
+        .public-navbar.is-scrolled .nav-link { color: #6b7280; }
+        .public-navbar.is-scrolled .nav-link:hover,
+        .public-navbar.is-scrolled .nav-link.is-active { color: #0f623f; }
+        .public-navbar.is-scrolled .nav-link::after { background: #0f623f; }
+
+        .mobile-header, .mobile-sidebar, .mobile-sidebar-overlay { display: none; }
+
+        @media (max-width: 899px) {
+            .public-navbar { display: none; }
+            .mobile-header {
+                position: fixed;
+                z-index: 50;
+                top: 0;
+                right: 0;
+                left: 0;
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                padding: calc(0.65rem + env(safe-area-inset-top)) 1rem 0.65rem;
+                border-bottom: 1px solid transparent;
+                transition: background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
+            }
+            .mobile-header.is-scrolled {
+                border-color: rgba(229, 231, 235, 0.8);
+                background: rgba(255, 255, 255, 0.9);
+                box-shadow: 0 6px 24px rgba(2, 44, 34, 0.08);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+            }
+            .mobile-menu-toggle {
+                display: inline-flex;
+                width: 2.75rem;
+                height: 2.75rem;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(255, 255, 255, 0.38);
+                border-radius: 9999px;
+                background: rgba(255, 255, 255, 0.14);
+                color: #fff;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            }
+            .mobile-header.is-scrolled .mobile-menu-toggle { border-color: #e5e7eb; background: rgba(255,255,255,.8); color: #064e3b; }
+            .mobile-menu-toggle svg { width: 1.4rem; height: 1.4rem; }
+            .mobile-sidebar-overlay {
+                position: fixed;
+                z-index: 60;
+                inset: 0;
+                display: block;
+                background: rgba(2, 44, 34, 0.38);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 260ms ease, visibility 260ms;
+                visibility: hidden;
+            }
+            .mobile-sidebar-overlay.is-open { opacity: 1; pointer-events: auto; visibility: visible; }
+            .mobile-sidebar {
+                position: fixed;
+                z-index: 61;
+                top: 0;
+                right: 0;
+                display: flex;
+                width: min(84vw, 360px);
+                height: 100vh;
+                height: 100dvh;
+                flex-direction: column;
+                border-radius: 1.5rem 0 0 1.5rem;
+                background: #fff;
+                padding: calc(1.25rem + env(safe-area-inset-top)) 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+                box-shadow: -16px 0 48px rgba(2, 44, 34, 0.18);
+                transform: translateX(105%);
+                transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), visibility 300ms;
+                visibility: hidden;
+            }
+            .mobile-sidebar.is-open { transform: translateX(0); visibility: visible; }
+            .mobile-sidebar-top { display: flex; align-items: center; justify-content: flex-end; padding-bottom: 1.5rem; border-bottom: 1px solid #e5e7eb; }
+            .mobile-sidebar-close { display: inline-flex; width: 2.75rem; height: 2.75rem; align-items: center; justify-content: center; border-radius: 9999px; background: #f3f4f6; color: #064e3b; }
+            .mobile-sidebar-close svg { width: 1.25rem; height: 1.25rem; }
+            .mobile-sidebar-links { display: grid; gap: 0.5rem; padding-top: 1.5rem; }
+            .mobile-sidebar-link { display: flex; min-height: 3.5rem; align-items: center; gap: 0.9rem; border-radius: 0.9rem; padding: 0 1rem; color: #4b5563; font-size: 0.95rem; font-weight: 600; transition: color 180ms ease, background-color 180ms ease, transform 180ms ease; }
+            .mobile-sidebar-link svg { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; }
+            .mobile-sidebar-link:hover, .mobile-sidebar-link.is-active { background: #e9f4ed; color: #0f623f; }
+            .mobile-sidebar-link:active { transform: scale(0.98); }
+            body.sidebar-open { overflow: hidden; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .public-navbar, .public-navbar nav, .nav-link, .mobile-header, .mobile-sidebar, .mobile-sidebar-overlay { transition-duration: 0.01ms !important; }
+        }
 
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; }
@@ -78,101 +205,40 @@
 
 <body class="bg-gray-50 text-gray-900 antialiased overflow-x-hidden">
 
-    <!-- ==================== FLOATING PILL NAVBAR ==================== -->
-    <div class="fixed top-6 left-1/2 z-50 w-[calc(100%-3rem)] max-w-[1100px] -translate-x-1/2 lg:w-[calc(100%-4rem)]">
-        <nav class="flex items-center justify-between rounded-full border border-gray-100 bg-white/95 py-2 pl-4 pr-2 shadow-sm backdrop-blur-md sm:pl-6">
-            <a href="#home" class="relative z-10 flex group" aria-label="Djajan - Beranda">
-                <img src="{{ asset('logo_djajan.png') }}" alt="Djajan" class="h-9 w-auto object-contain transition-transform group-hover:scale-105">
-            </a>
-
-            <div class="absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 lg:flex">
-                <a href="#home" data-nav-link class="nav-link relative px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-dj-green">Beranda</a>
-                <a href="#tentang" data-nav-link class="nav-link relative px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-dj-green">Tentang Kami</a>
-                <a href="#produk" data-nav-link class="nav-link relative px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-dj-green">Produk</a>
-                <a href="#umkm" data-nav-link class="nav-link relative px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-dj-green">UMKM</a>
-                <a href="#kontak" data-nav-link class="nav-link relative px-3 py-2 text-sm font-medium text-gray-500 transition-colors hover:text-dj-green">Kontak</a>
-            </div>
-
-            <div class="relative z-10 flex items-center">
-                @auth
-                    <a href="{{ route('admin.dashboard') }}" class="group hidden items-center gap-4 rounded-full bg-dj-dark py-1.5 pl-6 pr-2 text-sm font-medium text-white transition-all hover:bg-dj-green hover:shadow-md md:flex">
-                        Dashboard
-                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-white transition-transform group-hover:translate-x-1">
-                            <svg class="w-4 h-4 text-dj-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M12 5l7 7-7 7" /></svg>
-                        </span>
-                    </a>
-                @else
-                    <a href="{{ route('login') }}" class="group hidden items-center gap-4 rounded-full bg-dj-dark py-1.5 pl-6 pr-2 text-sm font-medium text-white transition-all hover:bg-dj-green hover:shadow-md md:flex">
-                        Login Admin
-                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-white transition-transform group-hover:translate-x-1">
-                            <svg class="w-4 h-4 text-dj-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M12 5l7 7-7 7" /></svg>
-                        </span>
-                    </a>
-                @endauth
-
-                <button id="menu-toggle" type="button" aria-label="Buka menu navigasi" aria-controls="mobile-menu" aria-expanded="false" class="ml-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-dj-dark transition-colors hover:bg-gray-100 lg:hidden">
-                    <span class="relative block h-5 w-6" aria-hidden="true">
-                        <span class="menu-bar absolute left-0 top-0 h-0.5 w-6 rounded-full bg-current transition-all duration-300"></span>
-                        <span class="menu-bar absolute left-0 top-1/2 h-0.5 w-6 -translate-y-1/2 rounded-full bg-current transition-all duration-300"></span>
-                        <span class="menu-bar absolute bottom-0 left-0 h-0.5 w-6 rounded-full bg-current transition-all duration-300"></span>
-                    </span>
-                </button>
+    <!-- ==================== DESKTOP NAVBAR ==================== -->
+    <div id="public-navbar" class="public-navbar fixed left-1/2 top-6 z-50 -translate-x-1/2">
+        <nav class="relative flex items-center rounded-full py-2" aria-label="Navigasi utama">
+            <div class="desktop-nav-links">
+                <a href="#home" data-nav-link class="nav-link relative px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">Beranda</a>
+                <a href="#tentang" data-nav-link class="nav-link relative px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">Tentang Kami</a>
+                <a href="#produk" data-nav-link class="nav-link relative px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">Produk</a>
+                <a href="#umkm" data-nav-link class="nav-link relative px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">Maps</a>
+                <a href="#kontak" data-nav-link class="nav-link relative px-2 py-2 text-xs font-medium sm:px-3 sm:text-sm">Kontak</a>
             </div>
         </nav>
     </div>
 
-    <!-- Mobile Menu -->
-    <div id="mobile-menu" class="pointer-events-none fixed inset-0 z-40 bg-white/95 pt-28 opacity-0 backdrop-blur-md transition-all duration-300 lg:hidden" aria-hidden="true">
-        <style>
-            /* Mobile menu animations */
-            #mobile-menu.open {
-                opacity: 1;
-                pointer-events: auto;
-            }
-            
-            #mobile-menu.open > div[data-mobile-panel] {
-                transform: translateY(0);
-            }
-            
-            /* Hover states for navigation */
-            #navbar a:not(#menu-toggle) {
-                position: relative;
-                transition: all 0.2s ease;
-            }
-            
-            #navbar a:not(#menu-toggle)::after {
-                content: '';
-                position: absolute;
-                bottom: -2px;
-                left: 0;
-                width: 0;
-                height: 2px;
-                background: #0F623F;
-                transition: width 0.3s ease;
-            }
-            
-            #navbar a:not(#menu-toggle):hover::after,
-            #navbar a:not(#menu-toggle).active::after {
-                width: 100%;
-            }
-        </style>
-        <div class="translate-y-4 px-6 py-8 transition-transform duration-300" data-mobile-panel>
-            <nav class="space-y-1" aria-label="Navigasi mobile">
-                <a href="#home" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Beranda</a>
-                <a href="#tentang" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Tentang Kami</a>
-                <a href="#produk" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Produk</a>
-                <a href="#umkm" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">UMKM</a>
-                <a href="#kontak" data-nav-link class="block py-2 text-sm text-gray-700 hover:text-dj-green">Kontak</a>
-            </nav>
-            <div class="mt-6 border-t border-gray-100 pt-6">
-                @auth
-                    <a href="{{ route('admin.dashboard') }}" class="flex items-center justify-between rounded-full bg-dj-dark py-2 pl-6 pr-2 text-base font-semibold text-white transition-colors hover:bg-dj-green">Dashboard Admin <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white"><svg class="h-5 w-5 text-dj-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7" /></svg></span></a>
-                @else
-                    <a href="{{ route('login') }}" class="flex items-center justify-between rounded-full bg-dj-dark py-2 pl-6 pr-2 text-base font-semibold text-white transition-colors hover:bg-dj-green">Login Admin <span class="flex h-10 w-10 items-center justify-center rounded-full bg-white"><svg class="h-5 w-5 text-dj-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7" /></svg></span></a>
-                @endauth
-            </div>
+    <header id="mobile-header" class="mobile-header">
+        <button id="mobile-menu-toggle" class="mobile-menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="mobile-sidebar" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+    </header>
+
+    <button id="mobile-sidebar-overlay" class="mobile-sidebar-overlay" type="button" aria-label="Tutup navigasi" tabindex="-1"></button>
+    <aside id="mobile-sidebar" class="mobile-sidebar" role="dialog" aria-modal="true" aria-label="Navigasi mobile" aria-hidden="true" inert>
+        <div class="mobile-sidebar-top">
+            <button id="mobile-menu-close" class="mobile-sidebar-close" type="button" aria-label="Tutup navigasi">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg>
+            </button>
         </div>
-    </div>
+        <nav class="mobile-sidebar-links" aria-label="Navigasi halaman">
+            <a href="#home" data-nav-link class="mobile-sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9M9 20v-6h6v6"/></svg>Beranda</a>
+            <a href="#tentang" data-nav-link class="mobile-sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Tentang Kami</a>
+            <a href="#produk" data-nav-link class="mobile-sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/></svg>Produk</a>
+            <a href="#umkm" data-nav-link class="mobile-sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18l-2-6H5l-2 6Z"/><path d="M5 10v10h14V10M9 20v-6h6v6M3 10c0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0 0 2 3 2 3 0"/></svg>UMKM</a>
+            <a href="#kontak" data-nav-link class="mobile-sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-3 2a15 15 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1-2-2Z"/></svg>Kontak</a>
+        </nav>
+    </aside>
 
     <!-- Main Content -->
     <main>
@@ -314,61 +380,78 @@
 
     <!-- ==================== SCRIPTS ==================== -->
     <script>
-        const menuToggle = document.getElementById('menu-toggle');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const mobilePanel = mobileMenu.querySelector('[data-mobile-panel]');
-        const menuBars = menuToggle.querySelectorAll('.menu-bar');
+        const publicNavbar = document.getElementById('public-navbar');
+        const mobileHeader = document.getElementById('mobile-header');
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const mobileMenuClose = document.getElementById('mobile-menu-close');
+        const mobileSidebar = document.getElementById('mobile-sidebar');
+        const mobileSidebarOverlay = document.getElementById('mobile-sidebar-overlay');
         const navLinks = document.querySelectorAll('[data-nav-link]');
+        let lockedScrollY = 0;
+
+        const setMobileMenu = (open) => {
+            const isOpen = mobileSidebar.classList.contains('is-open');
+            if (open === isOpen) return;
+
+            mobileSidebar.classList.toggle('is-open', open);
+            mobileSidebarOverlay.classList.toggle('is-open', open);
+            mobileSidebar.setAttribute('aria-hidden', String(!open));
+            mobileSidebar.inert = !open;
+            mobileMenuToggle.setAttribute('aria-expanded', String(open));
+            mobileMenuToggle.setAttribute('aria-label', open ? 'Tutup navigasi' : 'Buka navigasi');
+
+            if (open) {
+                lockedScrollY = window.scrollY;
+                document.body.classList.add('sidebar-open');
+                document.body.style.top = `-${lockedScrollY}px`;
+                mobileMenuClose.focus();
+            } else {
+                document.body.classList.remove('sidebar-open');
+                document.body.style.top = '';
+                window.scrollTo(0, lockedScrollY);
+                mobileMenuToggle.focus();
+            }
+        };
+
+        mobileMenuToggle.addEventListener('click', () => setMobileMenu(true));
+        mobileMenuClose.addEventListener('click', () => setMobileMenu(false));
+        mobileSidebarOverlay.addEventListener('click', () => setMobileMenu(false));
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') setMobileMenu(false);
+        });
 
         const setActiveLink = (id) => {
             navLinks.forEach((link) => {
                 const active = link.getAttribute('href') === `#${id}`;
                 link.classList.toggle('is-active', active);
-                link.classList.toggle('text-dj-green', active);
-                link.classList.toggle('font-semibold', active);
-                link.classList.toggle('text-gray-500', !active && link.closest('.lg\\:flex'));
-                link.classList.toggle('text-gray-700', !active && !link.closest('.lg\\:flex'));
-                link.setAttribute('aria-current', active ? 'page' : 'false');
+                if (active) {
+                    link.setAttribute('aria-current', 'page');
+                } else {
+                    link.removeAttribute('aria-current');
+                }
             });
         };
-
-        const setMenu = (open) => {
-            mobileMenu.classList.toggle('pointer-events-none', !open);
-            mobileMenu.classList.toggle('opacity-0', !open);
-            mobilePanel.classList.toggle('translate-y-4', !open);
-            menuToggle.setAttribute('aria-expanded', String(open));
-            menuToggle.setAttribute('aria-label', open ? 'Tutup menu navigasi' : 'Buka menu navigasi');
-            document.body.style.overflow = open ? 'hidden' : '';
-            menuBars[0].classList.toggle('top-1/2', open);
-            menuBars[0].classList.toggle('-translate-y-1/2', open);
-            menuBars[0].classList.toggle('rotate-45', open);
-            menuBars[1].classList.toggle('opacity-0', open);
-            menuBars[2].classList.toggle('bottom-auto', open);
-            menuBars[2].classList.toggle('top-1/2', open);
-            menuBars[2].classList.toggle('-translate-y-1/2', open);
-            menuBars[2].classList.toggle('-rotate-45', open);
-        };
-
-        menuToggle.addEventListener('click', () => setMenu(menuToggle.getAttribute('aria-expanded') !== 'true'));
 
         let isNavClicking = false;
         let navClickTimer = null;
 
-        navLinks.forEach((link) => link.addEventListener('click', () => {
+        navLinks.forEach((link) => link.addEventListener('click', (event) => {
             const href = link.getAttribute('href');
             if (href && href.startsWith('#')) {
                 const id = href.slice(1);
+                const target = document.getElementById(id);
+                if (!target) return;
+                event.preventDefault();
                 setActiveLink(id);
                 isNavClicking = true;
                 clearTimeout(navClickTimer);
-                navClickTimer = setTimeout(() => { isNavClicking = false; }, 800);
+                navClickTimer = setTimeout(() => { isNavClicking = false; }, 1400);
+                history.pushState(null, '', href);
+                setMobileMenu(false);
+                const offset = window.matchMedia('(max-width: 899px)').matches ? 84 : 104;
+                window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' });
             }
-            setMenu(false);
         }));
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') setMenu(false);
-        });
 
         const sections = [...document.querySelectorAll('section[id]'), document.getElementById('kontak')].filter(Boolean);
         let scrollTicking = false;
@@ -389,16 +472,25 @@
             }
         };
 
+        const updateNavbarScrollState = () => {
+            const scrolled = window.scrollY > 24;
+            publicNavbar.classList.toggle('is-scrolled', scrolled);
+            mobileHeader.classList.toggle('is-scrolled', scrolled);
+        };
+
         window.addEventListener('scroll', () => {
             if (!scrollTicking) {
                 window.requestAnimationFrame(() => {
                     updateActiveSection();
+                    updateNavbarScrollState();
                     scrollTicking = false;
                 });
                 scrollTicking = true;
             }
         }, { passive: true });
         window.addEventListener('hashchange', updateActiveSection);
+        window.addEventListener('popstate', updateActiveSection);
+        updateNavbarScrollState();
         updateActiveSection();
     </script>
 
