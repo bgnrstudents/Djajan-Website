@@ -112,3 +112,4 @@ class UlasanController extends Controller
         ]);
     }
 }
+

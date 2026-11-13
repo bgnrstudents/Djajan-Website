@@ -120,3 +120,4 @@ class UlasanTest extends TestCase
             ->assertJsonPath('sukses', false);
     }
 }
+

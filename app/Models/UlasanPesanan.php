@@ -39,3 +39,4 @@ class UlasanPesanan extends Model
         return $this->belongsTo(Umkm::class, 'id_umkm', 'id_umkm');
     }
 }
+
