@@ -24,15 +24,20 @@ class DetailPesanan extends Model
     /** Bentuk JSON persis sama dengan bagian "items" di formatPesanan() lama. */
     public function keFormatJson(): array
     {
+        $mode = $this->produk?->mode_penjualan ?? 'ready';
+        $isPo = in_array(strtolower(str_replace(['-', '_', ' '], '', (string) $mode)), ['preorder'], true);
+
         return [
-            'id_detail'    => (int) $this->id_detail,
-            'id_produk'    => $this->id_produk !== null ? (int) $this->id_produk : null,
-            'nama_produk'  => $this->nama_produk,
-            'satuan'       => $this->satuan,
-            'jumlah'       => (int) $this->jumlah,
-            'harga_satuan' => (int) $this->harga_satuan,
-            'subtotal'     => (int) $this->subtotal,
-            'gambar_url'   => UploadFoto::url($this->produk?->gambar_produk, 'produk'),
+            'id_detail'      => (int) $this->id_detail,
+            'id_produk'      => $this->id_produk !== null ? (int) $this->id_produk : null,
+            'nama_produk'    => $this->nama_produk,
+            'satuan'         => $this->satuan,
+            'jumlah'         => (int) $this->jumlah,
+            'harga_satuan'   => (int) $this->harga_satuan,
+            'subtotal'       => (int) $this->subtotal,
+            'mode_penjualan' => $mode,
+            'is_preorder'    => $isPo,
+            'gambar_url'     => UploadFoto::url($this->produk?->gambar_produk, 'produk'),
         ];
     }
 }
