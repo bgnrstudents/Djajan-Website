@@ -220,7 +220,7 @@ class OngkirHitungTest extends TestCase
         $historyResponse->assertStatus(200);
         // Pastikan snapshot biaya_pengantaran tetap Rp 4.000, BUKAN 15.000
         $this->assertEquals(4000, $historyResponse->json('data.biaya_pengantaran'));
-        $this->assertEquals(44000, $historyResponse->json('data.total_harga')); // (2 * 20.000) + 4.000
+        $this->assertEquals(45200, $historyResponse->json('data.total_harga')); // (2 * 20.000) + 4.000 + 1.200 (biaya layanan 3%)
     }
 
     public function test_fallback_koordinat_kreyongan_dan_tarif_kurir_dinamis(): void

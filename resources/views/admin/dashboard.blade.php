@@ -92,7 +92,7 @@
             </span>
         </div>
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+            <div class="revenue-subcard rounded-xl border border-gray-200 bg-gray-50/60 p-4">
                 <p class="text-xs font-medium text-gray-500">Volume Transaksi (GMV)</p>
                 <p id="stat-gmv" class="mt-2 text-xl font-bold tracking-tight text-djajan-neutral">Rp {{ number_format($statistics['total_omzet'], 0, ',', '.') }}</p>
                 <p class="mt-1 text-xs text-gray-400">Total nilai pesanan produk tercatat</p>
@@ -105,7 +105,7 @@
                 <p id="stat-komisi-platform" class="mt-2 text-2xl font-black tracking-tight text-djajan-primary">Rp {{ number_format($statistics['total_komisi_platform'] ?? 0, 0, ',', '.') }}</p>
                 <p class="mt-1 text-xs text-emerald-800">Pendapatan operasional &amp; kas desa</p>
             </div>
-            <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+            <div class="revenue-subcard rounded-xl border border-gray-200 bg-gray-50/60 p-4">
                 <p class="text-xs font-medium text-gray-500">Hak Pendapatan Bersih Mitra UMKM</p>
                 <p id="stat-pendapatan-umkm" class="mt-2 text-xl font-bold tracking-tight text-djajan-neutral">Rp {{ number_format($statistics['total_pendapatan_umkm'] ?? ($statistics['total_omzet'] - ($statistics['total_komisi_platform'] ?? 0)), 0, ',', '.') }}</p>
                 <p class="mt-1 text-xs text-gray-400">Total hak bayar bersih diteruskan ke UMKM</p>

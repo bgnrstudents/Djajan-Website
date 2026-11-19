@@ -432,8 +432,30 @@ html[data-admin-theme="dark"] body.admin-shell .bg-amber-500 {
 }
 
 html[data-admin-theme="dark"] body.admin-shell .bg-red-50,
-html[data-admin-theme="dark"] body.admin-shell .bg-blue-50 {
+html[data-admin-theme="dark"] body.admin-shell .bg-blue-50,
+html[data-admin-theme="dark"] body.admin-shell .bg-gray-50,
+html[data-admin-theme="dark"] body.admin-shell .bg-gray-50\/50,
+html[data-admin-theme="dark"] body.admin-shell .bg-gray-50\/60,
+html[data-admin-theme="dark"] body.admin-shell .bg-gray-50\/70,
+html[data-admin-theme="dark"] body.admin-shell .bg-gray-50\/80,
+html[data-admin-theme="dark"] body.admin-shell .bg-gray-100 {
+    background-color: var(--admin-surface-muted) !important;
+}
+
+html[data-admin-theme="dark"] body.admin-shell .border-gray-100,
+html[data-admin-theme="dark"] body.admin-shell .border-gray-200,
+html[data-admin-theme="dark"] body.admin-shell .border-gray-300 {
+    border-color: var(--admin-border) !important;
+}
+
+body.admin-shell .revenue-subcard {
     background-color: var(--admin-surface-muted);
+    border-color: var(--admin-border);
+}
+
+html[data-admin-theme="dark"] body.admin-shell .revenue-subcard {
+    background-color: var(--admin-surface-muted) !important;
+    border-color: var(--admin-border) !important;
 }
 
 html[data-admin-theme="dark"] body.admin-shell .hover\:bg-red-50:hover,

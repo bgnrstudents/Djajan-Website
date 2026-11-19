@@ -42,9 +42,12 @@ class DashboardController extends Controller
             );
         $idPesananPeriode = (clone $pesananPeriode)->select('id_pesanan');
         $jumlahPesananPeriode = (clone $pesananPeriode)->count();
-        $omzetPeriode = (int) DB::table('detail_pesanan')
+        $omzetKotorPeriode = (int) DB::table('detail_pesanan')
             ->whereIn('id_pesanan', clone $idPesananPeriode)
             ->sum('subtotal');
+        $komisiPeriode = (int) (clone $pesananPeriode)->sum('biaya_layanan');
+        $omzetBersihPeriode = max(0, $omzetKotorPeriode - $komisiPeriode);
+
         $jumlahProdukTerjual = (int) DB::table('detail_pesanan')
             ->whereIn('id_pesanan', clone $idPesananPeriode)
             ->sum('jumlah');
@@ -60,9 +63,11 @@ class DashboardController extends Controller
             ->selectRaw("COUNT(DISTINCT CASE WHEN status_refund = 'refund_berhasil' THEN id_pesanan END) as refund_berhasil")
             ->first();
         $pesananLunasSelesaiSemuaWaktu = $pesananLunasSelesai();
-        $omzetSemuaWaktu = (int) DB::table('detail_pesanan')
+        $omzetKotorSemuaWaktu = (int) DB::table('detail_pesanan')
             ->whereIn('id_pesanan', (clone $pesananLunasSelesaiSemuaWaktu)->select('id_pesanan'))
             ->sum('subtotal');
+        $komisiSemuaWaktu = (int) (clone $pesananLunasSelesaiSemuaWaktu)->sum('biaya_layanan');
+        $omzetBersihSemuaWaktu = max(0, $omzetKotorSemuaWaktu - $komisiSemuaWaktu);
         $jumlahPesananLunasSelesai = (clone $pesananLunasSelesaiSemuaWaktu)->count();
 
         $data = [
@@ -71,14 +76,18 @@ class DashboardController extends Controller
             'stok_habis' => Produk::where('id_umkm', $idUmkm)->where('stok', 0)->where('mode_penjualan', '!=', 'pre_order')->count(),
             'pesanan_baru' => Pesanan::where('id_umkm', $idUmkm)->where('status_pesanan', 'po_baru')->count(),
             'pesanan_diterima' => $jumlahPesananLunasSelesai,
-            'omzet_diterima' => $omzetSemuaWaktu,
+            'omzet_diterima' => $omzetBersihSemuaWaktu,
+            'omzet_kotor_diterima' => $omzetKotorSemuaWaktu,
+            'komisi_semua_waktu' => $komisiSemuaWaktu,
             'periode_mulai' => $mulai,
             'periode_akhir' => $akhir,
             'total_pesanan_periode' => $jumlahPesananPeriode,
-            'omzet_periode' => $omzetPeriode,
+            'omzet_periode' => $omzetBersihPeriode,
+            'omzet_kotor_periode' => $omzetKotorPeriode,
+            'komisi_periode' => $komisiPeriode,
             'jumlah_produk_terjual' => $jumlahProdukTerjual,
             'rata_rata_transaksi' => $jumlahPesananPeriode > 0
-                ? (int) round($omzetPeriode / $jumlahPesananPeriode)
+                ? (int) round($omzetBersihPeriode / $jumlahPesananPeriode)
                 : 0,
             'pesanan_belum_selesai' => (int) $pengecualian->pesanan_belum_selesai,
             'pesanan_dibatalkan' => (int) $pengecualian->pesanan_dibatalkan,
@@ -106,17 +115,13 @@ class DashboardController extends Controller
                 ->values()
                 ->all(),
             'laporan_harian' => (clone $pesananPeriode)
-                ->join('detail_pesanan', 'detail_pesanan.id_pesanan', '=', 'pesanan.id_pesanan')
-                ->selectRaw('DATE(COALESCE(pesanan.dibayar_pada, pesanan.tanggal_pesan)) as tanggal')
-                ->selectRaw('COUNT(DISTINCT pesanan.id_pesanan) as jumlah_pesanan')
-                ->selectRaw('SUM(detail_pesanan.subtotal) as omzet')
-                ->groupByRaw('DATE(COALESCE(pesanan.dibayar_pada, pesanan.tanggal_pesan))')
-                ->orderBy('tanggal')
+                ->with('items')
                 ->get()
-                ->map(fn ($item) => [
-                    'tanggal' => $item->tanggal,
-                    'jumlah_pesanan' => (int) $item->jumlah_pesanan,
-                    'omzet' => (int) $item->omzet,
+                ->groupBy(fn ($p) => date('Y-m-d', strtotime($p->dibayar_pada ?: $p->tanggal_pesan)))
+                ->map(fn ($ordersOnDate, $tanggal) => [
+                    'tanggal' => $tanggal,
+                    'jumlah_pesanan' => $ordersOnDate->count(),
+                    'omzet' => max(0, (int) $ordersOnDate->sum(fn ($p) => $p->items->sum('subtotal')) - (int) $ordersOnDate->sum('biaya_layanan')),
                 ])
                 ->values()
                 ->all(),
