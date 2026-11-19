@@ -77,6 +77,42 @@
         </article>
     </section>
 
+    <!-- LAPORAN FINANSIAL & BAGI HASIL PLATFORM (REVENUE MODEL) -->
+    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm" aria-label="Bagi hasil platform">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
+            <div>
+                <h2 class="font-semibold text-djajan-neutral flex items-center gap-2">
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-djajan-primary text-xs">💰</span>
+                    Laporan Finansial &amp; Bagi Hasil Platform
+                </h2>
+                <p class="text-xs text-gray-500 mt-0.5">Skema Subsidi Mikro Desa: Bebas komisi (0%) untuk transaksi &lt; Rp 10.000, komisi 3% untuk &ge; Rp 10.000</p>
+            </div>
+            <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-djajan-primary ring-1 ring-inset ring-emerald-600/20">
+                Komisi Platform 3%
+            </span>
+        </div>
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+                <p class="text-xs font-medium text-gray-500">Volume Transaksi (GMV)</p>
+                <p id="stat-gmv" class="mt-2 text-xl font-bold tracking-tight text-djajan-neutral">Rp {{ number_format($statistics['total_omzet'], 0, ',', '.') }}</p>
+                <p class="mt-1 text-xs text-gray-400">Total nilai pesanan produk tercatat</p>
+            </div>
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-bold text-djajan-primary uppercase tracking-wide">Pemasukan Kas Platform</p>
+                    <span class="text-[10px] font-bold text-white bg-djajan-primary px-2 py-0.5 rounded shadow-xs">KAS DJAJAN</span>
+                </div>
+                <p id="stat-komisi-platform" class="mt-2 text-2xl font-black tracking-tight text-djajan-primary">Rp {{ number_format($statistics['total_komisi_platform'] ?? 0, 0, ',', '.') }}</p>
+                <p class="mt-1 text-xs text-emerald-800">Pendapatan operasional &amp; kas desa</p>
+            </div>
+            <div class="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+                <p class="text-xs font-medium text-gray-500">Hak Pendapatan Bersih Mitra UMKM</p>
+                <p id="stat-pendapatan-umkm" class="mt-2 text-xl font-bold tracking-tight text-gray-800">Rp {{ number_format($statistics['total_pendapatan_umkm'] ?? ($statistics['total_omzet'] - ($statistics['total_komisi_platform'] ?? 0)), 0, ',', '.') }}</p>
+                <p class="mt-1 text-xs text-gray-400">Total hak bayar bersih diteruskan ke UMKM</p>
+            </div>
+        </div>
+    </section>
+
     <section class="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <article class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm xl:col-span-3">
             <div class="flex flex-wrap items-start justify-between gap-3">
@@ -198,6 +234,7 @@
                             <th class="px-5 py-3 font-semibold">UMKM</th>
                             <th class="px-5 py-3 text-right font-semibold">Unit</th>
                             <th class="px-5 py-3 text-right font-semibold">Omzet produk</th>
+                            <th class="px-5 py-3 text-right font-semibold">Komisi Platform</th>
                         </tr>
                     </thead>
                     <tbody id="recent-orders-body" class="divide-y divide-gray-100">
@@ -207,9 +244,12 @@
                                 <td class="px-5 py-3 text-gray-700">{{ $order['nama_umkm'] }}</td>
                                 <td class="px-5 py-3 text-right text-gray-600">{{ number_format($order['jumlah_produk'], 0, ',', '.') }}</td>
                                 <td class="px-5 py-3 text-right font-medium text-djajan-neutral">Rp {{ number_format($order['omzet_produk'], 0, ',', '.') }}</td>
+                                <td class="px-5 py-3 text-right font-medium {{ ($order['komisi_platform'] ?? 0) > 0 ? 'text-emerald-700' : 'text-gray-400' }}">
+                                    {{ ($order['komisi_platform'] ?? 0) > 0 ? 'Rp ' . number_format($order['komisi_platform'], 0, ',', '.') : 'Gratis (0%)' }}
+                                </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="px-5 py-8 text-center text-gray-500">Belum ada transaksi pada periode ini.</td></tr>
+                            <tr><td colspan="5" class="px-5 py-8 text-center text-gray-500">Belum ada transaksi pada periode ini.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -476,7 +516,7 @@
             if (!orders.length) {
                 const row = document.createElement('tr');
                 const cell = document.createElement('td');
-                cell.colSpan = 4;
+                cell.colSpan = 5;
                 cell.className = 'px-5 py-8 text-center text-gray-500';
                 cell.textContent = 'Belum ada transaksi pada periode ini.';
                 row.appendChild(cell);
@@ -498,11 +538,17 @@
                 items.className = 'mt-1 max-w-xs text-xs text-gray-500';
                 items.textContent = order.items.map(item => `${number.format(item.jumlah)}x ${item.nama_produk}`).join(' • ');
                 idCell.append(date, id, items);
+
+                const komisi = order.komisi_platform || 0;
+                const komisiText = komisi > 0 ? currency.format(komisi) : 'Gratis (0%)';
+                const komisiClass = komisi > 0 ? 'text-right font-medium text-emerald-700' : 'text-right text-gray-400 text-xs';
+
                 row.append(
                     idCell,
                     createTextCell(order.nama_umkm),
                     createTextCell(number.format(order.jumlah_produk), 'text-right'),
-                    createTextCell(currency.format(order.omzet_produk), 'text-right font-medium text-djajan-neutral')
+                    createTextCell(currency.format(order.omzet_produk), 'text-right font-medium text-djajan-neutral'),
+                    createTextCell(komisiText, komisiClass)
                 );
                 body.appendChild(row);
             });
@@ -521,6 +567,14 @@
             document.getElementById('stat-transaksi').textContent = number.format(data.statistics.total_transaksi);
             document.getElementById('stat-produk-terjual').textContent = number.format(data.statistics.total_produk_terjual);
             document.getElementById('stat-rata-rata').textContent = currency.format(data.statistics.rata_rata_transaksi);
+            
+            const gmvEl = document.getElementById('stat-gmv');
+            if (gmvEl) gmvEl.textContent = currency.format(data.statistics.total_omzet || 0);
+            const komisiEl = document.getElementById('stat-komisi-platform');
+            if (komisiEl) komisiEl.textContent = currency.format(data.statistics.total_komisi_platform || 0);
+            const pendapatanEl = document.getElementById('stat-pendapatan-umkm');
+            if (pendapatanEl) pendapatanEl.textContent = currency.format(data.statistics.total_pendapatan_umkm || 0);
+
             drawTrend(data.trend);
             renderComparison(data.comparison);
             renderRanking(data.ranking, data.pagination);

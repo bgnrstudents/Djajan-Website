@@ -29,6 +29,12 @@ class AdminOmzetDashboard
         $totalTransaksi = (int) $totals->total_transaksi;
         $totalOmzet = (int) $totals->total_omzet;
 
+        $totalKomisi = (int) DB::query()
+            ->fromSub(clone $orders, 'pesanan')
+            ->selectRaw('COALESCE(SUM(pesanan.biaya_layanan), 0) as total_komisi')
+            ->value('total_komisi');
+        $totalPendapatanUmkm = $totalOmzet - $totalKomisi;
+
         $merchantCount = DB::table('umkm')
             ->where('status_verifikasi', 'terverifikasi')
             ->when($umkmId !== null, fn (Builder $query) => $query->where('id_umkm', $umkmId))
@@ -67,6 +73,8 @@ class AdminOmzetDashboard
             'statistics' => [
                 'total_omzet' => $totalOmzet,
                 'total_transaksi' => $totalTransaksi,
+                'total_komisi_platform' => $totalKomisi,
+                'total_pendapatan_umkm' => $totalPendapatanUmkm,
                 'total_umkm_terjual' => (int) $totals->total_umkm_terjual,
                 'total_produk_terjual' => (int) $totals->total_produk_terjual,
                 'rata_rata_transaksi' => $totalTransaksi > 0
@@ -122,6 +130,7 @@ class AdminOmzetDashboard
                 'pesanan.status_pesanan',
                 'pesanan.status_pembayaran',
                 'pesanan.payment_status',
+                'pesanan.biaya_layanan',
                 'pesanan.status_refund'
             )
             ->where('umkm.status_verifikasi', 'terverifikasi')
@@ -212,6 +221,7 @@ class AdminOmzetDashboard
                 'pesanan.status_pembayaran',
                 'pesanan.dibayar_pada',
                 'pesanan.tanggal_pesan',
+                'pesanan.biaya_layanan',
                 'umkm.nama_usaha'
             )
             ->selectRaw('DATE(COALESCE(pesanan.dibayar_pada, pesanan.tanggal_pesan)) as tanggal')
@@ -227,6 +237,7 @@ class AdminOmzetDashboard
                 'pesanan.status_pembayaran',
                 'pesanan.dibayar_pada',
                 'pesanan.tanggal_pesan',
+                'pesanan.biaya_layanan',
                 'umkm.nama_usaha'
             )
             ->orderByDesc('pesanan.dibayar_pada')
@@ -248,6 +259,8 @@ class AdminOmzetDashboard
                 'jumlah_produk' => (int) $row->jumlah_produk,
                 'jenis_produk' => (int) $row->jenis_produk,
                 'omzet_produk' => (int) $row->omzet_produk,
+                'komisi_platform' => (int) ($row->biaya_layanan ?? 0),
+                'pendapatan_umkm' => (int) ($row->omzet_produk ?? 0) - (int) ($row->biaya_layanan ?? 0),
                 'status_pesanan' => $row->status_pesanan,
                 'status_pembayaran' => $row->status_pembayaran,
                 'items' => $itemsByOrder->get($row->id_pesanan, collect())

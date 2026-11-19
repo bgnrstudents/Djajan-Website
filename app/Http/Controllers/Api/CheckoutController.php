@@ -337,7 +337,8 @@ class CheckoutController extends Controller
             }
         }
 
-        $biayaLayanan = max(0, $biayaLayanan);
+        // Subsidi Mikro Desa: Subtotal < Rp 10.000 komisi 0%, >= Rp 10.000 komisi 3%
+        $biayaLayanan = $subtotal >= 10000 ? (int) round($subtotal * 0.03) : 0;
         $totalHarga = $subtotal + $biayaPengantaran + $biayaLayanan;
         $orderId = $this->buildOrderId();
 
@@ -657,9 +658,10 @@ class CheckoutController extends Controller
             $zonaOngkirId = $ongkirDetails['zona_ongkir_id'];
             $destLat = $request->filled('latitude') ? (float) $request->input('latitude') : ($deliveryAddress?->latitude !== null ? (float) $deliveryAddress->latitude : null);
             $destLon = $request->filled('longitude') ? (float) $request->input('longitude') : ($deliveryAddress?->longitude !== null ? (float) $deliveryAddress->longitude : null);
-            $total = $subtotal + $ongkir;
+            $biayaLayanan = $subtotal >= 10000 ? (int) round($subtotal * 0.03) : 0;
+            $total = $subtotal + $ongkir + $biayaLayanan;
             $grandTotal += $total;
-            $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'jarakKm', 'zonaOngkirId', 'total', 'group', 'destLat', 'destLon', 'isPreOrder');
+            $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'jarakKm', 'zonaOngkirId', 'biayaLayanan', 'total', 'group', 'destLat', 'destLon', 'isPreOrder');
         }
 
         $checkoutId = 'CHK-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(6));
@@ -706,7 +708,7 @@ class CheckoutController extends Controller
                     'biaya_pengantaran' => $entry['ongkir'],
                     'jarak_km' => $entry['jarakKm'],
                     'zona_ongkir_id' => $entry['zonaOngkirId'],
-                    'biaya_layanan' => 0,
+                    'biaya_layanan' => $entry['biayaLayanan'] ?? 0,
                     'total_harga' => $entry['total'],
                     'status_pesanan' => 'po_baru',
                 ]);
@@ -740,6 +742,9 @@ class CheckoutController extends Controller
                 }
                 if ($entry['ongkir'] > 0) {
                     $items[] = ['id' => 'delivery-' . $entry['umkmId'], 'price' => $entry['ongkir'], 'quantity' => 1, 'name' => 'Biaya pengantaran'];
+                }
+                if (($entry['biayaLayanan'] ?? 0) > 0) {
+                    $items[] = ['id' => 'service-' . $entry['umkmId'], 'price' => $entry['biayaLayanan'], 'quantity' => 1, 'name' => 'Biaya layanan platform'];
                 }
             }
             $paymentData = $midtransService->createTransaction(
