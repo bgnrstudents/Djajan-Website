@@ -118,6 +118,9 @@ class ProfilController extends Controller
 
         $radiusGratis  = max(0, (float) $request->input('radius_gratis_km', 0));
         $jarakMaksimal = max(0, (float) $request->input('jarak_maksimal_km', 0));
+        $biayaPengantaran = $request->has('biaya_pengantaran')
+            ? max(0, (int) $request->input('biaya_pengantaran'))
+            : null;
 
         if ($request->has('latitude')) {
             $umkm->latitude = $request->input('latitude') !== null
@@ -153,9 +156,12 @@ class ProfilController extends Controller
             return $this->gagal('Jarak maksimal harus sama dengan akhir zona terakhir.', 400);
         }
 
-        DB::transaction(function () use ($umkm, $radiusGratis, $jarakMaksimal, $normalZona): void {
+        DB::transaction(function () use ($umkm, $radiusGratis, $jarakMaksimal, $normalZona, $biayaPengantaran): void {
             $umkm->radius_gratis_km = $radiusGratis;
             $umkm->jarak_maksimal_km = $jarakMaksimal;
+            if ($biayaPengantaran !== null) {
+                $umkm->biaya_pengantaran = $biayaPengantaran;
+            }
             $umkm->save();
             UmkmZonaOngkir::where('id_umkm', $umkm->id_umkm)->delete();
             foreach ($normalZona as $baris) {
