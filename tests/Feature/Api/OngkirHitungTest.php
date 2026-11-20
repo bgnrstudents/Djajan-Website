@@ -261,4 +261,65 @@ class OngkirHitungTest extends TestCase
         $this->assertNotNull($response->json('data.jarak_km'));
         $this->assertStringContainsString('kurir warga desa', $response->json('data.pesan'));
     }
+
+    public function test_skema_ongkir_flat_fee_ditentukan_umkm(): void
+    {
+        // UMKM dengan biaya flat Rp 4.000, radius gratis 0, max 7 km
+        $umkmFlat = Umkm::create([
+            'nama_usaha' => 'Warung Sambal Mantap',
+            'id_pelanggan' => $this->pelanggan->id_pelanggan,
+            'alamat' => 'Desa Kreyongan Atas',
+            'latitude' => -8.172480,
+            'longitude' => 113.699530,
+            'toko_aktif' => true,
+            'kurir_warga_aktif' => true,
+            'radius_gratis_km' => 0,
+            'jarak_maksimal_km' => 7.0,
+            'biaya_pengantaran' => 4000,
+        ]);
+
+        // Jarak ~2 km
+        $response = $this->actingAs($this->pelanggan, 'sanctum')
+            ->postJson('/api/ongkir_hitung', [
+                'id_umkm' => $umkmFlat->id_umkm,
+                'metode_pengiriman' => 'kurir',
+                'latitude' => -8.188000,
+                'longitude' => 113.705000,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'sukses' => true,
+                'data' => [
+                    'metode_pengiriman' => 'kurir',
+                    'biaya_ongkir' => 4000,
+                    'gratis' => false,
+                ],
+            ]);
+        $this->assertStringContainsString('Tarif flat kurir UMKM', $response->json('data.pesan'));
+    }
+
+    public function test_simpan_ongkir_via_profil_api_dengan_biaya_pengantaran(): void
+    {
+        // Login sebagai pemilik UMKM
+        $response = $this->actingAs($this->umkm, 'sanctum')
+            ->postJson('/api/ongkir_simpan', [
+                'radius_gratis_km' => 0.5,
+                'jarak_maksimal_km' => 8.0,
+                'biaya_pengantaran' => 5000,
+                'zona' => [],
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'sukses' => true,
+            ]);
+
+        $this->assertDatabaseHas('umkm', [
+            'id_umkm' => $this->umkm->id_umkm,
+            'radius_gratis_km' => 0.5,
+            'jarak_maksimal_km' => 8.0,
+            'biaya_pengantaran' => 5000,
+        ]);
+    }
 }

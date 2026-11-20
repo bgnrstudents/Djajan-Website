@@ -133,7 +133,8 @@ class ProfilController extends Controller
                 : null;
         }
 
-        $zona = json_decode((string) $request->input('zona', '[]'), true);
+        $rawZona = $request->input('zona', '[]');
+        $zona = is_array($rawZona) ? $rawZona : json_decode((string) $rawZona, true);
         if (!is_array($zona)) {
             return $this->gagal('Format zona ongkir tidak valid.', 400);
         }

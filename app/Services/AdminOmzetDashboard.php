@@ -152,6 +152,7 @@ class AdminOmzetDashboard
                 'pesanan.status_pesanan',
                 'pesanan.status_pembayaran',
                 'pesanan.payment_status',
+                'pesanan.metode_pembayaran',
                 'pesanan.biaya_layanan',
                 'pesanan.status_refund'
             )
