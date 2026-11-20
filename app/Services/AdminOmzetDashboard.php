@@ -35,6 +35,24 @@ class AdminOmzetDashboard
             ->value('total_komisi');
         $totalPendapatanUmkm = $totalOmzet - $totalKomisi;
 
+        // Breakdown Pembayaran: COD vs Digital (Model A)
+        $codTotals = DB::query()
+            ->fromSub(clone $orders, 'pesanan')
+            ->join('detail_pesanan', 'detail_pesanan.id_pesanan', '=', 'pesanan.id_pesanan')
+            ->where('pesanan.metode_pembayaran', 'cod')
+            ->selectRaw('COALESCE(SUM(detail_pesanan.subtotal), 0) as total_omzet_cod')
+            ->first();
+        $totalOmzetCod = (int) ($codTotals->total_omzet_cod ?? 0);
+
+        $totalKomisiCod = (int) DB::query()
+            ->fromSub(clone $orders, 'pesanan')
+            ->where('pesanan.metode_pembayaran', 'cod')
+            ->selectRaw('COALESCE(SUM(pesanan.biaya_layanan), 0) as total_komisi_cod')
+            ->value('total_komisi_cod');
+
+        $totalOmzetDigital = max(0, $totalOmzet - $totalOmzetCod);
+        $totalKomisiDigital = max(0, $totalKomisi - $totalKomisiCod);
+
         $merchantCount = DB::table('umkm')
             ->where('status_verifikasi', 'terverifikasi')
             ->when($umkmId !== null, fn (Builder $query) => $query->where('id_umkm', $umkmId))
@@ -75,6 +93,10 @@ class AdminOmzetDashboard
                 'total_transaksi' => $totalTransaksi,
                 'total_komisi_platform' => $totalKomisi,
                 'total_pendapatan_umkm' => $totalPendapatanUmkm,
+                'total_omzet_cod' => $totalOmzetCod,
+                'total_komisi_cod' => $totalKomisiCod,
+                'total_omzet_digital' => $totalOmzetDigital,
+                'total_komisi_digital' => $totalKomisiDigital,
                 'total_umkm_terjual' => (int) $totals->total_umkm_terjual,
                 'total_produk_terjual' => (int) $totals->total_produk_terjual,
                 'rata_rata_transaksi' => $totalTransaksi > 0

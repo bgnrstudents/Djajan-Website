@@ -48,6 +48,27 @@ class DashboardController extends Controller
         $komisiPeriode = (int) (clone $pesananPeriode)->sum('biaya_layanan');
         $omzetBersihPeriode = max(0, $omzetKotorPeriode - $komisiPeriode);
 
+        // Breakdown Periode: COD vs Digital
+        $idPesananCodPeriode = (clone $pesananPeriode)
+            ->where('metode_pembayaran', 'cod')
+            ->select('id_pesanan');
+        $omzetCodPeriode = (int) DB::table('detail_pesanan')
+            ->whereIn('id_pesanan', clone $idPesananCodPeriode)
+            ->sum('subtotal');
+        $komisiCodPeriode = (int) (clone $pesananPeriode)
+            ->where('metode_pembayaran', 'cod')
+            ->sum('biaya_layanan');
+
+        $idPesananDigitalPeriode = (clone $pesananPeriode)
+            ->where('metode_pembayaran', '!=', 'cod')
+            ->select('id_pesanan');
+        $omzetDigitalPeriode = (int) DB::table('detail_pesanan')
+            ->whereIn('id_pesanan', clone $idPesananDigitalPeriode)
+            ->sum('subtotal');
+        $komisiDigitalPeriode = (int) (clone $pesananPeriode)
+            ->where('metode_pembayaran', '!=', 'cod')
+            ->sum('biaya_layanan');
+
         $jumlahProdukTerjual = (int) DB::table('detail_pesanan')
             ->whereIn('id_pesanan', clone $idPesananPeriode)
             ->sum('jumlah');
@@ -63,12 +84,39 @@ class DashboardController extends Controller
             ->selectRaw("COUNT(DISTINCT CASE WHEN status_refund = 'refund_berhasil' THEN id_pesanan END) as refund_berhasil")
             ->first();
         $pesananLunasSelesaiSemuaWaktu = $pesananLunasSelesai();
+        $idPesananSemuaWaktu = (clone $pesananLunasSelesaiSemuaWaktu)->select('id_pesanan');
         $omzetKotorSemuaWaktu = (int) DB::table('detail_pesanan')
-            ->whereIn('id_pesanan', (clone $pesananLunasSelesaiSemuaWaktu)->select('id_pesanan'))
+            ->whereIn('id_pesanan', clone $idPesananSemuaWaktu)
             ->sum('subtotal');
         $komisiSemuaWaktu = (int) (clone $pesananLunasSelesaiSemuaWaktu)->sum('biaya_layanan');
         $omzetBersihSemuaWaktu = max(0, $omzetKotorSemuaWaktu - $komisiSemuaWaktu);
         $jumlahPesananLunasSelesai = (clone $pesananLunasSelesaiSemuaWaktu)->count();
+
+        // Breakdown Semua Waktu: COD vs Digital
+        $idPesananCodSemuaWaktu = (clone $pesananLunasSelesaiSemuaWaktu)
+            ->where('metode_pembayaran', 'cod')
+            ->select('id_pesanan');
+        $omzetCodSemuaWaktu = (int) DB::table('detail_pesanan')
+            ->whereIn('id_pesanan', clone $idPesananCodSemuaWaktu)
+            ->sum('subtotal');
+        $komisiCodSemuaWaktu = (int) (clone $pesananLunasSelesaiSemuaWaktu)
+            ->where('metode_pembayaran', 'cod')
+            ->sum('biaya_layanan');
+
+        $idPesananDigitalSemuaWaktu = (clone $pesananLunasSelesaiSemuaWaktu)
+            ->where('metode_pembayaran', '!=', 'cod')
+            ->select('id_pesanan');
+        $omzetDigitalSemuaWaktu = (int) DB::table('detail_pesanan')
+            ->whereIn('id_pesanan', clone $idPesananDigitalSemuaWaktu)
+            ->sum('subtotal');
+        $komisiDigitalSemuaWaktu = (int) (clone $pesananLunasSelesaiSemuaWaktu)
+            ->where('metode_pembayaran', '!=', 'cod')
+            ->sum('biaya_layanan');
+
+        // Model A (Auto-Potong): Saldo Digital bersih dikurangi komisi COD
+        $saldoDigitalBersih = max(0, $omzetDigitalSemuaWaktu - $komisiDigitalSemuaWaktu);
+        $saldoDigitalSiapCair = max(0, $saldoDigitalBersih - $komisiCodSemuaWaktu);
+        $sisaKewajibanCod = max(0, $komisiCodSemuaWaktu - $saldoDigitalBersih);
 
         $data = [
             'total_produk' => Produk::where('id_umkm', $idUmkm)->count(),
@@ -85,6 +133,16 @@ class DashboardController extends Controller
             'omzet_periode' => $omzetBersihPeriode,
             'omzet_kotor_periode' => $omzetKotorPeriode,
             'komisi_periode' => $komisiPeriode,
+            'omzet_cod_periode' => $omzetCodPeriode,
+            'komisi_cod_periode' => $komisiCodPeriode,
+            'omzet_digital_periode' => $omzetDigitalPeriode,
+            'komisi_digital_periode' => $komisiDigitalPeriode,
+            'omzet_cod_semua_waktu' => $omzetCodSemuaWaktu,
+            'komisi_cod_semua_waktu' => $komisiCodSemuaWaktu,
+            'omzet_digital_semua_waktu' => $omzetDigitalSemuaWaktu,
+            'komisi_digital_semua_waktu' => $komisiDigitalSemuaWaktu,
+            'saldo_digital_siap_cair' => $saldoDigitalSiapCair,
+            'sisa_kewajiban_cod' => $sisaKewajibanCod,
             'jumlah_produk_terjual' => $jumlahProdukTerjual,
             'rata_rata_transaksi' => $jumlahPesananPeriode > 0
                 ? (int) round($omzetBersihPeriode / $jumlahPesananPeriode)

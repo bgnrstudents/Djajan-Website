@@ -111,6 +111,23 @@
                 <p class="mt-1 text-xs text-gray-400">Total hak bayar bersih diteruskan ke UMKM</p>
             </div>
         </div>
+        <div class="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span class="text-gray-600">Online (Midtrans):</span>
+                <span class="font-bold text-gray-800">Rp {{ number_format($statistics['total_omzet_digital'] ?? 0, 0, ',', '.') }}</span>
+                <span class="text-gray-400">(Kas Masuk: Rp {{ number_format($statistics['total_komisi_digital'] ?? 0, 0, ',', '.') }})</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span class="text-gray-600">Tunai di Tempat (COD):</span>
+                <span class="font-bold text-gray-800">Rp {{ number_format($statistics['total_omzet_cod'] ?? 0, 0, ',', '.') }}</span>
+                <span class="text-gray-400">(Bagi Hasil: Rp {{ number_format($statistics['total_komisi_cod'] ?? 0, 0, ',', '.') }})</span>
+            </div>
+            <div class="text-gray-400 italic">
+                *Model A: Komisi pesanan COD otomatis memotong saldo digital UMKM
+            </div>
+        </div>
     </section>
 
     <section class="grid grid-cols-1 gap-4 xl:grid-cols-5">
