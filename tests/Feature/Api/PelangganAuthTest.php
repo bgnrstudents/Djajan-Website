@@ -77,7 +77,7 @@ class PelangganAuthTest extends TestCase
         );
     }
 
-    public function test_unregistered_google_account_cannot_login(): void
+    public function test_unregistered_google_account_auto_registers(): void
     {
         config(['services.google.client_id' => 'client-id']);
         Http::fake([
@@ -91,10 +91,52 @@ class PelangganAuthTest extends TestCase
         ]);
 
         $this->postJson('/api/auth/google', ['id_token' => 'valid-token'])
-            ->assertForbidden()
-            ->assertJsonPath('sukses', false);
-        $this->assertDatabaseMissing('pelanggan', [
+            ->assertOk()
+            ->assertJsonPath('sukses', true)
+            ->assertJsonPath('data.nama', 'Pengguna Baru')
+            ->assertJsonPath('data.email', 'new@example.com');
+
+        $this->assertDatabaseHas('pelanggan', [
             'email' => 'new@example.com',
+            'google_sub' => 'google-new',
         ]);
+    }
+
+    public function test_forgot_and_reset_password_flow(): void
+    {
+        $pelanggan = Pelanggan::create([
+            'nama' => 'User Test',
+            'email' => 'reset@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('password-lama'),
+            'no_telp' => '081234567899',
+            'auth_provider' => 'password',
+        ]);
+
+        $this->postJson('/api/password/forgot', ['email' => 'reset@example.com'])
+            ->assertOk()
+            ->assertJsonPath('sukses', true);
+
+        $this->assertDatabaseHas('password_reset_tokens', [
+            'email' => 'reset@example.com',
+        ]);
+
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', 'reset@example.com')
+            ->update([
+                'token' => \Illuminate\Support\Facades\Hash::make('123456'),
+                'created_at' => now(),
+            ]);
+
+        $this->postJson('/api/password/reset', [
+            'email' => 'reset@example.com',
+            'otp' => '123456',
+            'password' => 'password-baru-123',
+            'password_confirmation' => 'password-baru-123',
+        ])->assertOk()
+          ->assertJsonPath('sukses', true);
+
+        $pelanggan->refresh();
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('password-baru-123', $pelanggan->password));
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => 'reset@example.com']);
     }
 }

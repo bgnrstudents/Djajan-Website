@@ -17,6 +17,8 @@ Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/pelanggan/register', [PelangganAuthController::class, 'register']);
 Route::post('/pelanggan/login', [PelangganAuthController::class, 'login']);
 Route::post('/auth/google', [PelangganAuthController::class, 'google']);
+Route::post('/password/forgot', [PelangganAuthController::class, 'forgotPassword']);
+Route::post('/password/reset', [PelangganAuthController::class, 'resetPassword']);
 Route::get('/kategori', [KategoriController::class, 'index']);
 Route::get('/katalog', [KatalogController::class, 'index']);
 Route::get('/umkm/ulasan', [\App\Http\Controllers\Api\UlasanController::class, 'umkmReviews']);

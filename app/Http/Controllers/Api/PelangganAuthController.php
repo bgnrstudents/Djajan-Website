@@ -8,8 +8,10 @@ use App\Models\Umkm;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class PelangganAuthController extends Controller
@@ -113,17 +115,20 @@ class PelangganAuthController extends Controller
             ->first();
 
         if (!$pelanggan) {
-            return $this->gagal(
-                'Akun Google belum terdaftar. Silakan register terlebih dahulu.',
-                403,
-            );
+            $pelanggan = Pelanggan::create([
+                'nama' => $google['name'] ?? ($google['given_name'] ?? explode('@', $email)[0]),
+                'email' => $email,
+                'google_sub' => $googleSub,
+                'auth_provider' => 'google',
+                'email_verified_at' => now(),
+            ]);
+        } else {
+            $pelanggan->forceFill([
+                'google_sub' => $googleSub,
+                'auth_provider' => 'google',
+                'email_verified_at' => $pelanggan->email_verified_at ?? now(),
+            ])->save();
         }
-
-        $pelanggan->forceFill([
-            'google_sub' => $googleSub,
-            'auth_provider' => 'google',
-            'email_verified_at' => $pelanggan->email_verified_at ?? now(),
-        ])->save();
 
         return $this->sukses('Selamat datang, ' . $pelanggan->nama . '!', $this->dataDenganToken($pelanggan));
     }
@@ -144,6 +149,107 @@ class PelangganAuthController extends Controller
 
         $pelanggan->tokens()->delete();
         return $this->sukses('Mode pelanggan aktif.', $this->dataDenganToken($pelanggan->fresh()));
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => ['required', 'email'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->gagal($validator->errors()->first(), 400);
+        }
+
+        $email = mb_strtolower(trim((string) $request->input('email')));
+
+        $existsPelanggan = Pelanggan::whereRaw('LOWER(email) = ?', [$email])->exists();
+        $existsUmkm = Umkm::whereRaw('LOWER(email_usaha) = ?', [$email])->exists();
+
+        if (!$existsPelanggan && !$existsUmkm) {
+            return $this->gagal('Email tidak terdaftar di sistem DJajan.', 404);
+        }
+
+        $otp = sprintf('%06d', mt_rand(100000, 999999));
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $email],
+            [
+                'token' => Hash::make($otp),
+                'created_at' => now(),
+            ]
+        );
+
+        try {
+            Mail::send('emails.otp_reset_password', ['otp' => $otp, 'email' => $email], function ($message) use ($email) {
+                $fromAddress = config('mail.from.address', 'muhmmadrizki081207@gmail.com');
+                $fromName = config('mail.from.name', 'DJajan Desa Kreyongan');
+                $message->from($fromAddress, $fromName)
+                    ->to($email)
+                    ->subject('Kode Verifikasi Reset Kata Sandi DJajan');
+            });
+        } catch (\Throwable $e) {
+            \Log::warning('Gagal mengirim email reset password: ' . $e->getMessage(), compact('email'));
+        }
+
+        return $this->sukses('Kode verifikasi telah dikirim ke email ' . $email . '. Silakan periksa kotak masuk atau spam email Anda.');
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => ['required', 'email'],
+            'otp' => ['required', 'string', 'size:6'],
+            'password' => ['required', 'string', 'min:8', 'max:100', 'confirmed'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->gagal($validator->errors()->first(), 400);
+        }
+
+        $email = mb_strtolower(trim((string) $request->input('email')));
+        $otp = trim((string) $request->input('otp'));
+        $newPassword = (string) $request->input('password');
+
+        $record = DB::table('password_reset_tokens')->where('email', $email)->first();
+
+        if (!$record) {
+            return $this->gagal('Permintaan reset kata sandi tidak ditemukan atau sudah digunakan.', 422);
+        }
+
+        if (now()->diffInMinutes($record->created_at) > 15) {
+            DB::table('password_reset_tokens')->where('email', $email)->delete();
+            return $this->gagal('Kode verifikasi telah kedaluwarsa (berlaku 15 menit). Silakan minta kode baru.', 422);
+        }
+
+        if (!Hash::check($otp, $record->token) && $record->token !== $otp) {
+            return $this->gagal('Kode verifikasi yang Anda masukkan salah.', 422);
+        }
+
+        $updated = false;
+        $pelanggan = Pelanggan::whereRaw('LOWER(email) = ?', [$email])->first();
+        if ($pelanggan) {
+            $pelanggan->password = Hash::make($newPassword);
+            $pelanggan->save();
+            $pelanggan->tokens()->delete();
+            $updated = true;
+        }
+
+        $umkm = Umkm::whereRaw('LOWER(email_usaha) = ?', [$email])->first();
+        if ($umkm) {
+            $umkm->password = Hash::make($newPassword);
+            $umkm->save();
+            $umkm->tokens()->delete();
+            $updated = true;
+        }
+
+        DB::table('password_reset_tokens')->where('email', $email)->delete();
+
+        if (!$updated) {
+            return $this->gagal('Akun tidak ditemukan untuk diperbarui.', 404);
+        }
+
+        return $this->sukses('Kata sandi berhasil diatur ulang. Silakan masuk dengan kata sandi baru Anda.');
     }
 
     private function dataDenganToken(Pelanggan $pelanggan): array
