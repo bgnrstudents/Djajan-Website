@@ -8,13 +8,6 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/**
- * Pengganti backend/api/login.php.
- * Aturan bisnis (normalisasi nomor telepon, cek password SHA-256/bcrypt,
- * cek status_verifikasi) dipertahankan PERSIS seperti versi PHP Native.
- * Yang baru: setelah cocok, terbitkan token Sanctum (permintaan Anda),
- * bukan cuma mengembalikan data profil polos seperti sebelumnya.
- */
 class AuthController extends Controller
 {
     use ApiResponse;
@@ -28,7 +21,6 @@ class AuthController extends Controller
             return $this->gagal('Nomor WhatsApp/email dan kata sandi wajib diisi.', 400);
         }
 
-        // Normalkan nomor telepon: buang spasi/strip/titik, ubah +62 atau 62 -> 0
         $nomor = preg_replace('/[\s\-\.]/', '', $identifier);
         if (str_starts_with($nomor, '+62')) {
             $nomor = '0' . substr($nomor, 3);
@@ -43,9 +35,6 @@ class AuthController extends Controller
         if (!$umkm) {
             return $this->gagal('Akun UMKM dengan data tersebut tidak ditemukan.', 401);
         }
-
-        // Password disimpan sebagai SHA-256 (lihat djajan_db.sql). password_verify
-        // tetap didukung untuk kompatibilitas kalau suatu saat pindah ke password_hash().
         $cocok = hash_equals((string) $umkm->password, hash('sha256', $password))
             || (str_starts_with((string) $umkm->password, '$2y$') && password_verify($password, $umkm->password));
 
@@ -60,7 +49,6 @@ class AuthController extends Controller
             return $this->gagal('Akun usaha Anda masih menunggu verifikasi admin desa.', 403);
         }
 
-        // Hapus token lama supaya tidak menumpuk tiap kali login ulang di HP yang sama.
         $umkm->tokens()->delete();
         $token = $umkm->createToken('flutter-app')->plainTextToken;
 

@@ -5,14 +5,12 @@ namespace App\Support;
 use App\Models\Produk;
 
 /**
- * Port langsung dari backend/config/validasi_produk.php (PHP Native).
- * Aturan disamakan persis (bukan ditulis ulang pakai gaya Laravel Validator)
- * supaya perilakunya identik dengan yang sudah dites di versi lama.
+ * Aturan validasi produk yang dipakai oleh API UMKM.
  */
 class ValidasiProduk
 {
-    public const HARGA_MINIMAL = 100;              // Rp100 — di bawah ini kemungkinan salah ketik
-    public const HARGA_MAKSIMAL = 1000000;          // Rp1.000.000 / porsi
+    public const HARGA_MINIMAL = 100;
+    public const HARGA_MAKSIMAL = 2147483647;
     public const NAMA_MIN_PANJANG = 3;
     public const NAMA_MAKS_PANJANG = 80;
     public const DESKRIPSI_MAKS_PANJANG = 500;
@@ -36,11 +34,8 @@ class ValidasiProduk
         if (!preg_match('/[A-Za-z\x{00C0}-\x{024F}]/u', $nama)) {
             return 'Nama produk harus mengandung huruf, tidak boleh hanya angka/simbol.';
         }
-        if (preg_match('/\d/u', $nama)) {
-            return 'Nama produk tidak boleh mengandung angka.';
-        }
-        if (!preg_match("/^[A-Za-z\x{00C0}-\x{024F} .,'&()\/-]+$/u", $nama)) {
-            return "Nama produk hanya boleh huruf, spasi, dan tanda & - ' ( ) , .";
+        if (!preg_match("/^[A-Za-z\x{00C0}-\x{024F}0-9 .,'&()\/%+-]+$/u", $nama)) {
+            return "Nama produk hanya boleh huruf, angka, spasi, dan tanda & - ' ( ) , . / % +";
         }
         return null;
     }
@@ -52,8 +47,7 @@ class ValidasiProduk
             return 'Harga produk minimal ' . self::rupiah(self::HARGA_MINIMAL) . '.';
         }
         if ($harga > self::HARGA_MAKSIMAL) {
-            return 'Harga produk maksimal ' . self::rupiah(self::HARGA_MAKSIMAL)
-                . '. Periksa lagi, sepertinya kelebihan angka nol.';
+            return 'Harga produk melebihi batas maksimum sistem.';
         }
         return null;
     }
