@@ -8,6 +8,7 @@ use App\Models\Produk;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
 /** Pengganti backend/api/ringkasan.php. */
@@ -18,6 +19,9 @@ class DashboardController extends Controller
     public function ringkasan(Request $request): JsonResponse
     {
         $idUmkm = (int) $request->user()->id_umkm;
+
+        // Auto-complete lazy check untuk pesanan diantar yang melewati 24 jam
+        Artisan::call('pesanan:auto-complete');
         $validated = $request->validate([
             'mulai' => ['nullable', 'date_format:Y-m-d'],
             'akhir' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:mulai'],
@@ -143,6 +147,10 @@ class DashboardController extends Controller
             'komisi_digital_semua_waktu' => $komisiDigitalSemuaWaktu,
             'saldo_digital_siap_cair' => $saldoDigitalSiapCair,
             'sisa_kewajiban_cod' => $sisaKewajibanCod,
+            'peringatan_kewajiban_cod' => $saldoDigitalBersih <= 0 && $sisaKewajibanCod >= 50000,
+            'pesan_peringatan_cod' => ($saldoDigitalBersih <= 0 && $sisaKewajibanCod >= 50000)
+                ? 'Kewajiban komisi COD toko Anda telah mencapai Rp ' . number_format($sisaKewajibanCod, 0, ',', '.') . '. Komisi ini akan dipotong otomatis saat menerima pesanan QRIS/transfer berikutnya.'
+                : null,
             'jumlah_produk_terjual' => $jumlahProdukTerjual,
             'rata_rata_transaksi' => $jumlahPesananPeriode > 0
                 ? (int) round($omzetBersihPeriode / $jumlahPesananPeriode)
