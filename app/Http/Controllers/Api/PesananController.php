@@ -10,6 +10,7 @@ use App\Services\OrderCancellationService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -30,6 +31,9 @@ class PesananController extends Controller
 
         // Auto-cancel lazy check untuk pesanan yang melewati batas konfirmasi
         app(OrderCancellationService::class)->cancelExpiredOrders();
+
+        // Auto-complete lazy check untuk pesanan diantar yang melewati 24 jam
+        Artisan::call('pesanan:auto-complete');
 
         // Auto-sync hingga 5 pesanan Midtrans pending terbaru milik UMKM ini
         $pendingOrders = Pesanan::where('id_umkm', $idUmkm)
@@ -200,6 +204,21 @@ class PesananController extends Controller
                 }
 
                 if ($status === 'diterima') {
+                    // Validasi ketersediaan stok fisik sebelum pesanan diterima
+                    foreach ($pesanan->items as $item) {
+                        if ($item->id_produk !== null) {
+                            $prod = Produk::find($item->id_produk);
+                            if ($prod) {
+                                $mode = strtolower(str_replace(['-', '_', ' '], '', (string) $prod->mode_penjualan));
+                                if ($mode !== 'preorder' && $prod->stok < (int) $item->jumlah) {
+                                    throw new \RuntimeException(
+                                        'Stok produk "' . $prod->nama_produk . '" tidak mencukupi (sisa ' . $prod->stok . ', dipesan ' . $item->jumlah . '). Tambah stok atau tolak pesanan.'
+                                    );
+                                }
+                            }
+                        }
+                    }
+
                     $driver = DB::connection()->getDriverName();
                     foreach ($pesanan->items as $item) {
                         if ($item->id_produk !== null) {
@@ -221,6 +240,8 @@ class PesananController extends Controller
                     $pesanan->save();
                 }
             });
+        } catch (\RuntimeException $e) {
+            return $this->gagal($e->getMessage(), 409);
         } catch (\Throwable $e) {
             return $this->gagal('Gagal memperbarui status pesanan: ' . $e->getMessage(), 500);
         }

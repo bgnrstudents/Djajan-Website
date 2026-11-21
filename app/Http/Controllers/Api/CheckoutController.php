@@ -351,6 +351,7 @@ class CheckoutController extends Controller
             $midtransService,
             $pelanggan,
             $orderId,
+            $umkm,
             $metodePembayaran,
             $statusPesanan,
             $statusPembayaran,
