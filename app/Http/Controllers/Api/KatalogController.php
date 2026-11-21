@@ -99,6 +99,8 @@ class KatalogController extends Controller
                 'cod_available' => (bool) $product->umkm?->cod_aktif,
                 'pickup_available' => (bool) $product->umkm?->pickup_aktif,
                 'pickup_location' => $product->umkm?->alamat ?? 'Desa Kreyongan Atas',
+                'stok' => (int) $product->stok,
+                'status_ketersediaan' => (bool) $product->status_ketersediaan,
             ])->values(),
             'kategori' => Kategori::where('aktif', true)
                 ->orderBy('nama')
