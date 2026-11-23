@@ -14,7 +14,8 @@ class CheckoutGroup extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_checkout', 'id_pelanggan', 'metode_pembayaran', 'total_harga',
+        'id_checkout', 'id_pelanggan', 'metode_pembayaran', 'skema_po', 'total_harga',
+        'nominal_dp', 'sisa_bayar',
         'payment_status', 'midtrans_order_id', 'snap_token', 'payment_url',
         'dibayar_pada',
     ];

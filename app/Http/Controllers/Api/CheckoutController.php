@@ -256,7 +256,14 @@ class CheckoutController extends Controller
             }
 
             $modePenjualan = strtolower(str_replace(['-', '_', ' '], '', (string) $produk->mode_penjualan));
-            $isPreorder = $modePenjualan === 'preorder';
+            $isPreorder = $modePenjualan === 'preorder' || !empty($waktuDibutuhkan);
+
+            if ($isPreorder && (int) $produk->min_order_po > 1 && $jumlah < (int) $produk->min_order_po) {
+                return $this->gagal(
+                    "Minimal pembelian Pre-Order untuk \"{$produk->nama_produk}\" adalah {$produk->min_order_po} " . ($produk->satuan ?: 'porsi') . '.',
+                    422
+                );
+            }
 
             if ($isPreorder && $produk->stok < 0) {
                 return $this->gagal('Produk pre-order tidak dapat dipesan pada stok yang tidak valid.', 422);
@@ -320,15 +327,30 @@ class CheckoutController extends Controller
         $isPreOrder = collect($produkMap)->contains(function ($entry) {
             $mode = strtolower(str_replace(['-', '_', ' '], '', (string) $entry['produk']->mode_penjualan));
             return $mode === 'preorder';
-        });
+        }) || !empty($waktuDibutuhkan);
+
+        $skemaData = $this->parseSkemaPo($umkm->skema_po);
+        $skemaKode = $isPreOrder ? $skemaData['kode'] : 'ready';
 
         if ($isPreOrder) {
-            if ($metodePembayaran === 'cod') {
-                return $this->gagal(
-                    'Pembayaran COD tidak tersedia untuk pesanan Pre-Order/Katering. Silakan gunakan pembayaran digital (Midtrans/QRIS) untuk jaminan kepastian pesanan & modal bahan dapur UMKM.',
-                    422
-                );
+            if ($skemaKode === 'tanpa_dp') {
+                // COD diizinkan untuk skema Tanpa DP
+            } elseif ($skemaKode === 'dp_30' || $skemaKode === 'dp_50') {
+                if ($metodePembayaran === 'cod') {
+                    return $this->gagal(
+                        "Toko {$umkm->nama_usaha} mewajibkan Uang Muka ({$skemaData['label']}) untuk pesanan Pre-Order. Silakan gunakan pembayaran digital (Midtrans/QRIS).",
+                        422
+                    );
+                }
+            } else {
+                if ($metodePembayaran === 'cod') {
+                    return $this->gagal(
+                        "Pembayaran COD tidak tersedia untuk pesanan Pre-Order/Katering dari {$umkm->nama_usaha}. Silakan gunakan pembayaran digital (Midtrans/QRIS) untuk jaminan kepastian pesanan & modal bahan dapur UMKM.",
+                        422
+                    );
+                }
             }
+
             if (empty($waktuDibutuhkan)) {
                 return $this->gagal(
                     'Tanggal dan jam kebutuhan acara wajib dipilih untuk pesanan Pre-Order.',
@@ -340,6 +362,21 @@ class CheckoutController extends Controller
         // Subsidi Mikro Desa: Subtotal < Rp 10.000 komisi 0%, >= Rp 10.000 komisi 3%
         $biayaLayanan = $subtotal >= 10000 ? (int) round($subtotal * 0.03) : 0;
         $totalHarga = $subtotal + $biayaPengantaran + $biayaLayanan;
+
+        if ($isPreOrder && ($skemaKode === 'dp_30' || $skemaKode === 'dp_50')) {
+            $nominalDp = (int) round($totalHarga * $skemaData['ratio']);
+            $sisaBayar = $totalHarga - $nominalDp;
+        } elseif ($isPreOrder && $skemaKode === 'tanpa_dp') {
+            $nominalDp = 0;
+            $sisaBayar = $totalHarga;
+        } elseif ($metodePembayaran === 'cod') {
+            $nominalDp = 0;
+            $sisaBayar = $totalHarga;
+        } else {
+            $nominalDp = $totalHarga;
+            $sisaBayar = 0;
+        }
+
         $orderId = $this->buildOrderId();
 
         $statusPesanan = 'po_baru';
@@ -363,6 +400,9 @@ class CheckoutController extends Controller
             $biayaPengantaran,
             $biayaLayanan,
             $totalHarga,
+            $nominalDp,
+            $sisaBayar,
+            $skemaKode,
             $umkmIds,
             $produkMap,
             $destLat,
@@ -393,11 +433,14 @@ class CheckoutController extends Controller
                 'longitude_tujuan' => $destLon,
                 'catatan' => $catatan,
                 'metode_pembayaran' => $metodePembayaran,
+                'skema_po' => $skemaKode,
                 'status_pembayaran' => $statusPembayaran,
                 'payment_status' => $metodePembayaran === 'cod' ? 'cod_pending' : 'pending',
                 'biaya_pengantaran' => $biayaPengantaran,
                 'biaya_layanan' => $biayaLayanan,
                 'total_harga' => $totalHarga,
+                'nominal_dp' => $nominalDp,
+                'sisa_bayar' => $sisaBayar,
                 'status_pesanan' => $statusPesanan,
             ]);
 
@@ -435,38 +478,50 @@ class CheckoutController extends Controller
 
             if ($metodePembayaran === 'midtrans') {
                 try {
-                    $midtransItems = array_map(function ($entry) {
-                        $produk = $entry['produk'];
-
-                        return [
-                            'id' => (string) $produk->id_produk,
-                            'price' => (int) $entry['harga_satuan'],
-                            'quantity' => (int) $entry['jumlah'],
-                            'name' => $produk->nama_produk,
+                    $amountToCharge = ($nominalDp > 0 && $nominalDp < $totalHarga) ? $nominalDp : $totalHarga;
+                    if ($amountToCharge < $totalHarga) {
+                        $midtransItems = [
+                            [
+                                'id' => 'DP-' . substr($order->id_pesanan, -8),
+                                'price' => $amountToCharge,
+                                'quantity' => 1,
+                                'name' => 'Uang Muka (DP) Pesanan ' . $order->id_pesanan,
+                            ]
                         ];
-                    }, $produkMap);
+                    } else {
+                        $midtransItems = array_map(function ($entry) {
+                            $produk = $entry['produk'];
 
-                    if ($biayaPengantaran > 0) {
-                        $midtransItems[] = [
-                            'id' => 'delivery-fee',
-                            'price' => $biayaPengantaran,
-                            'quantity' => 1,
-                            'name' => 'Biaya pengantaran',
-                        ];
-                    }
+                            return [
+                                'id' => (string) $produk->id_produk,
+                                'price' => (int) $entry['harga_satuan'],
+                                'quantity' => (int) $entry['jumlah'],
+                                'name' => $produk->nama_produk,
+                            ];
+                        }, $produkMap);
 
-                    if ($biayaLayanan > 0) {
-                        $midtransItems[] = [
-                            'id' => 'service-fee',
-                            'price' => $biayaLayanan,
-                            'quantity' => 1,
-                            'name' => 'Biaya layanan',
-                        ];
+                        if ($biayaPengantaran > 0) {
+                            $midtransItems[] = [
+                                'id' => 'delivery-fee',
+                                'price' => $biayaPengantaran,
+                                'quantity' => 1,
+                                'name' => 'Biaya pengantaran',
+                            ];
+                        }
+
+                        if ($biayaLayanan > 0) {
+                            $midtransItems[] = [
+                                'id' => 'service-fee',
+                                'price' => $biayaLayanan,
+                                'quantity' => 1,
+                                'name' => 'Biaya layanan',
+                            ];
+                        }
                     }
 
                     $transaksi = $midtransService->createTransaction(
                         $order->id_pesanan,
-                        $totalHarga,
+                        $amountToCharge,
                         $midtransItems,
                         [
                             'first_name' => $pelanggan->nama,
@@ -591,6 +646,13 @@ class CheckoutController extends Controller
                     return $this->gagal('Produk "' . $produk->nama_produk . '" sedang tidak tersedia.', 409);
                 }
                 $mode = strtolower(str_replace(['-', '_', ' '], '', (string) $produk->mode_penjualan));
+                $isPreorderItem = $mode === 'preorder' || !empty($group['waktu_dibutuhkan']);
+                if ($isPreorderItem && (int) $produk->min_order_po > 1 && $jumlah < (int) $produk->min_order_po) {
+                    return $this->gagal(
+                        "Minimal pembelian Pre-Order untuk \"{$produk->nama_produk}\" adalah {$produk->min_order_po} " . ($produk->satuan ?: 'porsi') . '.',
+                        422
+                    );
+                }
                 if ($mode !== 'preorder' && $produk->stok < $jumlah) {
                     return $this->gagal('Stok produk "' . $produk->nama_produk . '" tidak mencukupi.', 409);
                 }
@@ -624,14 +686,28 @@ class CheckoutController extends Controller
             $isPreOrder = collect($produkMap)->contains(function ($entry) {
                 $mode = strtolower(str_replace(['-', '_', ' '], '', (string) $entry['produk']->mode_penjualan));
                 return $mode === 'preorder';
-            });
+            }) || !empty($group['waktu_dibutuhkan']);
+
+            $skemaData = $this->parseSkemaPo($umkm->skema_po);
+            $skemaKode = $isPreOrder ? $skemaData['kode'] : 'ready';
 
             if ($isPreOrder) {
-                if ($payment === 'cod') {
-                    return $this->gagal(
-                        'Pembayaran COD tidak tersedia untuk pesanan Pre-Order/Katering. Silakan gunakan pembayaran digital (Midtrans/QRIS) untuk jaminan kepastian pesanan & modal bahan dapur UMKM.',
-                        422
-                    );
+                if ($skemaKode === 'tanpa_dp') {
+                    // COD diizinkan untuk skema Tanpa DP
+                } elseif ($skemaKode === 'dp_30' || $skemaKode === 'dp_50') {
+                    if ($payment === 'cod') {
+                        return $this->gagal(
+                            "Toko {$umkm->nama_usaha} mewajibkan Uang Muka ({$skemaData['label']}) untuk pesanan Pre-Order. Silakan gunakan pembayaran digital (Midtrans/QRIS).",
+                            422
+                        );
+                    }
+                } else {
+                    if ($payment === 'cod') {
+                        return $this->gagal(
+                            "Pembayaran COD tidak tersedia untuk pesanan Pre-Order/Katering dari {$umkm->nama_usaha}. Silakan gunakan pembayaran digital (Midtrans/QRIS) untuk jaminan kepastian pesanan & modal bahan dapur UMKM.",
+                            422
+                        );
+                    }
                 }
 
                 $waktuDibutuhkan = $group['waktu_dibutuhkan'] ?? null;
@@ -661,17 +737,39 @@ class CheckoutController extends Controller
             $destLon = $request->filled('longitude') ? (float) $request->input('longitude') : ($deliveryAddress?->longitude !== null ? (float) $deliveryAddress->longitude : null);
             $biayaLayanan = $subtotal >= 10000 ? (int) round($subtotal * 0.03) : 0;
             $total = $subtotal + $ongkir + $biayaLayanan;
+
+            if ($isPreOrder && ($skemaKode === 'dp_30' || $skemaKode === 'dp_50')) {
+                $nominalDp = (int) round($total * $skemaData['ratio']);
+                $sisaBayar = $total - $nominalDp;
+            } elseif ($isPreOrder && $skemaKode === 'tanpa_dp') {
+                $nominalDp = 0;
+                $sisaBayar = $total;
+            } elseif ($payment === 'cod') {
+                $nominalDp = 0;
+                $sisaBayar = $total;
+            } else {
+                $nominalDp = $total;
+                $sisaBayar = 0;
+            }
+
             $grandTotal += $total;
-            $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'jarakKm', 'zonaOngkirId', 'biayaLayanan', 'total', 'group', 'destLat', 'destLon', 'isPreOrder');
+            $prepared[] = compact('umkmId', 'produkMap', 'delivery', 'ongkir', 'jarakKm', 'zonaOngkirId', 'biayaLayanan', 'total', 'group', 'destLat', 'destLon', 'isPreOrder', 'skemaKode', 'nominalDp', 'sisaBayar');
         }
 
+        $grandNominalDp = collect($prepared)->sum('nominalDp');
+        $grandSisaBayar = collect($prepared)->sum('sisaBayar');
+        $primarySkemaPo = $prepared[0]['skemaKode'] ?? 'ready';
+
         $checkoutId = 'CHK-' . now()->format('YmdHis') . '-' . strtoupper(Str::random(6));
-        $orders = DB::transaction(function () use ($prepared, $checkoutId, $pelanggan, $payment, $grandTotal, $alamat) {
+        $orders = DB::transaction(function () use ($prepared, $checkoutId, $pelanggan, $payment, $grandTotal, $grandNominalDp, $grandSisaBayar, $primarySkemaPo, $alamat) {
             CheckoutGroup::create([
                 'id_checkout' => $checkoutId,
                 'id_pelanggan' => $pelanggan->id_pelanggan,
                 'metode_pembayaran' => $payment,
+                'skema_po' => $primarySkemaPo,
                 'total_harga' => $grandTotal,
+                'nominal_dp' => $grandNominalDp,
+                'sisa_bayar' => $grandSisaBayar,
                 'payment_status' => $payment === 'cod' ? 'cod_pending' : 'pending',
             ]);
 
@@ -704,6 +802,7 @@ class CheckoutController extends Controller
                     'longitude_tujuan' => $entry['destLon'] ?? null,
                     'catatan' => trim((string) ($entry['group']['catatan'] ?? '')),
                     'metode_pembayaran' => $payment,
+                    'skema_po' => $entry['skemaKode'],
                     'status_pembayaran' => $payment === 'cod' ? 'bayar_di_tempat' : 'pending',
                     'payment_status' => $payment === 'cod' ? 'cod_pending' : 'pending',
                     'biaya_pengantaran' => $entry['ongkir'],
@@ -711,6 +810,8 @@ class CheckoutController extends Controller
                     'zona_ongkir_id' => $entry['zonaOngkirId'],
                     'biaya_layanan' => $entry['biayaLayanan'] ?? 0,
                     'total_harga' => $entry['total'],
+                    'nominal_dp' => $entry['nominalDp'],
+                    'sisa_bayar' => $entry['sisaBayar'],
                     'status_pesanan' => 'po_baru',
                 ]);
                 foreach ($entry['produkMap'] as $line) {
@@ -731,26 +832,38 @@ class CheckoutController extends Controller
 
         $paymentData = ['token' => '', 'redirect_url' => '', 'transaction_id' => ''];
         if ($payment === 'midtrans') {
-            $items = [];
-            foreach ($prepared as $entry) {
-                foreach ($entry['produkMap'] as $line) {
-                    $items[] = [
-                        'id' => (string) $line['produk']->id_produk,
-                        'price' => $line['harga'],
-                        'quantity' => $line['jumlah'],
-                        'name' => $line['produk']->nama_produk,
-                    ];
-                }
-                if ($entry['ongkir'] > 0) {
-                    $items[] = ['id' => 'delivery-' . $entry['umkmId'], 'price' => $entry['ongkir'], 'quantity' => 1, 'name' => 'Biaya pengantaran'];
-                }
-                if (($entry['biayaLayanan'] ?? 0) > 0) {
-                    $items[] = ['id' => 'service-' . $entry['umkmId'], 'price' => $entry['biayaLayanan'], 'quantity' => 1, 'name' => 'Biaya layanan platform'];
+            $amountToCharge = ($grandNominalDp > 0 && $grandNominalDp < $grandTotal) ? $grandNominalDp : $grandTotal;
+            if ($amountToCharge < $grandTotal) {
+                $items = [
+                    [
+                        'id' => 'DP-' . substr($checkoutId, -8),
+                        'price' => $amountToCharge,
+                        'quantity' => 1,
+                        'name' => 'Uang Muka (DP) Pesanan ' . $checkoutId,
+                    ]
+                ];
+            } else {
+                $items = [];
+                foreach ($prepared as $entry) {
+                    foreach ($entry['produkMap'] as $line) {
+                        $items[] = [
+                            'id' => (string) $line['produk']->id_produk,
+                            'price' => $line['harga'],
+                            'quantity' => $line['jumlah'],
+                            'name' => $line['produk']->nama_produk,
+                        ];
+                    }
+                    if ($entry['ongkir'] > 0) {
+                        $items[] = ['id' => 'delivery-' . $entry['umkmId'], 'price' => $entry['ongkir'], 'quantity' => 1, 'name' => 'Biaya pengantaran'];
+                    }
+                    if (($entry['biayaLayanan'] ?? 0) > 0) {
+                        $items[] = ['id' => 'service-' . $entry['umkmId'], 'price' => $entry['biayaLayanan'], 'quantity' => 1, 'name' => 'Biaya layanan platform'];
+                    }
                 }
             }
             $paymentData = $midtransService->createTransaction(
                 $checkoutId,
-                $grandTotal,
+                $amountToCharge,
                 $items,
                 ['first_name' => $pelanggan->nama, 'email' => $pelanggan->email ?? 'customer@djajan.id', 'phone' => $pelanggan->no_telp ?? ''],
             );
@@ -770,6 +883,8 @@ class CheckoutController extends Controller
             'id_checkout' => $checkoutId,
             'metode_pembayaran' => $payment,
             'total_harga' => $grandTotal,
+            'nominal_dp' => $grandNominalDp,
+            'sisa_bayar' => $grandSisaBayar,
             'snap_token' => $paymentData['token'],
             'payment_url' => $paymentData['redirect_url'],
             'midtrans_order_id' => $paymentData['transaction_id'] ?: $checkoutId,
@@ -874,21 +989,25 @@ class CheckoutController extends Controller
             ->first();
 
         if ($checkoutGroup) {
+            $expectedAmount = ($checkoutGroup->nominal_dp > 0 && $checkoutGroup->nominal_dp < $checkoutGroup->total_harga)
+                ? (float) $checkoutGroup->nominal_dp
+                : (float) $checkoutGroup->total_harga;
+
             $grossAmount = (float) ($payload['gross_amount'] ?? -1);
-            if ($grossAmount < 0 || abs($grossAmount - (float) $checkoutGroup->total_harga) > 0.001) {
+            if ($grossAmount < 0 || abs($grossAmount - $expectedAmount) > 0.001) {
                 \Log::warning('Midtrans callback: amount mismatch (group)', [
                     'order_id' => $orderId,
-                    'expected' => $checkoutGroup->total_harga,
+                    'expected' => $expectedAmount,
                     'received' => $payload['gross_amount'] ?? null,
                 ]);
                 return response()->json(['status' => 'amount_mismatch'], 200);
             }
-            if (in_array($checkoutGroup->payment_status, ['paid', 'failed'], true)) {
+            if (in_array($checkoutGroup->payment_status, ['paid', 'dp_terbayar', 'failed'], true)) {
                 return response()->json(['status' => 'success', 'payment_status' => $checkoutGroup->payment_status], 200);
             }
-            $newStatus = $this->mapMidtransStatus($transactionStatus);
+            $newStatus = $this->mapMidtransStatus($transactionStatus, $checkoutGroup->skema_po);
             $changes = ['payment_status' => $newStatus];
-            if ($newStatus === 'paid') {
+            if ($newStatus === 'paid' || $newStatus === 'dp_terbayar') {
                 $changes['dibayar_pada'] = now();
             }
             $checkoutGroup->update($changes);
@@ -899,7 +1018,7 @@ class CheckoutController extends Controller
             if ($newStatus === 'failed') {
                 $orderChanges['status_pesanan'] = 'ditolak';
             }
-            if ($newStatus === 'paid') {
+            if ($newStatus === 'paid' || $newStatus === 'dp_terbayar') {
                 $orderChanges['dibayar_pada'] = now();
             }
             Pesanan::where('id_checkout', $checkoutGroup->id_checkout)->update($orderChanges);
@@ -922,11 +1041,15 @@ class CheckoutController extends Controller
             return response()->json(['status' => 'not_found'], 200);
         }
 
+        $expectedAmount = ($order->nominal_dp > 0 && $order->nominal_dp < $order->total_harga)
+            ? (float) $order->nominal_dp
+            : (float) $order->total_harga;
+
         $grossAmount = (float) ($payload['gross_amount'] ?? -1);
-        if ($grossAmount < 0 || abs($grossAmount - (float) $order->total_harga) > 0.001) {
+        if ($grossAmount < 0 || abs($grossAmount - $expectedAmount) > 0.001) {
             \Log::warning('Midtrans callback: amount mismatch (order)', [
                 'order_id' => $order->id_pesanan,
-                'expected' => (int) $order->total_harga,
+                'expected' => $expectedAmount,
                 'received' => $payload['gross_amount'] ?? null,
             ]);
             return response()->json(['status' => 'amount_mismatch'], 200);
@@ -936,7 +1059,7 @@ class CheckoutController extends Controller
             return response()->json(['status' => 'ignored'], 200);
         }
 
-        if (in_array($order->payment_status, ['paid', 'failed'], true)) {
+        if (in_array($order->payment_status, ['paid', 'dp_terbayar', 'failed'], true)) {
             return response()->json([
                 'status'         => 'success',
                 'order_id'       => $order->id_pesanan,
@@ -944,7 +1067,7 @@ class CheckoutController extends Controller
             ], 200);
         }
 
-        $newStatus = $this->mapMidtransStatus($transactionStatus);
+        $newStatus = $this->mapMidtransStatus($transactionStatus, $order->skema_po);
         $newOrderStatus = $order->status_pesanan;
         if ($newStatus === 'failed') {
             $newOrderStatus = 'ditolak';
@@ -955,7 +1078,7 @@ class CheckoutController extends Controller
             'payment_status'    => $newStatus,
             'status_pesanan'    => $newOrderStatus,
         ];
-        if ($newStatus === 'paid') {
+        if ($newStatus === 'paid' || $newStatus === 'dp_terbayar') {
             $changes['dibayar_pada'] = now();
         }
         $order->update($changes);
@@ -974,15 +1097,37 @@ class CheckoutController extends Controller
     }
 
     /**
+     * Parsing skema PO dari setting UMKM menjadi kode dan persentase DP.
+     */
+    private function parseSkemaPo(?string $skemaRaw): array
+    {
+        $raw = (string) ($skemaRaw ?? 'Lunas di Awal (Full Payment)');
+        if (str_contains($raw, '30%')) {
+            return ['kode' => 'dp_30', 'ratio' => 0.30, 'label' => 'DP 30%'];
+        }
+        if (str_contains($raw, '50%')) {
+            return ['kode' => 'dp_50', 'ratio' => 0.50, 'label' => 'DP 50%'];
+        }
+        if (str_contains(strtolower($raw), 'tanpa dp') || str_contains(strtolower($raw), 'bayar saat')) {
+            return ['kode' => 'tanpa_dp', 'ratio' => 0.0, 'label' => 'Tanpa DP'];
+        }
+        return ['kode' => 'full', 'ratio' => 1.0, 'label' => 'Lunas di Awal'];
+    }
+
+    /**
      * Map Midtrans transaction_status ke status internal.
      */
-    private function mapMidtransStatus(string $transactionStatus): string
+    private function mapMidtransStatus(string $transactionStatus, ?string $skemaPo = null): string
     {
-        return match (true) {
+        $base = match (true) {
             in_array($transactionStatus, ['capture', 'settlement'], true) => 'paid',
             in_array($transactionStatus, ['deny', 'cancel', 'expire'], true) => 'failed',
             default => 'pending',
         };
+        if ($base === 'paid' && in_array($skemaPo, ['dp_30', 'dp_50'], true)) {
+            return 'dp_terbayar';
+        }
+        return $base;
     }
 
     private function syncPaymentStatus(Pesanan $order, MidtransService $midtransService): void
@@ -1009,11 +1154,7 @@ class CheckoutController extends Controller
         }
 
         $transactionStatus = (string) ($payload['transaction_status'] ?? '');
-        $newStatus = match ($transactionStatus) {
-            'capture', 'settlement' => 'paid',
-            'deny', 'cancel', 'expire' => 'failed',
-            default => 'pending',
-        };
+        $newStatus = $this->mapMidtransStatus($transactionStatus, $order->skema_po);
         $newOrderStatus = match ($newStatus) {
             'failed' => 'ditolak',
             default => $order->status_pesanan,
@@ -1026,7 +1167,7 @@ class CheckoutController extends Controller
                 'payment_status' => $newStatus,
                 'status_pesanan' => $newOrderStatus,
             ];
-            if ($newStatus === 'paid') {
+            if ($newStatus === 'paid' || $newStatus === 'dp_terbayar') {
                 $changes['dibayar_pada'] = now();
             } elseif ($newOrderStatus === 'ditolak' && $order->status_pesanan !== 'ditolak') {
                 if ($order->status_pesanan === 'diterima') {
@@ -1069,15 +1210,13 @@ class CheckoutController extends Controller
         }
 
         $status = (string) ($payload['transaction_status'] ?? '');
-        $newStatus = in_array($status, ['capture', 'settlement'], true)
-            ? 'paid'
-            : (in_array($status, ['deny', 'cancel', 'expire'], true) ? 'failed' : 'pending');
+        $newStatus = $this->mapMidtransStatus($status, $group->skema_po);
         if ($newStatus === $group->payment_status) {
             return;
         }
         $group->update([
             'payment_status' => $newStatus,
-            'dibayar_pada' => $newStatus === 'paid' ? now() : $group->dibayar_pada,
+            'dibayar_pada' => ($newStatus === 'paid' || $newStatus === 'dp_terbayar') ? now() : $group->dibayar_pada,
         ]);
         $changes = [
             'payment_status' => $newStatus,
@@ -1086,7 +1225,7 @@ class CheckoutController extends Controller
         if ($newStatus === 'failed') {
             $changes['status_pesanan'] = 'ditolak';
         }
-        if ($newStatus === 'paid') {
+        if ($newStatus === 'paid' || $newStatus === 'dp_terbayar') {
             $changes['dibayar_pada'] = now();
         }
         Pesanan::where('id_checkout', $group->id_checkout)->update($changes);

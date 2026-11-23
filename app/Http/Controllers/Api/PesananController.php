@@ -118,7 +118,7 @@ class PesananController extends Controller
 
         $transactionStatus = (string) ($payload['transaction_status'] ?? '');
         $newStatus = match ($transactionStatus) {
-            'capture', 'settlement' => 'paid',
+            'capture', 'settlement' => in_array($order->skema_po, ['dp_30', 'dp_50'], true) ? 'dp_terbayar' : 'paid',
             'deny', 'cancel', 'expire' => 'failed',
             default => 'pending',
         };
@@ -134,7 +134,7 @@ class PesananController extends Controller
                 'payment_status' => $newStatus,
                 'status_pesanan' => $newOrderStatus,
             ];
-            if ($newStatus === 'paid') {
+            if ($newStatus === 'paid' || $newStatus === 'dp_terbayar') {
                 $changes['dibayar_pada'] = now();
             } elseif ($newOrderStatus === 'ditolak' && $order->status_pesanan !== 'ditolak') {
                 if ($order->status_pesanan === 'diterima') {

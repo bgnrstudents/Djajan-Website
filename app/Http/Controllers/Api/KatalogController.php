@@ -70,6 +70,7 @@ class KatalogController extends Controller
                 'courier_fee' => $umkm->kurir_warga_aktif ? (float) $umkm->biaya_pengantaran : null,
                 'cod_available' => (bool) $umkm->cod_aktif,
                 'pickup_available' => (bool) $umkm->pickup_aktif,
+                'skema_po' => $umkm->skema_po ?? 'Lunas di Awal (Full Payment)',
                 'rating' => round((float) ($umkm->rating_avg ?? 0.0), 1),
                 'sold_count' => (int) ($umkm->sold_count ?? 0),
                 'review_count' => (int) ($umkm->review_count ?? 0),
@@ -86,9 +87,13 @@ class KatalogController extends Controller
                 'price' => (int) $product->harga,
                 'rating' => round((float) ($product->umkm?->rating_avg ?? 0.0), 1),
                 'category' => $product->kategori ?: 'Semua',
-                'order_type' => $product->mode_penjualan === 'pre_order'
-                    ? 'Pre-Order'
-                    : 'Pesan Sekarang',
+                'order_type' => match ($product->mode_penjualan) {
+                    'pre_order' => 'Pre-Order',
+                    'keduanya' => 'Ready & PO',
+                    default => 'Pesan Sekarang',
+                },
+                'mode_penjualan' => $product->mode_penjualan ?? 'ready',
+                'min_order_po' => (int) ($product->min_order_po ?? 0),
                 'image_url' => $product->urlGambar() ?? '',
                 'description' => $product->deskripsi ?? '',
                 'variant' => 'Pilihan Terbaik',
