@@ -37,6 +37,8 @@ class PelangganSettingsController extends Controller
             'alamat' => ['required', 'string', 'min:10', 'max:255'],
             'no_telp_usaha' => ['required', 'string', 'min:10', 'max:20'],
             'email_usaha' => ['nullable', 'email', 'max:255'],
+            'latitude' => ['nullable', 'numeric'],
+            'longitude' => ['nullable', 'numeric'],
         ]);
         if ($validator->fails()) {
             return $this->gagal($validator->errors()->first(), 400);
@@ -72,6 +74,8 @@ class PelangganSettingsController extends Controller
             'alamat' => trim((string) $request->input('alamat')),
             'no_telp_usaha' => $phone,
             'email_usaha' => $email !== '' ? $email : null,
+            'latitude' => $request->filled('latitude') ? $request->input('latitude') : ($existing?->latitude ?? null),
+            'longitude' => $request->filled('longitude') ? $request->input('longitude') : ($existing?->longitude ?? null),
             'status_verifikasi' => 'menunggu',
             'toko_aktif' => false,
             'transfer_bank_aktif' => false,
@@ -365,6 +369,8 @@ class PelangganSettingsController extends Controller
             'nama_usaha' => $umkm->nama_usaha,
             'spesialis' => $umkm->spesialis ?? '',
             'alamat' => $umkm->alamat ?? '',
+            'latitude' => $umkm->latitude ? (float) $umkm->latitude : null,
+            'longitude' => $umkm->longitude ? (float) $umkm->longitude : null,
             'no_telp_usaha' => $umkm->no_telp_usaha ?? '',
             'email_usaha' => $umkm->email_usaha ?? '',
             'status_verifikasi' => $umkm->status_verifikasi,
