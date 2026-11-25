@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\UploadFoto;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Produk extends Model
 {
@@ -27,6 +28,11 @@ class Produk extends Model
     public function kategori(): BelongsTo
     {
         return $this->belongsTo(Kategori::class, 'id_kategori', 'id_kategori');
+    }
+
+    public function ulasanProduk(): HasMany
+    {
+        return $this->hasMany(UlasanProduk::class, 'id_produk', 'id_produk');
     }
 
     public function urlGambar(): ?string

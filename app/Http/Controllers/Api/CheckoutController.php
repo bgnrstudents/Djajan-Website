@@ -9,6 +9,7 @@ use App\Models\Pelanggan;
 use App\Models\PelangganAlamat;
 use App\Models\Pesanan;
 use App\Models\Produk;
+use App\Models\UlasanProduk;
 use App\Models\Umkm;
 use App\Services\MidtransService;
 use App\Services\OrderCancellationService;
@@ -16,6 +17,7 @@ use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -48,7 +50,7 @@ class CheckoutController extends Controller
             $this->syncPaymentStatus($pendingOrder, $midtransService);
         }
 
-        $orders = Pesanan::with('items.produk', 'umkm')
+        $orders = Pesanan::with('items.produk', 'items.ulasan', 'umkm')
             ->where('id_pelanggan', $pelanggan->id_pelanggan)
             ->orderByDesc('tanggal_pesan')
             ->get();
@@ -63,7 +65,7 @@ class CheckoutController extends Controller
             return $this->gagal('Sesi pelanggan tidak valid.', 401);
         }
 
-        $order = Pesanan::with(['items.produk', 'umkm'])
+        $order = Pesanan::with(['items.produk', 'items.ulasan', 'umkm'])
             ->where('id_pesanan', $idPesanan)
             ->where('id_pelanggan', $pelanggan->id_pelanggan)
             ->first();
@@ -198,6 +200,66 @@ class CheckoutController extends Controller
             'Pesanan berhasil diselesaikan. Terima kasih telah berbelanja!',
             $order->fresh()->keFormatJson()
         );
+    }
+
+    public function reviewProduct(
+        Request $request,
+        string $idPesanan,
+        string $idProduk
+    ): JsonResponse {
+        $pelanggan = $request->user();
+        if (!$pelanggan instanceof Pelanggan) {
+            return $this->gagal('Sesi pelanggan tidak valid.', 401);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'id_detail' => ['required', 'integer'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'komentar' => ['required', 'string', 'max:1000'],
+        ]);
+        if ($validator->fails()) {
+            return $this->gagal($validator->errors()->first(), 422);
+        }
+
+        $order = Pesanan::query()
+            ->where('id_pesanan', $idPesanan)
+            ->where('id_pelanggan', $pelanggan->id_pelanggan)
+            ->first();
+        if (!$order) {
+            return $this->gagal('Pesanan tidak ditemukan.', 404);
+        }
+        if ($order->status_pesanan !== 'selesai') {
+            return $this->gagal('Ulasan hanya dapat diberikan pada pesanan yang sudah selesai.', 409);
+        }
+
+        $detail = $order->items()
+            ->where('id_detail', $request->input('id_detail'))
+            ->where('id_produk', $idProduk)
+            ->first();
+        if (!$detail) {
+            return $this->gagal('Produk tersebut tidak ditemukan pada pesanan ini.', 404);
+        }
+
+        try {
+            DB::transaction(function () use ($detail, $pelanggan, $idProduk, $request) {
+                UlasanProduk::updateOrCreate(
+                    ['id_detail' => $detail->id_detail],
+                    [
+                        'id_pelanggan' => $pelanggan->id_pelanggan,
+                        'id_produk' => $idProduk,
+                        'rating' => (int) $request->input('rating'),
+                        'komentar' => trim((string) $request->input('komentar')),
+                    ],
+                );
+            });
+        } catch (\Throwable $e) {
+            report($e);
+            return $this->gagal('Ulasan gagal disimpan. Silakan coba kembali.', 500);
+        }
+
+        $order->load(['items.produk', 'items.ulasan', 'umkm', 'pelanggan']);
+
+        return $this->sukses('Ulasan berhasil disimpan.', $order->keFormatJson());
     }
 
     public function store(Request $request, MidtransService $midtransService): JsonResponse

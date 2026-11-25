@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\UploadFoto;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class DetailPesanan extends Model
 {
@@ -19,6 +20,11 @@ class DetailPesanan extends Model
     public function produk(): BelongsTo
     {
         return $this->belongsTo(Produk::class, 'id_produk', 'id_produk');
+    }
+
+    public function ulasan(): HasOne
+    {
+        return $this->hasOne(UlasanProduk::class, 'id_detail', 'id_detail');
     }
 
     /** Bentuk JSON persis sama dengan bagian "items" di formatPesanan() lama. */
@@ -38,6 +44,10 @@ class DetailPesanan extends Model
             'mode_penjualan' => $mode,
             'is_preorder'    => $isPo,
             'gambar_url'     => UploadFoto::url($this->produk?->gambar_produk, 'produk'),
+            'ulasan'         => $this->ulasan ? [
+                'rating' => (int) $this->ulasan->rating,
+                'komentar' => $this->ulasan->komentar,
+            ] : null,
         ];
     }
 }

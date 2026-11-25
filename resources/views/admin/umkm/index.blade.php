@@ -7,7 +7,7 @@
 <!-- PAGE HEADER -->
 <div class="mb-6">
     <h1 class="text-2xl font-bold text-djajan-neutral font-heading tracking-tight">Data UMKM</h1>
-    <p class="text-sm text-gray-500 mt-1">Tinjau, setujui, atau tolak pendaftaran UMKM yang masuk lewat aplikasi mobile.</p>
+    <p class="text-sm text-gray-500 mt-1"> Data Hasil Tinjau, setujui, atau tolak pendaftaran UMKM yang masuk lewat aplikasi mobile.</p>
 </div>
 
 <!-- STATUS TABS -->

@@ -33,20 +33,36 @@ class AuthController extends Controller
             ->first();
 
         if (!$umkm) {
-            return $this->gagal('Akun UMKM dengan data tersebut tidak ditemukan.', 401);
+            return $this->gagal(
+                'Akun belum ditemukan. Periksa kembali email atau nomor WhatsApp Anda, atau silakan daftar akun baru.',
+                404,
+                ['code' => 'account_not_found'],
+            );
         }
         $cocok = hash_equals((string) $umkm->password, hash('sha256', $password))
             || (str_starts_with((string) $umkm->password, '$2y$') && password_verify($password, $umkm->password));
 
         if (!$cocok) {
-            return $this->gagal('Kata sandi yang Anda masukkan salah.', 401);
+            return $this->gagal(
+                'Kata sandi yang Anda masukkan tidak sesuai. Silakan coba kembali.',
+                401,
+                ['code' => 'invalid_password'],
+            );
         }
 
         if ($umkm->status_verifikasi === 'ditolak') {
-            return $this->gagal('Akun usaha Anda ditolak admin desa. Hubungi BUMDes.', 403);
+            return $this->gagal(
+                'Pendaftaran usaha Anda belum disetujui. Hubungi admin Desa Kreongan Atas untuk informasi lebih lanjut.',
+                403,
+                ['code' => 'account_rejected'],
+            );
         }
         if (in_array($umkm->status_verifikasi, ['pending', 'menunggu'], true)) {
-            return $this->gagal('Akun usaha Anda masih menunggu verifikasi admin desa.', 403);
+            return $this->gagal(
+                'Pendaftaran usaha Anda sedang ditinjau. Coba masuk kembali setelah mendapat konfirmasi dari admin.',
+                403,
+                ['code' => 'account_pending'],
+            );
         }
 
         $umkm->tokens()->delete();

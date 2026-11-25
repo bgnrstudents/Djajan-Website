@@ -51,6 +51,92 @@ body.admin-shell main {
 
 body.admin-shell #sidebar-container {
     box-shadow: 8px 0 30px rgb(26 55 39 / 3%);
+    transition: width 240ms cubic-bezier(.2, .7, .2, 1), transform 200ms ease;
+}
+
+body.admin-shell #sidebar-container .sidebar-brand-wordmark,
+body.admin-shell #sidebar-container .sidebar-nav-label,
+body.admin-shell #sidebar-container .sidebar-section-label,
+body.admin-shell #sidebar-footer {
+    transition: opacity 160ms ease, max-height 220ms ease, padding 220ms ease, width 220ms ease;
+}
+
+body.admin-shell #sidebar-footer {
+    max-height: 12rem;
+    visibility: visible;
+}
+
+@media (min-width: 1024px) {
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container {
+        width: 5rem;
+    }
+
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container .sidebar-brand-header {
+        gap: .125rem;
+        padding-right: .375rem;
+        padding-left: .375rem;
+    }
+
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container .sidebar-brand-link {
+        flex: 0 0 2rem;
+        justify-content: center;
+        gap: 0;
+    }
+
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container .sidebar-logo-full,
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container .sidebar-brand-wordmark,
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container .sidebar-section-label,
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container .sidebar-nav-label {
+        display: none;
+    }
+
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container .sidebar-logo-mark {
+        display: block;
+    }
+
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-collapse-toggle {
+        padding: .375rem;
+    }
+
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container nav {
+        padding-right: .5rem;
+        padding-left: .5rem;
+    }
+
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container nav a,
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container nav .sidebar-logout {
+        justify-content: center;
+        gap: 0;
+        padding-right: 0;
+        padding-left: 0;
+    }
+
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-container nav a:hover {
+        transform: none;
+    }
+
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-footer {
+        max-height: 0;
+        overflow: hidden;
+        padding: 0;
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+    }
+
+    html[data-admin-sidebar="collapsed"] body.admin-shell #sidebar-collapse-toggle .sidebar-collapse-icon {
+        transform: rotate(180deg);
+    }
+}
+
+@media (max-width: 1023.98px) {
+    body.admin-shell.admin-sidebar-open {
+        overflow: hidden;
+    }
+}
+
+body.admin-shell #sidebar-collapse-toggle .sidebar-collapse-icon {
+    transition: transform 200ms ease;
 }
 
 body.admin-shell header {

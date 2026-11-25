@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Pelanggan;
 use App\Models\Umkm;
 use App\Support\ApiResponse;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,20 +63,32 @@ class PelangganAuthController extends Controller
 
         $nomor = preg_replace('/[\s\-.]/', '', $identifier);
         if (str_starts_with($nomor, '+62')) {
-            $nomor = '0' . substr($nomor, 3);
-        } elseif (str_starts_with($nomor, '62') && !str_contains($nomor, '@')) {
-            $nomor = '0' . substr($nomor, 2);
+            $nomor = '0'.substr($nomor, 3);
+        } elseif (str_starts_with($nomor, '62') && ! str_contains($nomor, '@')) {
+            $nomor = '0'.substr($nomor, 2);
         }
 
         $pelanggan = Pelanggan::where('no_telp', $nomor)
             ->orWhereRaw('LOWER(email) = ?', [mb_strtolower($identifier)])
             ->first();
 
-        if (!$pelanggan || !$pelanggan->password || !Hash::check($password, $pelanggan->password)) {
-            return $this->gagal('Nomor WhatsApp/email atau kata sandi salah.', 401);
+        if (! $pelanggan) {
+            return $this->gagal(
+                'Akun belum ditemukan. Periksa kembali email atau nomor WhatsApp Anda, atau silakan daftar akun baru.',
+                404,
+                ['code' => 'account_not_found'],
+            );
         }
 
-        return $this->sukses('Selamat datang, ' . $pelanggan->nama . '!', $this->dataDenganToken($pelanggan));
+        if (! $pelanggan->password || ! Hash::check($password, $pelanggan->password)) {
+            return $this->gagal(
+                'Kata sandi yang Anda masukkan tidak sesuai. Silakan coba kembali.',
+                401,
+                ['code' => 'invalid_password'],
+            );
+        }
+
+        return $this->sukses('Selamat datang, '.$pelanggan->nama.'!', $this->dataDenganToken($pelanggan));
     }
 
     public function google(Request $request): JsonResponse
@@ -85,17 +98,26 @@ class PelangganAuthController extends Controller
             return $this->gagal('ID token Google wajib dikirim.', 400);
         }
 
-        $response = Http::timeout(10)->get('https://oauth2.googleapis.com/tokeninfo', [
-            'id_token' => $idToken,
-        ]);
+        try {
+            $response = Http::timeout(10)->get('https://oauth2.googleapis.com/tokeninfo', [
+                'id_token' => $idToken,
+            ]);
+        } catch (ConnectionException $error) {
+            report($error);
 
-        if (!$response->successful()) {
+            return $this->gagal(
+                'Layanan verifikasi Google tidak dapat dijangkau. Silakan coba kembali.',
+                503,
+            );
+        }
+
+        if (! $response->successful()) {
             return $this->gagal('Token Google tidak valid atau sudah kedaluwarsa.', 401);
         }
 
         $google = $response->json();
         $clientId = (string) config('services.google.client_id');
-        if (!$clientId || ($google['aud'] ?? '') !== $clientId || ($google['email_verified'] ?? '') !== 'true') {
+        if (! $clientId || ($google['aud'] ?? '') !== $clientId || ($google['email_verified'] ?? '') !== 'true') {
             return $this->gagal('Identitas Google tidak dapat diverifikasi.', 401);
         }
 
@@ -107,7 +129,22 @@ class PelangganAuthController extends Controller
 
         $umkm = Umkm::whereRaw('LOWER(email_usaha) = ?', [$email])->first();
         if ($umkm) {
-            return $this->sukses('Selamat datang, ' . $umkm->nama_usaha . '!', $this->dataUmkmDenganToken($umkm));
+            if ($umkm->status_verifikasi === 'ditolak') {
+                return $this->gagal(
+                    'Pendaftaran usaha Anda belum disetujui. Hubungi admin Desa Kreongan Atas untuk informasi lebih lanjut.',
+                    403,
+                    ['code' => 'account_rejected'],
+                );
+            }
+            if (in_array($umkm->status_verifikasi, ['pending', 'menunggu'], true)) {
+                return $this->gagal(
+                    'Pendaftaran usaha Anda sedang ditinjau. Coba masuk kembali setelah mendapat konfirmasi dari admin.',
+                    403,
+                    ['code' => 'account_pending'],
+                );
+            }
+
+            return $this->sukses('Selamat datang, '.$umkm->nama_usaha.'!', $this->dataUmkmDenganToken($umkm));
         }
 
         $pelanggan = Pelanggan::where('google_sub', $googleSub)
@@ -136,6 +173,7 @@ class PelangganAuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()?->delete();
+
         return $this->sukses('Berhasil keluar.');
     }
 
@@ -143,11 +181,12 @@ class PelangganAuthController extends Controller
     {
         $umkm = $request->user();
         $pelanggan = $umkm instanceof Umkm ? $umkm->pelanggan : null;
-        if (!$pelanggan) {
+        if (! $pelanggan) {
             return $this->gagal('Akun pelanggan terkait tidak ditemukan.', 404);
         }
 
         $pelanggan->tokens()->delete();
+
         return $this->sukses('Mode pelanggan aktif.', $this->dataDenganToken($pelanggan->fresh()));
     }
 
@@ -255,6 +294,7 @@ class PelangganAuthController extends Controller
     private function dataDenganToken(Pelanggan $pelanggan): array
     {
         $pelanggan->tokens()->delete();
+        $umkm = Umkm::where('id_pelanggan', $pelanggan->id_pelanggan)->first();
 
         return [
             'role' => 'pelanggan',
@@ -263,6 +303,16 @@ class PelangganAuthController extends Controller
             'email' => $pelanggan->email ?? '',
             'no_telp' => $pelanggan->no_telp ?? '',
             'alamat' => $pelanggan->alamat ?? '',
+            'umkm' => $umkm ? [
+                'id_umkm' => (int) $umkm->id_umkm,
+                'nama_usaha' => $umkm->nama_usaha,
+                'spesialis' => $umkm->spesialis ?? '',
+                'alamat' => $umkm->alamat ?? '',
+                'no_telp_usaha' => $umkm->no_telp_usaha ?? '',
+                'email_usaha' => $umkm->email_usaha ?? '',
+                'status_verifikasi' => $umkm->status_verifikasi,
+                'alasan_penolakan' => $umkm->alasan_penolakan ?? null,
+            ] : null,
             'token' => $pelanggan->createToken('flutter-app')->plainTextToken,
         ];
     }
@@ -270,6 +320,7 @@ class PelangganAuthController extends Controller
     private function dataUmkmDenganToken(Umkm $umkm): array
     {
         $umkm->tokens()->delete();
+
         return array_merge(['role' => 'umkm'], $umkm->keFormatJson(), [
             'token' => $umkm->createToken('flutter-app')->plainTextToken,
         ]);

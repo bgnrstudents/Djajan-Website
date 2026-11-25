@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Pelanggan;
+use App\Models\Umkm;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -40,6 +41,38 @@ class PelangganAuthTest extends TestCase
         $this->postJson('/api/auth/google', ['id_token' => 'invalid-token'])
             ->assertUnauthorized()
             ->assertJsonPath('sukses', false);
+    }
+
+    public function test_google_login_does_not_bypass_umkm_verification(): void
+    {
+        config(['services.google.client_id' => 'client-id']);
+        Umkm::create([
+            'nama_usaha' => 'Warung Menunggu',
+            'email_usaha' => 'warung@example.com',
+            'spesialis' => 'Jajanan',
+            'alamat' => 'Jl. Desa No. 1',
+            'no_telp_usaha' => '089876543210',
+            'password' => bcrypt('password123'),
+            'status_verifikasi' => 'menunggu',
+            'toko_aktif' => true,
+            'cod_aktif' => true,
+        ]);
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'aud' => 'client-id',
+                'sub' => 'google-umkm',
+                'email' => 'warung@example.com',
+                'email_verified' => 'true',
+            ]),
+        ]);
+
+        $this->postJson('/api/auth/google', ['id_token' => 'valid-token'])
+            ->assertForbidden()
+            ->assertJsonPath('data.code', 'account_pending')
+            ->assertJsonPath(
+                'pesan',
+                'Pendaftaran usaha Anda sedang ditinjau. Coba masuk kembali setelah mendapat konfirmasi dari admin.',
+            );
     }
 
     public function test_registered_customer_can_login_with_google(): void

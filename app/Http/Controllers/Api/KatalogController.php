@@ -44,6 +44,7 @@ class KatalogController extends Controller
             ->with(['umkm' => function ($query) {
                 $query->withAvg('ulasan as rating_avg', 'rating');
             }])
+            ->withAvg('ulasanProduk as product_rating_avg', 'rating')
             ->when($cari !== '', function ($query) use ($cari) {
                 $query->where(function ($inner) use ($cari) {
                     $inner->where('nama_produk', 'like', "%{$cari}%")
@@ -85,7 +86,7 @@ class KatalogController extends Controller
                 'umkm_name' => $product->umkm?->nama_usaha ?? '',
                 'umkm_type' => $product->umkm?->spesialis ?: 'UMKM Kuliner Desa',
                 'price' => (int) $product->harga,
-                'rating' => round((float) ($product->umkm?->rating_avg ?? 0.0), 1),
+                'rating' => round((float) ($product->product_rating_avg ?? $product->umkm?->rating_avg ?? 0.0), 1),
                 'category' => $product->kategori ?: 'Semua',
                 'order_type' => match ($product->mode_penjualan) {
                     'pre_order' => 'Pre-Order',
