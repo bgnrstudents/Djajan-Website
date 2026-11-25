@@ -27,7 +27,7 @@ class UmkmNotificationTest extends TestCase
             ->assertJsonFragment([
                 'id' => $first->id_umkm,
                 'nama_usaha' => 'Warung Baru',
-                'created_at' => null,
+                'created_at' => $first->created_at?->format('d/m/Y H:i'),
                 'url' => route('admin.umkm.show', $first->id_umkm),
             ]);
     }

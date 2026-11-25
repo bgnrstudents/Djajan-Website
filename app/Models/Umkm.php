@@ -15,10 +15,6 @@ class Umkm extends Authenticatable
     protected $table = 'umkm';
     protected $primaryKey = 'id_umkm';
 
-    // Tabel cuma punya created_at (tidak ada updated_at) -> matikan
-    // pengelolaan timestamp otomatis Eloquent, biarkan default DB yang isi.
-    public $timestamps = false;
-
     protected $fillable = [
         'id_pelanggan', 'nama_usaha', 'spesialis', 'deskripsi_usaha', 'alamat',
         'alasan_penghapusan', 'dihapus_pada',
@@ -29,6 +25,25 @@ class Umkm extends Authenticatable
     ];
 
     protected $hidden = ['password'];
+
+    protected function casts(): array
+    {
+        return [
+            'toko_aktif' => 'boolean',
+            'transfer_bank_aktif' => 'boolean',
+            'cod_aktif' => 'boolean',
+            'pickup_aktif' => 'boolean',
+            'kurir_warga_aktif' => 'boolean',
+            'biaya_pengantaran' => 'integer',
+            'latitude' => 'float',
+            'longitude' => 'float',
+            'radius_gratis_km' => 'float',
+            'jarak_maksimal_km' => 'float',
+            'dihapus_pada' => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
+    }
 
     public function produk(): HasMany
     {

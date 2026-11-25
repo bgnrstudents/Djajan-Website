@@ -183,7 +183,7 @@ class DashboardController extends Controller
             'laporan_harian' => (clone $pesananPeriode)
                 ->with('items')
                 ->get()
-                ->groupBy(fn ($p) => date('Y-m-d', strtotime($p->dibayar_pada ?: $p->tanggal_pesan)))
+                ->groupBy(fn ($p) => ($p->dibayar_pada ?? $p->tanggal_pesan)?->format('Y-m-d') ?? '')
                 ->map(fn ($ordersOnDate, $tanggal) => [
                     'tanggal' => $tanggal,
                     'jumlah_pesanan' => $ordersOnDate->count(),

@@ -30,6 +30,27 @@ class Pesanan extends Model
         'dibayar_pada', 'alasan_batal', 'dibatalkan_oleh', 'dibatalkan_pada', 'status_refund',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'tanggal_pesan' => 'datetime',
+            'waktu_dibutuhkan' => 'datetime',
+            'batas_konfirmasi' => 'datetime',
+            'dibayar_pada' => 'datetime',
+            'dibatalkan_pada' => 'datetime',
+            'waktu_diantar' => 'datetime',
+            'waktu_selesai' => 'datetime',
+            'biaya_pengantaran' => 'integer',
+            'biaya_layanan' => 'integer',
+            'total_harga' => 'integer',
+            'nominal_dp' => 'integer',
+            'sisa_bayar' => 'integer',
+            'jarak_km' => 'float',
+            'latitude_tujuan' => 'float',
+            'longitude_tujuan' => 'float',
+        ];
+    }
+
     public function pelanggan(): BelongsTo
     {
         return $this->belongsTo(Pelanggan::class, 'id_pelanggan', 'id_pelanggan');
@@ -74,7 +95,7 @@ class Pesanan extends Model
 
         // Fallback: Jika batas konfirmasi > 2 jam dari waktu_dibutuhkan
         if ($this->batas_konfirmasi && $this->waktu_dibutuhkan) {
-            $diffHours = abs(strtotime($this->batas_konfirmasi) - strtotime($this->waktu_dibutuhkan)) / 3600;
+            $diffHours = abs($this->batas_konfirmasi->getTimestamp() - $this->waktu_dibutuhkan->getTimestamp()) / 3600;
             if ($diffHours >= 2) {
                 return true;
             }
@@ -104,9 +125,9 @@ class Pesanan extends Model
             'alamat_umkm'       => $this->umkm?->alamat ?? '',
             'nama_pembeli'      => $this->pelanggan?->nama ?? '',
             'no_telp'           => $this->pelanggan?->no_telp ?? '',
-            'tanggal_pesan'     => $this->tanggal_pesan,
-            'waktu_dibutuhkan'  => $this->waktu_dibutuhkan,
-            'batas_konfirmasi'  => $this->batas_konfirmasi,
+            'tanggal_pesan'     => $this->tanggal_pesan?->format('Y-m-d H:i:s'),
+            'waktu_dibutuhkan'  => $this->waktu_dibutuhkan?->format('Y-m-d H:i:s'),
+            'batas_konfirmasi'  => $this->batas_konfirmasi?->format('Y-m-d H:i:s'),
             'keperluan_acara'   => $this->keperluan_acara ?? '',
             'metode_pengiriman' => $this->metode_pengiriman ?? '',
             'alamat_tujuan'     => $this->alamat_tujuan ?? '',
@@ -118,7 +139,7 @@ class Pesanan extends Model
             'metode_pembayaran' => $this->metode_pembayaran ?? '',
             'status_pembayaran' => $this->status_pembayaran ?? 'belum_bayar',
             'payment_status'    => $this->payment_status ?? ($this->status_pembayaran ?? 'pending'),
-            'dibayar_pada'      => $this->dibayar_pada,
+            'dibayar_pada'      => $this->dibayar_pada?->format('Y-m-d H:i:s'),
             'midtrans_order_id' => $this->midtrans_order_id,
             'snap_token'        => $this->snap_token,
             'payment_url'       => $this->payment_url,
@@ -134,11 +155,11 @@ class Pesanan extends Model
             'status_pesanan'    => $this->status_pesanan,
             'is_preorder'       => $isPo,
             'tipe_pesanan'      => $isPo ? 'pre_order' : 'ready',
-            'waktu_diantar'     => $this->waktu_diantar,
-            'waktu_selesai'     => $this->waktu_selesai,
+            'waktu_diantar'     => $this->waktu_diantar?->format('Y-m-d H:i:s'),
+            'waktu_selesai'     => $this->waktu_selesai?->format('Y-m-d H:i:s'),
             'alasan_batal'      => $this->alasan_batal,
             'dibatalkan_oleh'   => $this->dibatalkan_oleh,
-            'dibatalkan_pada'   => $this->dibatalkan_pada,
+            'dibatalkan_pada'   => $this->dibatalkan_pada?->format('Y-m-d H:i:s'),
             'status_refund'     => $this->status_refund ?? 'none',
             'ulasan'            => $this->ulasan ? [
                 'rating'   => (int) $this->ulasan->rating,
