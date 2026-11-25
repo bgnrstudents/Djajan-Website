@@ -17,16 +17,44 @@
         </div>
     </div>
 
-    <form method="get" action="{{ route('admin.dashboard') }}" class="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm" aria-label="Filter periode omzet">
-        <label class="text-xs font-medium text-gray-500">Tanggal mulai
-            <input type="date" name="mulai" value="{{ $mulai }}" required class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
-        </label>
-        <label class="text-xs font-medium text-gray-500">Tanggal akhir
-            <input type="date" name="akhir" value="{{ $akhir }}" required class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
-        </label>
-        <button class="rounded-lg bg-djajan-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-900">Terapkan periode</button>
-        <p class="ml-auto self-center text-xs text-gray-400">Tanggal mengikuti pembayaran; pesanan tanpa pembayaran memakai tanggal pesan.</p>
-    </form>
+    <div class="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <form method="get" action="{{ route('admin.dashboard') }}" class="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm" aria-label="Filter periode omzet">
+            <label class="text-xs font-medium text-gray-500">Tanggal mulai
+                <input type="date" name="mulai" value="{{ $mulai }}" required class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
+            </label>
+            <label class="text-xs font-medium text-gray-500">Tanggal akhir
+                <input type="date" name="akhir" value="{{ $akhir }}" required class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
+            </label>
+            <button class="rounded-lg bg-djajan-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-900">Terapkan periode</button>
+            <p class="w-full text-xs text-gray-400">Tanggal mengikuti pembayaran; pesanan tanpa pembayaran memakai tanggal pesan.</p>
+        </form>
+        <form id="omzet-report-form" method="get" action="{{ route('admin.omzet.report.pdf', [], false) }}" target="_blank" class="flex flex-wrap items-end gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-sm" aria-label="Cetak laporan omzet PDF">
+            <input type="hidden" name="preview" value="1">
+            <input type="hidden" name="report_key" value="{{ $reportKey }}">
+            <label class="text-xs font-medium text-gray-600">Periode laporan
+                <select id="report-period" name="periode" class="mt-1 block w-full rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
+                    <option value="harian">Harian</option>
+                    <option value="mingguan">Mingguan</option>
+                    <option value="bulanan">Bulanan</option>
+                    <option value="tahunan">Tahunan</option>
+                    <option value="rentang" selected>Rentang tanggal</option>
+                </select>
+            </label>
+            <label id="report-date-field" class="hidden text-xs font-medium text-gray-600">Tanggal acuan
+                <input type="date" name="tanggal" value="{{ $akhir }}" disabled class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
+            </label>
+            <div id="report-range-fields" class="flex flex-wrap items-end gap-3">
+                <label class="text-xs font-medium text-gray-600">Mulai
+                    <input type="date" name="mulai" value="{{ $mulai }}" required class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
+                </label>
+                <label class="text-xs font-medium text-gray-600">Sampai
+                    <input type="date" name="akhir" value="{{ $akhir }}" required class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
+                </label>
+            </div>
+            <button type="submit" class="rounded-lg bg-djajan-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-900">Cetak Laporan PDF</button>
+            <p class="w-full text-xs text-gray-500">Laporan terbuka di tab baru. Gunakan ikon unduh pada penampil PDF untuk menyimpan berkas.</p>
+        </form>
+    </div>
 
     {{-- <details class="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-gray-600">
         <summary class="cursor-pointer font-semibold text-djajan-neutral">Cara membaca laporan</summary>
@@ -304,6 +332,36 @@
 </div>
 
 <script>
+    (() => {
+        const form = document.getElementById('omzet-report-form');
+        const period = document.getElementById('report-period');
+        const dateField = document.getElementById('report-date-field');
+        const rangeFields = document.getElementById('report-range-fields');
+        const reportKey = form.querySelector('input[name="report_key"]');
+        const dateInput = dateField.querySelector('input');
+        const rangeInputs = rangeFields.querySelectorAll('input');
+
+        function updateReportPeriodFields() {
+            const isRange = period.value === 'rentang';
+            dateField.classList.toggle('hidden', isRange);
+            dateInput.disabled = isRange;
+            dateInput.required = !isRange;
+            rangeFields.classList.toggle('hidden', !isRange);
+            rangeInputs.forEach(input => {
+                input.disabled = !isRange;
+                input.required = isRange;
+            });
+        }
+
+        period.addEventListener('change', updateReportPeriodFields);
+        form.addEventListener('submit', () => {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                reportKey.value = window.crypto.randomUUID();
+            }
+        });
+        updateReportPeriodFields();
+    })();
+
     (() => {
         const dataUrl = @json(route('admin.omzet.data'));
         const initialData = @json($analytics);

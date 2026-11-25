@@ -8,6 +8,131 @@ use Illuminate\Support\Facades\DB;
 
 class AdminOmzetDashboard
 {
+    public function report(string $mulai, string $akhir): array
+    {
+        $orders = $this->eligibleOrders($mulai, $akhir);
+        $totals = DB::query()
+            ->fromSub(clone $orders, 'pesanan')
+            ->join('detail_pesanan', 'detail_pesanan.id_pesanan', '=', 'pesanan.id_pesanan')
+            ->selectRaw("COUNT(DISTINCT COALESCE(NULLIF(pesanan.id_checkout, ''), pesanan.id_pesanan)) as total_transaksi")
+            ->selectRaw('COUNT(DISTINCT pesanan.id_umkm) as total_umkm_terjual')
+            ->selectRaw('COALESCE(SUM(detail_pesanan.subtotal), 0) as total_omzet')
+            ->selectRaw('COALESCE(SUM(detail_pesanan.jumlah), 0) as total_produk_terjual')
+            ->first();
+
+        $totalOmzet = (int) $totals->total_omzet;
+        $merchants = $this->rankingQuery($mulai, $akhir)->get();
+        $transactions = DB::query()
+            ->fromSub($this->eligibleOrders($mulai, $akhir), 'pesanan')
+            ->join('detail_pesanan', 'detail_pesanan.id_pesanan', '=', 'pesanan.id_pesanan')
+            ->join('umkm', 'umkm.id_umkm', '=', 'pesanan.id_umkm')
+            ->select(
+                'pesanan.id_pesanan',
+                'pesanan.id_checkout',
+                'pesanan.nama_umkm_snapshot',
+                'pesanan.status_pesanan',
+                'pesanan.status_pembayaran',
+                'pesanan.payment_status',
+                'pesanan.dibayar_pada',
+                'pesanan.tanggal_pesan',
+                'umkm.nama_usaha'
+            )
+            ->selectRaw('DATE(COALESCE(pesanan.dibayar_pada, pesanan.tanggal_pesan)) as tanggal')
+            ->selectRaw('SUM(detail_pesanan.subtotal) as omzet')
+            ->groupBy(
+                'pesanan.id_pesanan',
+                'pesanan.id_checkout',
+                'pesanan.nama_umkm_snapshot',
+                'pesanan.status_pesanan',
+                'pesanan.status_pembayaran',
+                'pesanan.payment_status',
+                'pesanan.dibayar_pada',
+                'pesanan.tanggal_pesan',
+                'umkm.nama_usaha'
+            )
+            ->orderBy('tanggal')
+            ->orderBy('pesanan.id_pesanan')
+            ->get()
+            ->map(fn (object $row): array => [
+                'tanggal' => $row->tanggal,
+                'nama_umkm' => $row->nama_umkm_snapshot ?: $row->nama_usaha,
+                'id_pesanan' => $row->id_pesanan,
+                'id_checkout' => $row->id_checkout,
+                'status_pesanan' => $row->status_pesanan,
+                'status_pembayaran' => $row->status_pembayaran ?: $row->payment_status,
+                'omzet' => (int) $row->omzet,
+            ])
+            ->all();
+
+        $periodLength = Carbon::parse($mulai)->diffInDays(Carbon::parse($akhir)) + 1;
+        $previousAkhir = Carbon::parse($mulai)->subDay()->toDateString();
+        $previousMulai = Carbon::parse($previousAkhir)->subDays($periodLength - 1)->toDateString();
+        $previousOmzet = DB::query()
+            ->fromSub($this->eligibleOrders($previousMulai, $previousAkhir), 'pesanan')
+            ->join('detail_pesanan', 'detail_pesanan.id_pesanan', '=', 'pesanan.id_pesanan')
+            ->select('pesanan.id_umkm')
+            ->selectRaw('SUM(detail_pesanan.subtotal) as omzet')
+            ->groupBy('pesanan.id_umkm')
+            ->pluck('omzet', 'id_umkm');
+        $previousTotal = (int) $previousOmzet->sum();
+
+        $dailyTrend = DB::query()
+            ->fromSub($this->eligibleOrders($mulai, $akhir), 'pesanan')
+            ->join('detail_pesanan', 'detail_pesanan.id_pesanan', '=', 'pesanan.id_pesanan')
+            ->selectRaw('DATE(COALESCE(pesanan.dibayar_pada, pesanan.tanggal_pesan)) as tanggal')
+            ->selectRaw('SUM(detail_pesanan.subtotal) as omzet')
+            ->groupByRaw('DATE(COALESCE(pesanan.dibayar_pada, pesanan.tanggal_pesan))')
+            ->orderBy('tanggal')
+            ->get();
+        $monthlyTrend = $dailyTrend
+            ->groupBy(fn (object $row): string => Carbon::parse($row->tanggal)->format('Y-m'))
+            ->map(fn ($rows, string $month): array => [
+                'periode' => $month,
+                'omzet' => (int) $rows->sum('omzet'),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'statistics' => [
+                'total_omzet' => $totalOmzet,
+                'total_transaksi' => (int) $totals->total_transaksi,
+                'total_umkm_terjual' => (int) $totals->total_umkm_terjual,
+                'total_produk_terjual' => (int) $totals->total_produk_terjual,
+                'rata_rata_transaksi' => (int) $totals->total_transaksi > 0
+                    ? (int) round($totalOmzet / (int) $totals->total_transaksi)
+                    : 0,
+                'total_umkm_aktif' => DB::table('umkm')
+                    ->where('status_verifikasi', 'terverifikasi')
+                    ->where('toko_aktif', true)
+                    ->count(),
+            ],
+            'merchants' => $merchants
+                ->map(fn (object $row): array => [
+                    'nama_usaha' => $row->nama_usaha,
+                    'jumlah_transaksi' => (int) $row->jumlah_transaksi,
+                    'omzet' => (int) $row->omzet,
+                    'kontribusi_persen' => $totalOmzet > 0
+                        ? round(((int) $row->omzet / $totalOmzet) * 100, 1)
+                        : 0,
+                    'perkembangan' => (int) ($previousOmzet[$row->id_umkm] ?? 0) > 0
+                        ? round((((int) $row->omzet - (int) $previousOmzet[$row->id_umkm]) / (int) $previousOmzet[$row->id_umkm]) * 100, 1)
+                        : null,
+                ])
+                ->all(),
+            'transactions' => $transactions,
+            'comparison' => [
+                'mulai' => $previousMulai,
+                'akhir' => $previousAkhir,
+                'omzet_sebelumnya' => $previousTotal,
+                'perubahan_persen' => $previousTotal > 0
+                    ? round((($totalOmzet - $previousTotal) / $previousTotal) * 100, 1)
+                    : null,
+            ],
+            'monthly_trend' => $monthlyTrend,
+        ];
+    }
+
     public function data(
         string $mulai,
         string $akhir,

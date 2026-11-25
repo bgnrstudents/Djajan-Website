@@ -10,6 +10,9 @@ use App\Models\Umkm;
 use App\Models\User;
 use App\Services\AdminOmzetDashboard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Tests\TestCase;
 
 class OmzetDashboardTest extends TestCase
@@ -83,6 +86,172 @@ class OmzetDashboardTest extends TestCase
                     ['items' => [['nama_produk', 'jumlah', 'harga_satuan', 'subtotal']]],
                 ],
             ]);
+    }
+
+    public function test_laporan_pdf_menggunakan_angka_dashboard_dan_hanya_memuat_pesanan_yang_memenuhi_kriteria_omzet(): void
+    {
+        $this->buatCheckout('CHK-MULTI', 65000);
+        $this->buatCheckout('CHK-A-2', 5000);
+        $this->buatPesanan('PO-A-1', $this->warungA, '2026-11-12', [10000, 15000], 'paid', 'selesai', 'none', 'CHK-MULTI');
+        $this->buatPesanan('PO-A-2', $this->warungA, '2026-11-12', [5000], 'paid', 'selesai', 'none', 'CHK-A-2');
+        $this->buatPesanan('PO-B-1', $this->warungB, '2026-11-12', [40000], 'paid', 'selesai', 'none', 'CHK-MULTI');
+        $this->buatPesanan('PO-UNPAID', $this->warungA, '2026-11-12', [90000], 'pending');
+        $this->buatPesanan('PO-REFUND', $this->warungB, '2026-11-12', [80000], 'paid', 'selesai', 'refund_berhasil');
+
+        $report = app(AdminOmzetDashboard::class)->report('2026-11-01', '2026-11-30');
+        $dashboard = $this->actingAs($this->admin)->getJson('/admin/omzet-data?mulai=2026-11-01&akhir=2026-11-30');
+
+        $dashboard->assertOk()
+            ->assertJsonPath('statistics.total_omzet', 70000)
+            ->assertJsonPath('statistics.total_transaksi', 2);
+        $this->assertSame($dashboard->json('statistics.total_omzet'), $report['statistics']['total_omzet']);
+        $this->assertSame($dashboard->json('statistics.total_transaksi'), $report['statistics']['total_transaksi']);
+        $this->assertSame(3, count($report['transactions']));
+        $this->assertSame(40000, $report['merchants'][0]['omzet']);
+        $this->assertSame(30000, $report['merchants'][1]['omzet']);
+
+        $response = $this->get('/admin/omzet-laporan.pdf?'.http_build_query([
+            'periode' => 'rentang',
+            'mulai' => '2026-11-01',
+            'akhir' => '2026-11-30',
+        ]));
+
+        $response->assertOk()
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertHeader('content-disposition', 'attachment; filename=laporan-omzet-2026-11-01-2026-11-30.pdf');
+        $response->assertHeader('x-content-type-options', 'nosniff');
+        $pdf = $this->pdfContents($response);
+        $this->assertIsString($pdf);
+        $this->assertStringStartsWith('%PDF-', $pdf);
+        $this->assertSame((string) strlen($pdf), $response->headers->get('content-length'));
+        $this->assertInstanceOf(BinaryFileResponse::class, $response->baseResponse);
+    }
+
+    public function test_laporan_pdf_menerapkan_periode_bulanan_dan_memvalidasi_rentang_tanggal(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->get('/admin/omzet-laporan.pdf?periode=bulanan&tanggal=2026-11-12&preview=1');
+
+        $response->assertOk()
+            ->assertHeader('content-disposition', 'inline; filename=laporan-omzet-2026-11-01-2026-11-30.pdf');
+
+        foreach ([
+            ['harian', '2026-11-12', '2026-11-12', '2026-11-12'],
+            ['mingguan', '2026-11-12', '2026-11-09', '2026-11-15'],
+            ['tahunan', '2026-11-12', '2026-01-01', '2026-12-31'],
+        ] as [$period, $date, $start, $end]) {
+            $this->get('/admin/omzet-laporan.pdf?'.http_build_query([
+                'periode' => $period,
+                'tanggal' => $date,
+                'preview' => 1,
+            ]))->assertOk()
+                ->assertHeader('content-disposition', "inline; filename=laporan-omzet-{$start}-{$end}.pdf");
+        }
+
+        $this->get('/admin/omzet-laporan.pdf?periode=rentang&mulai=2026-11-20&akhir=2026-11-01')
+            ->assertSessionHasErrors(['akhir']);
+    }
+
+    public function test_laporan_mencakup_tanggal_akhir_dan_membedakan_checkout_dari_pesanan_umkm(): void
+    {
+        $this->buatCheckout('CHK-MULTI-PERIOD', 30000);
+        $this->buatCheckout('CHK-LAST-DAY', 30000);
+        $this->buatCheckout('CHK-AFTER-PERIOD', 40000);
+        $this->buatPesanan('PO-23-A', $this->warungA, '2026-11-23', [10000], 'paid', 'selesai', 'none', 'CHK-MULTI-PERIOD');
+        $this->buatPesanan('PO-23-B', $this->warungB, '2026-11-23', [20000], 'paid', 'selesai', 'none', 'CHK-MULTI-PERIOD');
+        $this->buatPesanan('PO-24-A', $this->warungA, '2026-11-24', [30000], 'paid', 'selesai', 'none', 'CHK-LAST-DAY');
+        $this->buatPesanan('PO-25-A', $this->warungA, '2026-11-25', [40000], 'paid', 'selesai', 'none', 'CHK-AFTER-PERIOD');
+
+        $report = app(AdminOmzetDashboard::class)->report('2026-11-01', '2026-11-24');
+        $dashboard = $this->actingAs($this->admin)
+            ->getJson('/admin/omzet-data?mulai=2026-11-01&akhir=2026-11-24');
+
+        $dashboard->assertOk()
+            ->assertJsonPath('statistics.total_omzet', 60000)
+            ->assertJsonPath('statistics.total_transaksi', 2);
+        $this->assertSame(60000, $report['statistics']['total_omzet']);
+        $this->assertSame(2, $report['statistics']['total_transaksi']);
+        $this->assertSame(3, array_sum(array_column($report['merchants'], 'jumlah_transaksi')));
+        $this->assertSame(3, count($report['transactions']));
+        $this->assertSame(['PO-23-A', 'PO-23-B', 'PO-24-A'], array_column($report['transactions'], 'id_pesanan'));
+        $this->assertSame(100.0, array_sum(array_column($report['merchants'], 'kontribusi_persen')));
+    }
+
+    public function test_laporan_pdf_membuat_beberapa_halaman_untuk_seluruh_rincian_transaksi(): void
+    {
+        for ($index = 1; $index <= 60; $index++) {
+            $this->buatPesanan(
+                sprintf('PO-PAGE-%03d', $index),
+                $this->warungA,
+                '2026-11-12',
+                [1000],
+            );
+        }
+
+        $report = app(AdminOmzetDashboard::class)->report('2026-11-01', '2026-11-30');
+        $response = $this->actingAs($this->admin)
+            ->get('/admin/omzet-laporan.pdf?periode=rentang&mulai=2026-11-01&akhir=2026-11-30&preview=1');
+        $pdf = $this->pdfContents($response);
+        preg_match_all('/\/Type\s*\/Page\b/', $pdf, $pages);
+
+        $response->assertOk()
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertHeader(
+                'content-disposition',
+                'inline; filename=laporan-omzet-2026-11-01-2026-11-30.pdf',
+            );
+        $this->assertSame(60, count($report['transactions']));
+        $this->assertSame(60000, $report['statistics']['total_omzet']);
+        $this->assertGreaterThan(1, count($pages[0]));
+        $this->assertMatchesRegularExpression(
+            '/\/MediaBox\s*\[0\.000\s+0\.000\s+595\.280\s+841\.890\]/',
+            $pdf
+        );
+    }
+
+    public function test_laporan_pdf_mendukung_byte_ranges_dengan_berkas_yang_konsisten(): void
+    {
+        $reportKey = (string) Str::uuid();
+        $url = '/admin/omzet-laporan.pdf?'.http_build_query([
+            'periode' => 'rentang',
+            'mulai' => '2026-11-01',
+            'akhir' => '2026-11-30',
+            'preview' => '1',
+            'report_key' => $reportKey,
+        ]);
+        $response = $this->actingAs($this->admin)
+            ->get($url)
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertHeader(
+                'content-disposition',
+                'inline; filename=laporan-omzet-2026-11-01-2026-11-30.pdf',
+            )
+            ->assertHeader('accept-ranges', 'bytes');
+
+        $this->assertInstanceOf(BinaryFileResponse::class, $response->baseResponse);
+        $reportPath = $response->baseResponse->getFile()->getPathname();
+        $pdf = $this->pdfContents($response);
+        $response->assertHeader('content-length', (string) strlen($pdf));
+        $this->assertStringStartsWith('%PDF-', $pdf);
+
+        $rangeResponse = $this->actingAs($this->admin)
+            ->withHeaders(['Range' => 'bytes=0-7'])
+            ->get($url)
+            ->assertStatus(206)
+            ->assertHeader('content-range', 'bytes 0-7/'.strlen($pdf))
+            ->assertHeader('content-length', '8');
+
+        $this->assertInstanceOf(BinaryFileResponse::class, $rangeResponse->baseResponse);
+        $this->assertSame($reportPath, $rangeResponse->baseResponse->getFile()->getPathname());
+        ob_start();
+        try {
+            $rangeResponse->baseResponse->sendContent();
+            $rangeBytes = ob_get_contents();
+        } finally {
+            ob_end_clean();
+        }
+        $this->assertSame(substr($pdf, 0, 8), $rangeBytes);
     }
 
     public function test_dashboard_omits_pending_and_rejected_umkm_and_their_orders(): void
@@ -202,6 +371,9 @@ class OmzetDashboardTest extends TestCase
         $this->actingAs($this->warungA)
             ->get('/admin/omzet-data')
             ->assertForbidden();
+        $this->actingAs($this->warungA)
+            ->get('/admin/omzet-laporan.pdf?periode=harian&tanggal=2026-11-12')
+            ->assertForbidden();
 
         $this->actingAs($this->admin)
             ->getJson('/admin/omzet-data?mulai=2026-12-02&akhir=2026-12-01')
@@ -214,8 +386,20 @@ class OmzetDashboardTest extends TestCase
             ->get('/admin')
             ->assertOk()
             ->assertSee('Analitik Omzet UMKM')
+            ->assertSee('Cetak Laporan PDF')
+            ->assertSee('action="/admin/omzet-laporan.pdf"', false)
+            ->assertSee('target="_blank"', false)
+            ->assertSee('name="preview" value="1"', false)
+            ->assertSee('name="report_key"', false)
+            ->assertDontSee('id="omzet-report-fallback"', false)
+            ->assertDontSee('downloadLink.click()', false)
             ->assertSee('id="admin-theme-toggle"', false)
             ->assertSee('djajan-admin-theme', false)
+            ->assertSee('id="sidebar-collapse-toggle"', false)
+            ->assertSee('id="mobile-sidebar-toggle"', false)
+            ->assertSee('id="sidebar-footer"', false)
+            ->assertSee('djajan-admin-sidebar', false)
+            ->assertSee('title="Data UMKM"', false)
             ->assertSee('trend-chart', false)
             ->assertSee('comparison-chart', false)
             ->assertSee('Produk terlaris')
@@ -226,6 +410,17 @@ class OmzetDashboardTest extends TestCase
             ->assertDontSee('Pesanan dibatalkan/ditolak')
             ->assertDontSee('Refund menunggu')
             ->assertDontSee('Refund berhasil');
+    }
+
+    private function pdfContents(TestResponse $response): string
+    {
+        $content = $response->baseResponse instanceof BinaryFileResponse
+            ? file_get_contents($response->baseResponse->getFile()->getPathname())
+            : $response->getContent();
+
+        $this->assertIsString($content);
+
+        return $content;
 
         $url = '/admin/omzet-data?mulai=2026-11-12&akhir=2026-11-12';
         $this->getJson($url)->assertJsonPath('statistics.total_omzet', 0);

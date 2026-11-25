@@ -57,6 +57,7 @@ Route::middleware(['auth', 'administrator'])
 
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/omzet-data', [DashboardController::class, 'data'])->name('omzet.data');
+        Route::get('/omzet-laporan.pdf', [DashboardController::class, 'reportPdf'])->name('omzet.report.pdf');
         Route::get('/notifications/pending-verifications', [NotificationController::class, 'pendingVerifications'])
             ->name('notifications.pending-verifications');
 
