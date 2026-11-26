@@ -7,6 +7,7 @@ use App\Models\Pesanan;
 use App\Models\Produk;
 use App\Services\MidtransService;
 use App\Services\OrderCancellationService;
+use App\Services\StockReservationService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +38,7 @@ class PesananController extends Controller
 
         // Auto-sync hingga 5 pesanan Midtrans pending terbaru milik UMKM ini
         $pendingOrders = Pesanan::where('id_umkm', $idUmkm)
-            ->where('metode_pembayaran', 'midtrans')
+            ->whereIn('metode_pembayaran', ['qris', 'midtrans'])
             ->where(function ($q) {
                 $q->where('payment_status', 'pending')
                   ->orWhere('status_pembayaran', 'pending')
@@ -96,7 +97,7 @@ class PesananController extends Controller
 
     private function syncPaymentStatus(Pesanan $order, MidtransService $midtransService): void
     {
-        if ($order->metode_pembayaran !== 'midtrans'
+        if (!in_array($order->metode_pembayaran, ['qris', 'midtrans'], true)
             || in_array($order->payment_status, ['paid', 'failed'], true)) {
             return;
         }
@@ -194,7 +195,15 @@ class PesananController extends Controller
 
         try {
             DB::transaction(function () use ($pesanan, $status, $request) {
-                $statusLama = $pesanan->status_pesanan;
+                if ($status === 'ditolak') {
+                    app(OrderCancellationService::class)->cancelOrder(
+                        $pesanan,
+                        'umkm',
+                        trim((string) $request->input('alasan', 'Pesanan ditolak oleh penjual.'))
+                    );
+                    return;
+                }
+
                 $pesanan->status_pesanan = $status;
 
                 if ($status === 'diantar') {
@@ -204,38 +213,48 @@ class PesananController extends Controller
                 }
 
                 if ($status === 'diterima') {
-                    // Validasi ketersediaan stok fisik sebelum pesanan diterima
+                    $productIds = $pesanan->items
+                        ->pluck('id_produk')
+                        ->filter()
+                        ->map(static fn ($id): int => (int) $id)
+                        ->unique()
+                        ->values()
+                        ->all();
+                    $lockedProducts = Produk::query()
+                        ->whereIn('id_produk', $productIds)
+                        ->orderBy('id_produk')
+                        ->lockForUpdate()
+                        ->get()
+                        ->keyBy('id_produk');
+                    $stockRequests = [];
                     foreach ($pesanan->items as $item) {
                         if ($item->id_produk !== null) {
-                            $prod = Produk::find($item->id_produk);
-                            if ($prod) {
-                                $mode = strtolower(str_replace(['-', '_', ' '], '', (string) $prod->mode_penjualan));
-                                if ($mode !== 'preorder' && $prod->stok < (int) $item->jumlah) {
-                                    throw new \RuntimeException(
-                                        'Stok produk "' . $prod->nama_produk . '" tidak mencukupi (sisa ' . $prod->stok . ', dipesan ' . $item->jumlah . '). Tambah stok atau tolak pesanan.'
-                                    );
-                                }
+                            $productId = (int) $item->id_produk;
+                            $product = $lockedProducts->get($productId);
+                            $mode = strtolower(str_replace(['-', '_', ' '], '', (string) $product?->mode_penjualan));
+                            $isPreorder = $item->jenis_pesanan !== null
+                                ? $item->jenis_pesanan === 'preorder'
+                                : $mode === 'preorder';
+                            if ($product && !$isPreorder) {
+                                $stockRequests[$productId] = ($stockRequests[$productId] ?? 0) + (int) $item->jumlah;
                             }
                         }
                     }
 
-                    $driver = DB::connection()->getDriverName();
-                    foreach ($pesanan->items as $item) {
-                        if ($item->id_produk !== null) {
-                            $rawExpr = $driver === 'sqlite'
-                                ? 'MAX(stok - ' . (int) $item->jumlah . ', 0)'
-                                : 'GREATEST(stok - ' . (int) $item->jumlah . ', 0)';
-                            Produk::where('id_produk', $item->id_produk)
-                                ->update(['stok' => DB::raw($rawExpr)]);
+                    $reservedQuantities = app(StockReservationService::class)
+                        ->reservedReadyStock(array_keys($stockRequests));
+                    foreach ($stockRequests as $productId => $requested) {
+                        $product = $lockedProducts->get($productId);
+                        $reserved = $reservedQuantities[$productId] ?? 0;
+                        if (!$product || (int) $product->stok < $reserved) {
+                            throw new \RuntimeException(
+                                'Stok produk "' . ($product?->nama_produk ?? 'tidak diketahui') .
+                                '" tidak mencukupi untuk pesanan yang sedang menunggu. Tambah stok atau tolak pesanan.'
+                            );
                         }
+                        Produk::where('id_produk', $productId)->decrement('stok', $requested);
                     }
                     $pesanan->save();
-                } elseif ($status === 'ditolak') {
-                    app(OrderCancellationService::class)->cancelOrder(
-                        $pesanan,
-                        'umkm',
-                        trim((string) $request->input('alasan', 'Pesanan ditolak oleh penjual.'))
-                    );
                 } else {
                     $pesanan->save();
                 }

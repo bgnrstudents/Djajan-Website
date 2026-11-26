@@ -66,12 +66,12 @@ class UlasanTest extends TestCase
             'komentar' => 'Jajanannya enak dan fresh banget!',
         ]);
 
-        // Verifikasi endpoint get ulasan UMKM
+        // Ulasan pesanan lama tidak ditampilkan seolah-olah menilai produk tertentu.
         $getRes = $this->getJson("/api/umkm/ulasan?id_umkm={$umkm->id_umkm}");
         $getRes->assertStatus(200)
             ->assertJsonPath('sukses', true)
-            ->assertJsonPath('data.rata_rata', 5)
-            ->assertJsonPath('data.total_ulasan', 1);
+            ->assertJsonPath('data.rata_rata', 0)
+            ->assertJsonPath('data.total_ulasan', 0);
     }
 
     public function test_cannot_review_order_that_is_not_completed(): void

@@ -22,4 +22,14 @@ class UlasanProduk extends Model
     {
         return $this->belongsTo(DetailPesanan::class, 'id_detail', 'id_detail');
     }
+
+    public function produk(): BelongsTo
+    {
+        return $this->belongsTo(Produk::class, 'id_produk', 'id_produk');
+    }
+
+    public function pelanggan(): BelongsTo
+    {
+        return $this->belongsTo(Pelanggan::class, 'id_pelanggan', 'id_pelanggan');
+    }
 }

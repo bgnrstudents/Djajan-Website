@@ -41,6 +41,16 @@ class ProductReviewTest extends TestCase
         $this->getJson('/api/katalog')
             ->assertOk()
             ->assertJsonPath('data.produk.0.rating', 5);
+
+        $this->getJson('/api/umkm/ulasan?id_umkm=' . $product->id_umkm)
+            ->assertOk()
+            ->assertJsonPath('data.total_ulasan', 1)
+            ->assertJsonPath('data.daftar_ulasan.0.id_pesanan', $order->id_pesanan)
+            ->assertJsonPath('data.daftar_ulasan.0.id_produk', $product->id_produk)
+            ->assertJsonPath('data.daftar_ulasan.0.nama_produk', $product->nama_produk)
+            ->assertJsonPath('data.daftar_ulasan.0.nama_pelanggan', $customer->nama)
+            ->assertJsonPath('data.daftar_ulasan.0.rating', 5)
+            ->assertJsonPath('data.daftar_ulasan.0.komentar', 'Enak dan dikemas dengan baik.');
     }
 
     public function test_customer_can_edit_but_not_duplicate_a_product_review(): void

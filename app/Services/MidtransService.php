@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\QrisPaymentException;
 use Illuminate\Support\Facades\Http;
 
 class MidtransService
@@ -48,7 +49,7 @@ class MidtransService
     {
         $serverKey = $this->serverKey();
         if ($serverKey === '') {
-            throw new \RuntimeException('MIDTRANS_SERVER_KEY belum diatur di environment.');
+            throw new QrisPaymentException('QRIS payment gateway is not configured.', 503);
         }
 
         $isProduction = (bool) config('services.midtrans.is_production');
@@ -56,17 +57,11 @@ class MidtransService
         $isProductionKey = str_starts_with($serverKey, 'Mid-server-');
 
         if (!$isProduction && !$isSandboxKey) {
-            throw new \RuntimeException(
-                'MIDTRANS_IS_PRODUCTION=false membutuhkan Sandbox Server Key '
-                . '(diawali SB-Mid-server-).'
-            );
+            throw new QrisPaymentException('QRIS sandbox credentials are invalid.', 503);
         }
 
         if ($isProduction && !$isProductionKey) {
-            throw new \RuntimeException(
-                'MIDTRANS_IS_PRODUCTION=true membutuhkan Production Server Key '
-                . '(diawali Mid-server-).'
-            );
+            throw new QrisPaymentException('QRIS production credentials are invalid.', 503);
         }
 
         $endpoint = $isProduction
@@ -85,6 +80,7 @@ class MidtransService
                 'order_id' => $orderId,
                 'gross_amount' => $amount,
             ],
+            'enabled_payments' => ['qris'],
             'item_details' => $items,
             'customer_details' => [
                 'first_name' => $customer['first_name'] ?? 'Pelanggan',
@@ -109,12 +105,12 @@ class MidtransService
                 'message' => $message,
                 'body' => $response->body(),
             ]);
-            throw new \RuntimeException($message);
+            throw new QrisPaymentException('QRIS transaction request failed.', 503);
         }
 
         $payload = $response->json();
         if (!is_array($payload)) {
-            throw new \RuntimeException('Respons Midtrans tidak valid.');
+            throw new QrisPaymentException('QRIS payment gateway returned an invalid response.', 503);
         }
 
         return [
