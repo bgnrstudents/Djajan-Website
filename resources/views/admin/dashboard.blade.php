@@ -663,6 +663,10 @@
                     credentials: 'same-origin',
                     signal: state.requestController.signal
                 });
+                if (response.status === 401 || response.status === 419 || response.redirected) {
+                    window.location.assign('{{ route('login') }}');
+                    return;
+                }
                 if (!response.ok) throw new Error(`Permintaan data gagal (${response.status})`);
                 render(await response.json());
                 document.getElementById('live-indicator').className = 'h-2 w-2 rounded-full bg-green-500';

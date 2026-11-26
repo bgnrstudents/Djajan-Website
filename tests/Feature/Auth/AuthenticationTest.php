@@ -58,4 +58,22 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect('/');
     }
+
+    public function test_admin_session_lifetime_is_one_hour_and_remember_me_is_disabled(): void
+    {
+        $this->assertSame(60, (int) config('session.lifetime'));
+
+        $this->get('/login')->assertOk()->assertDontSee('name="remember"', false);
+
+        $user = User::factory()->create(['remember_token' => null]);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'remember' => '1',
+        ])->assertRedirect('/admin');
+
+        $this->assertAuthenticated();
+        $this->assertNull($user->fresh()->remember_token);
+    }
 }

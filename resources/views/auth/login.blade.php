@@ -141,19 +141,6 @@
                         <x-input-error :messages="$errors->get('password')" class="mt-1.5" />
                     </div>
 
-                    <!-- Remember Me -->
-                    <div class="flex items-center justify-between pt-1">
-                        <label for="remember_me" class="inline-flex items-center cursor-pointer">
-                            <input 
-                                id="remember_me" 
-                                type="checkbox" 
-                                name="remember" 
-                                class="login-checkbox w-4 h-4 rounded border-gray-300 text-[#0F623F] focus:ring-[#0F623F]"
-                            >
-                            <span class="ms-2 text-xs font-medium text-gray-600">Ingat Saya</span>
-                        </label>
-                    </div>
-
                     <!-- Submit Button -->
                     <div class="pt-2">
                         <button
