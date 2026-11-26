@@ -88,6 +88,35 @@ class OmzetDashboardTest extends TestCase
             ]);
     }
 
+    public function test_analitik_memisahkan_komisi_dari_omzet_produk_tanpa_menghitung_ganda(): void
+    {
+        $this->buatPesanan('PO-GROSS', $this->warungA, '2026-11-12', [10000, 15000]);
+        Pesanan::where('id_pesanan', 'PO-GROSS')->update(['biaya_layanan' => 750]);
+
+        $response = $this->actingAs($this->admin)->getJson('/admin/omzet-data?mulai=2026-11-01&akhir=2026-11-30');
+
+        $response->assertOk()
+            ->assertJsonPath('statistics.total_omzet', 25000)
+            ->assertJsonPath('statistics.total_bagian_umkm', 25000)
+            ->assertJsonPath('statistics.total_komisi_platform', 750)
+            ->assertJsonPath('statistics.rata_rata_transaksi', 25000)
+            ->assertJsonPath('recent_orders.0.omzet_produk', 25000)
+            ->assertJsonPath('recent_orders.0.komisi_platform', 750);
+
+        $report = app(AdminOmzetDashboard::class)->report('2026-11-01', '2026-11-30');
+        $this->assertSame(25000, $report['statistics']['total_omzet']);
+        $this->assertSame(25000, $report['statistics']['total_bagian_umkm']);
+        $this->assertSame(750, $report['statistics']['total_komisi_platform']);
+        $this->assertSame(750, $report['transactions'][0]['komisi_platform']);
+
+        $this->actingAs($this->admin)
+            ->get('/admin')
+            ->assertOk()
+            ->assertSee('Pendapatan platform')
+            ->assertSee('Omzet produk UMKM')
+            ->assertSee('Biaya layanan');
+    }
+
     public function test_laporan_pdf_menggunakan_angka_dashboard_dan_hanya_memuat_pesanan_yang_memenuhi_kriteria_omzet(): void
     {
         $this->buatCheckout('CHK-MULTI', 65000);
@@ -325,6 +354,10 @@ class OmzetDashboardTest extends TestCase
     public function test_ringkasan_umkm_hanya_menghitung_produk_dari_pesanannya_yang_lunas_dan_selesai(): void
     {
         $this->buatPesanan('PO-OWNER-COMPLETE', $this->warungA, '2026-11-12', [15000, 15000]);
+        Pesanan::where('id_pesanan', 'PO-OWNER-COMPLETE')->update([
+            'biaya_layanan' => 900,
+            'metode_pembayaran' => 'midtrans',
+        ]);
         $this->buatPesanan('PO-OWNER-PROCESSING', $this->warungA, '2026-11-12', [100000], 'paid', 'diproses');
         $this->buatPesanan('PO-OWNER-UNPAID', $this->warungA, '2026-11-12', [80000], 'pending');
         $this->buatPesanan('PO-OWNER-REFUNDED', $this->warungA, '2026-11-12', [50000], 'paid', 'selesai', 'refund_berhasil');
@@ -335,8 +368,13 @@ class OmzetDashboardTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.pesanan_diterima', 1)
             ->assertJsonPath('data.omzet_diterima', 30000)
+            ->assertJsonPath('data.omzet_kotor_diterima', 30000)
+            ->assertJsonPath('data.komisi_semua_waktu', 900)
             ->assertJsonPath('data.total_pesanan_periode', 1)
             ->assertJsonPath('data.omzet_periode', 30000)
+            ->assertJsonPath('data.komisi_periode', 900)
+            ->assertJsonPath('data.omzet_digital_periode', 30000)
+            ->assertJsonPath('data.saldo_digital_siap_cair', 30000)
             ->assertJsonPath('data.jumlah_produk_terjual', 2)
             ->assertJsonPath('data.rata_rata_transaksi', 30000)
             ->assertJsonPath('data.pesanan_belum_selesai', 1)
@@ -353,8 +391,8 @@ class OmzetDashboardTest extends TestCase
         $data = app(AdminOmzetDashboard::class)->data('2026-11-01', '2026-11-12');
         $this->assertSame(20000, $data['statistics']['total_omzet']);
         $this->assertSame(1500, $data['statistics']['total_komisi_platform']);
-        $this->assertSame(20000, $data['statistics']['total_pendapatan_umkm']);
-        $this->assertSame(20000, $data['recent_orders'][0]['pendapatan_umkm']);
+        $this->assertSame(20000, $data['statistics']['total_bagian_umkm']);
+        $this->assertSame(20000, $data['recent_orders'][0]['omzet_produk']);
         $this->assertSame(1500, $data['recent_orders'][0]['komisi_platform']);
 
         $this->actingAs($this->warungA, 'sanctum')
@@ -424,6 +462,8 @@ class OmzetDashboardTest extends TestCase
             ->assertSee('comparison-chart', false)
             ->assertSee('Produk terlaris')
             ->assertSee('Pesanan UMKM terbaru')
+            ->assertSee('Pendapatan platform')
+            ->assertSee('Omzet produk UMKM')
             ->assertDontSee('UMKM menghasilkan')
             ->assertDontSee('Memiliki transaksi berhasil')
             ->assertDontSee('Pesanan belum selesai')

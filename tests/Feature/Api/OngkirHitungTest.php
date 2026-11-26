@@ -223,6 +223,37 @@ class OngkirHitungTest extends TestCase
         $this->assertEquals(45500, $historyResponse->json('data.total_harga')); // (2 * 20.000) + 4.000 + 1.500 (biaya layanan flat)
     }
 
+    public function test_checkout_mengenakan_biaya_layanan_flat_1500_pada_transaksi_kecil_satu_kali(): void
+    {
+        $produk = Produk::create([
+            'id_umkm' => $this->umkm->id_umkm,
+            'nama_produk' => 'Jajanan Kecil',
+            'harga' => 5000,
+            'stok' => 10,
+            'status_ketersediaan' => true,
+            'mode_penjualan' => 'instant',
+        ]);
+
+        $response = $this->actingAs($this->pelanggan, 'sanctum')
+            ->postJson('/api/pesanan/checkout', [
+                'metode_pembayaran' => 'cod',
+                'groups' => [
+                    [
+                        'id_umkm' => $this->umkm->id_umkm,
+                        'metode_pengiriman' => 'pickup',
+                        'items' => [
+                            ['id_produk' => $produk->id_produk, 'jumlah' => 1],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.total_harga', 6500)
+            ->assertJsonPath('data.orders.0.biaya_layanan', 1500)
+            ->assertJsonPath('data.orders.0.total_harga', 6500);
+    }
+
     public function test_fallback_koordinat_kreyongan_dan_tarif_kurir_dinamis(): void
     {
         // UMKM baru tanpa koordinat dan tanpa zona ongkir (null coords, flat fee 0)

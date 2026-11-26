@@ -50,7 +50,7 @@ class DashboardController extends Controller
             ->whereIn('id_pesanan', clone $idPesananPeriode)
             ->sum('subtotal');
         $komisiPeriode = (int) (clone $pesananPeriode)->sum('biaya_layanan');
-        $omzetBersihPeriode = $omzetKotorPeriode;
+        $omzetProdukPeriode = $omzetKotorPeriode;
 
         // Breakdown Periode: COD vs Digital
         $idPesananCodPeriode = (clone $pesananPeriode)
@@ -93,7 +93,7 @@ class DashboardController extends Controller
             ->whereIn('id_pesanan', clone $idPesananSemuaWaktu)
             ->sum('subtotal');
         $komisiSemuaWaktu = (int) (clone $pesananLunasSelesaiSemuaWaktu)->sum('biaya_layanan');
-        $omzetBersihSemuaWaktu = $omzetKotorSemuaWaktu;
+        $omzetProdukSemuaWaktu = $omzetKotorSemuaWaktu;
         $jumlahPesananLunasSelesai = (clone $pesananLunasSelesaiSemuaWaktu)->count();
 
         // Breakdown Semua Waktu: COD vs Digital
@@ -117,8 +117,8 @@ class DashboardController extends Controller
             ->where('metode_pembayaran', '!=', 'cod')
             ->sum('biaya_layanan');
 
-        // Biaya layanan Rp 1.500 dibebankan ke pelanggan; omzet produk UMKM utuh 100%
-        $saldoDigitalBersih = $omzetDigitalSemuaWaktu;
+        // Biaya layanan Rp 1.500/checkout dibayar oleh pembeli; omzet produk UMKM utuh 100%.
+        $saldoDigitalBersih = max(0, $omzetDigitalSemuaWaktu);
         $saldoDigitalSiapCair = $saldoDigitalBersih;
         $sisaKewajibanCod = 0;
 
@@ -128,13 +128,13 @@ class DashboardController extends Controller
             'stok_habis' => Produk::where('id_umkm', $idUmkm)->where('stok', 0)->where('mode_penjualan', '!=', 'pre_order')->count(),
             'pesanan_baru' => Pesanan::where('id_umkm', $idUmkm)->where('status_pesanan', 'po_baru')->count(),
             'pesanan_diterima' => $jumlahPesananLunasSelesai,
-            'omzet_diterima' => $omzetBersihSemuaWaktu,
+            'omzet_diterima' => $omzetProdukSemuaWaktu,
             'omzet_kotor_diterima' => $omzetKotorSemuaWaktu,
             'komisi_semua_waktu' => $komisiSemuaWaktu,
             'periode_mulai' => $mulai,
             'periode_akhir' => $akhir,
             'total_pesanan_periode' => $jumlahPesananPeriode,
-            'omzet_periode' => $omzetBersihPeriode,
+            'omzet_periode' => $omzetProdukPeriode,
             'omzet_kotor_periode' => $omzetKotorPeriode,
             'komisi_periode' => $komisiPeriode,
             'omzet_cod_periode' => $omzetCodPeriode,
@@ -151,7 +151,7 @@ class DashboardController extends Controller
             'pesan_peringatan_cod' => null,
             'jumlah_produk_terjual' => $jumlahProdukTerjual,
             'rata_rata_transaksi' => $jumlahPesananPeriode > 0
-                ? (int) round($omzetBersihPeriode / $jumlahPesananPeriode)
+                ? (int) round($omzetProdukPeriode / $jumlahPesananPeriode)
                 : 0,
             'pesanan_belum_selesai' => (int) $pengecualian->pesanan_belum_selesai,
             'pesanan_dibatalkan' => (int) $pengecualian->pesanan_dibatalkan,

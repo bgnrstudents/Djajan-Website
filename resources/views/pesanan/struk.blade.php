@@ -107,7 +107,7 @@
                 <span>{{ $pesanan->biaya_pengantaran > 0 ? 'Rp ' . number_format($pesanan->biaya_pengantaran, 0, ',', '.') : 'Gratis' }}</span>
             </div>
             <div class="summary-row">
-                <span>Biaya Layanan:</span>
+                <span>Biaya Layanan Aplikasi:</span>
                 <span>{{ $pesanan->biaya_layanan > 0 ? 'Rp ' . number_format($pesanan->biaya_layanan, 0, ',', '.') : 'Gratis' }}</span>
             </div>
             <div class="summary-row total">
