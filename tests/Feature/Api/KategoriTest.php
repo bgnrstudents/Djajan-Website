@@ -14,10 +14,17 @@ class KategoriTest extends TestCase
     {
         Kategori::create(['nama' => 'Nonaktif Uji', 'slug' => 'nonaktif-uji', 'aktif' => false]);
 
-        $this->getJson('/api/kategori')
+        $response = $this->getJson('/api/kategori')
             ->assertOk()
             ->assertJsonMissing(['nama' => 'Nonaktif Uji'])
-            ->assertJsonFragment(['nama' => 'Makanan', 'slug' => 'makanan', 'aktif' => true]);
+            ->assertJsonMissing(['nama' => 'Sembako'])
+            ->assertJsonMissing(['nama' => 'Camilan'])
+            ->assertJsonFragment(['nama' => 'Makanan', 'slug' => 'makanan', 'aktif' => true])
+            ->assertJsonFragment(['nama' => 'Minuman', 'slug' => 'minuman', 'aktif' => true])
+            ->assertJsonFragment(['nama' => 'Kue', 'slug' => 'kue', 'aktif' => true])
+            ->assertJsonFragment(['nama' => 'Cemilan', 'slug' => 'cemilan', 'aktif' => true]);
+
+        $this->assertCount(4, $response->json('data'));
     }
 
     public function test_duplicate_category_name_is_rejected_by_database(): void

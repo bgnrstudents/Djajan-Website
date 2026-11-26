@@ -175,16 +175,53 @@ class PelangganSettingsController extends Controller
         if (!$pelanggan instanceof Pelanggan) {
             return $this->gagal('Sesi pelanggan tidak valid.', 401);
         }
-        $email = trim((string) $request->input('email'));
-        if ($email !== '' && Pelanggan::where('email', $email)
-            ->where('id_pelanggan', '!=', $pelanggan->id_pelanggan)->exists()) {
+
+        $nomor = $this->normalizePhone((string) $request->input('no_telp'));
+        if (!preg_match('/^08[1-9][0-9]{6,12}$/', $nomor)) {
+            return $this->gagal(
+                'Nomor handphone harus berupa angka yang valid (contoh: 081234567890).',
+                400,
+                ['field' => 'no_telp']
+            );
+        }
+
+        $email = mb_strtolower(trim((string) $request->input('email')));
+        if ($email !== '' && (
+            Pelanggan::whereRaw('LOWER(email) = ?', [$email])
+                ->where('id_pelanggan', '!=', $pelanggan->id_pelanggan)->exists()
+            || Umkm::whereRaw('LOWER(email_usaha) = ?', [$email])
+                ->where(function ($q) use ($pelanggan) {
+                    $q->whereNull('id_pelanggan')
+                      ->orWhere('id_pelanggan', '!=', $pelanggan->id_pelanggan);
+                })->exists()
+        )) {
             return $this->gagal('Email sudah digunakan akun lain.', 409, ['field' => 'email']);
+        }
+
+        $pelangganLain = Pelanggan::where('id_pelanggan', '!=', $pelanggan->id_pelanggan)
+            ->get(['id_pelanggan', 'no_telp']);
+        foreach ($pelangganLain as $other) {
+            if ($other->no_telp !== null && $other->no_telp !== ''
+                && $this->normalizePhone((string) $other->no_telp) === $nomor) {
+                return $this->gagal('Nomor handphone sudah digunakan akun lain.', 409, ['field' => 'no_telp']);
+            }
+        }
+
+        $umkmLain = Umkm::where(function ($q) use ($pelanggan) {
+            $q->whereNull('id_pelanggan')
+              ->orWhere('id_pelanggan', '!=', $pelanggan->id_pelanggan);
+        })->get(['id_umkm', 'no_telp_usaha']);
+        foreach ($umkmLain as $otherUmkm) {
+            if ($otherUmkm->no_telp_usaha !== null && $otherUmkm->no_telp_usaha !== ''
+                && $this->normalizePhone((string) $otherUmkm->no_telp_usaha) === $nomor) {
+                return $this->gagal('Nomor handphone sudah terdaftar di akun UMKM lain.', 409, ['field' => 'no_telp']);
+            }
         }
 
         $pelanggan->update([
             'nama' => trim((string) $request->input('nama')),
-            'email' => $email !== '' ? mb_strtolower($email) : null,
-            'no_telp' => $this->normalizePhone((string) $request->input('no_telp')),
+            'email' => $email !== '' ? $email : null,
+            'no_telp' => $nomor,
         ]);
 
         return $this->sukses('Profil berhasil diperbarui.', $this->profileData($pelanggan->fresh()));

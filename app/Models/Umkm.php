@@ -98,6 +98,7 @@ class Umkm extends Authenticatable
             'foto_profil'         => $this->foto_profil,
             'foto_profil_url'     => UploadFoto::url($this->foto_profil, 'profil'),
             'status_verifikasi'   => $this->status_verifikasi,
+            'has_password'        => !empty($this->password) || !empty($this->pelanggan?->password),
             'toko_aktif'          => (bool) $this->toko_aktif,
             'transfer_bank_aktif' => (bool) $this->transfer_bank_aktif,
             'bank_kode'           => $this->bank_kode,

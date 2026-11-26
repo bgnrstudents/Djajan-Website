@@ -137,6 +137,144 @@ class LoginTest extends TestCase
         $this->assertNotEquals(hash('sha256', 'password123'), $umkm->password);
     }
 
+    public function test_customer_profile_update_rejects_invalid_and_duplicate_phone(): void
+    {
+        $owner1 = \App\Models\Pelanggan::create([
+            'nama' => 'Budi Santoso',
+            'email' => 'budi@example.com',
+            'password' => Hash::make('Rahasia123'),
+            'no_telp' => '081234567890',
+        ]);
+
+        \App\Models\Pelanggan::create([
+            'nama' => 'Siti Aminah',
+            'email' => 'siti@example.com',
+            'password' => Hash::make('Rahasia123'),
+            'no_telp' => '081298765432',
+        ]);
+
+        $token = $owner1->createToken('test-customer', ['pelanggan'])->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson('/api/pelanggan/profil_update', [
+                'nama' => 'Budi Santoso',
+                'no_telp' => '0812😀abc',
+            ])
+            ->assertStatus(400);
+
+        $this->withToken($token)
+            ->postJson('/api/pelanggan/profil_update', [
+                'nama' => 'Budi Santoso',
+                'no_telp' => '+6281298765432',
+            ])
+            ->assertStatus(409);
+
+        $this->withToken($token)
+            ->postJson('/api/pelanggan/profil_update', [
+                'nama' => 'Budi Santoso',
+                'no_telp' => '081311112222',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.no_telp', '081311112222');
+    }
+
+    public function test_umkm_profile_update_rejects_non_numeric_whatsapp(): void
+    {
+        $umkm = $this->buatUmkm('Warung Validasi', 'terverifikasi');
+        $token = $umkm->createToken('test-umkm', ['umkm'])->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson('/api/profil_update', [
+                'nama_usaha' => 'Warung Validasi',
+                'spesialisasi' => 'Makanan, Minuman',
+                'no_telp_usaha' => '0812abc999',
+            ])
+            ->assertStatus(400);
+
+        $this->withToken($token)
+            ->postJson('/api/profil_update', [
+                'nama_usaha' => 'Warung Validasi Baru',
+                'spesialisasi' => 'Makanan, Minuman',
+                'no_telp_usaha' => '081344445555',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.no_telp_usaha', '081344445555');
+    }
+
+    public function test_umkm_update_password_syncs_owner_and_supports_google_first_setup(): void
+    {
+        $owner = \App\Models\Pelanggan::create([
+            'nama' => 'Pemilik Toko',
+            'email' => 'pemilik@example.com',
+            'password' => Hash::make('OldPass123'),
+            'no_telp' => '081233334444',
+        ]);
+
+        $umkm = $this->buatUmkm('Warung Pemilik', 'terverifikasi');
+        $umkm->update([
+            'id_pelanggan' => $owner->id_pelanggan,
+            'password' => null,
+        ]);
+
+        $token = $umkm->createToken('test-umkm', ['umkm'])->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson('/api/profil_password', [
+                'password_lama' => 'OldPass123',
+                'password_baru' => 'NewPass123',
+                'password_baru_confirmation' => 'NewPass123',
+            ])
+            ->assertOk();
+
+        $owner->refresh();
+        $umkm->refresh();
+        $this->assertTrue(Hash::check('NewPass123', $umkm->password));
+        $this->assertTrue(Hash::check('NewPass123', $owner->password));
+        $this->assertTrue((bool) $umkm->keFormatJson()['has_password']);
+    }
+
+    public function test_umkm_update_password_allows_google_owner_without_existing_password(): void
+    {
+        // Google-registered owner with no existing password on either table
+        $googleOwner = \App\Models\Pelanggan::create([
+            'nama' => 'Akun Google',
+            'email' => 'google-owner@example.com',
+            'password' => null,
+            'auth_provider' => 'google',
+            'google_sub' => 'google-sub-123',
+            'no_telp' => '081255556666',
+        ]);
+
+        $googleUmkm = Umkm::create([
+            'id_pelanggan' => $googleOwner->id_pelanggan,
+            'nama_usaha' => 'Warung Google',
+            'nama_pemilik' => 'Akun Google',
+            'username' => 'warunggoogle',
+            'email_usaha' => 'google-owner@example.com',
+            'no_telp_usaha' => '081255556666',
+            'password' => null,
+            'alamat_usaha' => 'Jl. Mawar',
+            'status_verifikasi' => 'terverifikasi',
+            'toko_aktif' => true,
+        ]);
+
+        $this->assertFalse((bool) $googleUmkm->keFormatJson()['has_password']);
+
+        $googleToken = $googleUmkm->createToken('test-umkm-google', ['umkm'])->plainTextToken;
+        $this->withToken($googleToken)
+            ->postJson('/api/profil_password', [
+                'password_baru' => 'SetupPass123',
+                'password_baru_confirmation' => 'SetupPass123',
+            ])
+            ->assertOk();
+
+        $googleOwner->refresh();
+        $googleUmkm->refresh();
+        $this->assertTrue(Hash::check('SetupPass123', $googleUmkm->password));
+        $this->assertTrue(Hash::check('SetupPass123', $googleOwner->password));
+        $this->assertTrue((bool) $googleUmkm->keFormatJson()['has_password']);
+    }
+
     private function buatUmkm(string $nama, string $status): Umkm
     {
         static $index = 0;

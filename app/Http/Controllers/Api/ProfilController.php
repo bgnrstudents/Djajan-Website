@@ -88,6 +88,14 @@ class ProfilController extends Controller
             return $this->gagal('Nama usaha tidak boleh kosong.', 400);
         }
 
+        if ($request->has('no_telp_usaha') && trim((string) $request->input('no_telp_usaha')) !== '') {
+            $nomorNormal = ValidasiUmkm::normalisasiNomor((string) $request->input('no_telp_usaha'));
+            if (! preg_match('/^08[1-9][0-9]{6,12}$/', $nomorNormal)) {
+                return $this->gagal('Nomor WhatsApp usaha harus berupa angka valid (contoh: 081234567890).', 400, ['field' => 'no_telp_usaha']);
+            }
+            $umkm->no_telp_usaha = $nomorNormal;
+        }
+
         // Nama usaha / nomor WhatsApp tidak boleh sama dengan akun UMKM lain.
         // Hanya dicek kalau nilainya benar-benar berubah dari yang tersimpan.
         $namaBerubah  = $request->has('nama_usaha')
@@ -175,21 +183,41 @@ class ProfilController extends Controller
 
     public function updatePassword(Request $request): JsonResponse
     {
-        $request->validate([
-            'password_lama' => ['required', 'string'],
+        $umkm = $request->user();
+        $pelanggan = $umkm->pelanggan;
+
+        $umkmHash = (string) ($umkm->password ?? '');
+        $pelangganHash = (string) ($pelanggan->password ?? '');
+        $hasExistingPassword = $umkmHash !== '' || $pelangganHash !== '';
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'password_lama' => $hasExistingPassword ? ['required', 'string'] : ['nullable', 'string'],
             'password_baru' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
-        $umkm = $request->user();
-        $lama = (string) $request->input('password_lama');
-        $tersimpan = (string) $umkm->password;
-        $isLegacySha256 = strlen($tersimpan) === 64
-            && ctype_xdigit($tersimpan)
-            && hash_equals($tersimpan, hash('sha256', $lama));
-        $valid = $isLegacySha256 || ($tersimpan !== '' && Hash::check($lama, $tersimpan));
-        if (!$valid) {
-            return $this->gagal('Kata sandi lama tidak sesuai.', 400);
+
+        if ($validator->fails()) {
+            return $this->gagal($validator->errors()->first(), 400);
         }
-        $umkm->update(['password' => Hash::make((string) $request->input('password_baru'))]);
+
+        if ($hasExistingPassword) {
+            $lama = (string) $request->input('password_lama', '');
+            $isLegacySha256 = strlen($umkmHash) === 64
+                && ctype_xdigit($umkmHash)
+                && hash_equals($umkmHash, hash('sha256', $lama));
+            $validUmkm = $isLegacySha256 || ($umkmHash !== '' && Hash::check($lama, $umkmHash));
+            $validPelanggan = $pelangganHash !== '' && Hash::check($lama, $pelangganHash);
+
+            if (! $validUmkm && ! $validPelanggan) {
+                return $this->gagal('Kata sandi lama tidak sesuai.', 400);
+            }
+        }
+
+        $newHash = Hash::make((string) $request->input('password_baru'));
+        $umkm->update(['password' => $newHash]);
+        if ($pelanggan) {
+            $pelanggan->update(['password' => $newHash]);
+        }
+
         return $this->sukses('Kata sandi berhasil diperbarui.');
     }
 }
