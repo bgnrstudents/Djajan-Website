@@ -226,10 +226,10 @@
                 <h2 class="text-base font-bold text-djajan-neutral">Peringkat omzet UMKM</h2>
                 <p class="mt-0.5 text-xs text-gray-500">Diurutkan dari omzet tertinggi; hanya UMKM terverifikasi yang ditampilkan.</p>
             </div>
-            <label class="relative w-full sm:w-72">
+            <label class="flex items-center gap-2.5 w-full sm:w-72 rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2 focus-within:border-djajan-primary focus-within:bg-white focus-within:ring-2 focus-within:ring-djajan-primary/20 transition-colors">
                 <span class="sr-only">Cari nama UMKM</span>
-                <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
-                <input id="umkm-search" type="search" value="{{ $analytics['filters']['search'] }}" placeholder="Cari nama UMKM..." class="w-full rounded-xl border-gray-200 bg-gray-50/70 py-2 pl-9 pr-3 text-sm focus:border-djajan-primary focus:bg-white focus:ring-djajan-primary">
+                <svg class="shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                <input id="umkm-search" type="search" value="{{ $analytics['filters']['search'] }}" placeholder="Cari nama UMKM..." class="admin-search-input w-full min-w-0 border-0 bg-transparent p-0 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0">
             </label>
         </div>
         <div class="overflow-x-auto">

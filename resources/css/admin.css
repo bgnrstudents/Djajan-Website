@@ -236,6 +236,12 @@ body.admin-shell textarea:focus {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-primary) 16%, transparent);
 }
 
+body.admin-shell input.admin-search-input:focus {
+    outline: none;
+    border-color: transparent;
+    box-shadow: none;
+}
+
 body.admin-shell table {
     color: var(--admin-text);
 }

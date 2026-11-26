@@ -232,13 +232,13 @@
                     </button>
 
                     {{-- Search Bar Global --}}
-                    <div class="hidden md:flex items-center gap-2 flex-1 max-w-md">
-                        <div class="relative flex-1">
-                            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <div class="hidden md:flex items-center flex-1 max-w-md">
+                        <div class="flex items-center gap-2.5 w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus-within:bg-white focus-within:ring-2 focus-within:ring-djajan-primary/20 focus-within:border-djajan-primary transition-colors">
+                            <svg class="shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <circle cx="11" cy="11" r="8"></circle>
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
-                            <input type="text" placeholder="Cari UMKM, produk, atau pengguna..." class="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-djajan-primary/20 focus:border-djajan-primary transition-colors">
+                            <input type="text" placeholder="Cari UMKM, produk, atau pengguna..." class="admin-search-input w-full min-w-0 bg-transparent border-0 p-0 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0">
                         </div>
                     </div>
                 </div>
