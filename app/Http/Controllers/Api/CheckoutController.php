@@ -1312,11 +1312,7 @@ class CheckoutController extends Controller
                 $changes['dibayar_pada'] = now();
             } elseif ($newOrderStatus === 'ditolak' && $order->status_pesanan !== 'ditolak') {
                 if ($order->status_pesanan === 'diterima') {
-                    foreach ($order->items as $item) {
-                        if ($item->id_produk !== null) {
-                            Produk::where('id_produk', $item->id_produk)->increment('stok', (int) $item->jumlah);
-                        }
-                    }
+                    Produk::restoreStockForOrder($order);
                 }
                 $changes['alasan_batal'] = 'Pembayaran dibatalkan atau kedaluwarsa (' . $transactionStatus . ').';
                 $changes['dibatalkan_oleh'] = 'sistem';

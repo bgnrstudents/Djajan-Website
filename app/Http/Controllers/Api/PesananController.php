@@ -138,11 +138,7 @@ class PesananController extends Controller
                 $changes['dibayar_pada'] = now();
             } elseif ($newOrderStatus === 'ditolak' && $order->status_pesanan !== 'ditolak') {
                 if ($order->status_pesanan === 'diterima') {
-                    foreach ($order->items as $item) {
-                        if ($item->id_produk !== null) {
-                            Produk::where('id_produk', $item->id_produk)->increment('stok', (int) $item->jumlah);
-                        }
-                    }
+                    Produk::restoreStockForOrder($order);
                 }
                 $changes['alasan_batal'] = 'Pembayaran dibatalkan atau kedaluwarsa (' . $transactionStatus . ').';
                 $changes['dibatalkan_oleh'] = 'sistem';
@@ -204,30 +200,25 @@ class PesananController extends Controller
                 }
 
                 if ($status === 'diterima') {
-                    // Validasi ketersediaan stok fisik sebelum pesanan diterima
+                    // Validasi & kurangi stok hanya untuk produk non-Pre-Order.
+                    // Produk pre_order dibuat sesuai pesanan sehingga stok fisiknya 0.
                     foreach ($pesanan->items as $item) {
-                        if ($item->id_produk !== null) {
-                            $prod = Produk::find($item->id_produk);
-                            if ($prod) {
-                                $mode = strtolower(str_replace(['-', '_', ' '], '', (string) $prod->mode_penjualan));
-                                if ($mode !== 'preorder' && $prod->stok < (int) $item->jumlah) {
-                                    throw new \RuntimeException(
-                                        'Stok produk "' . $prod->nama_produk . '" tidak mencukupi (sisa ' . $prod->stok . ', dipesan ' . $item->jumlah . '). Tambah stok atau tolak pesanan.'
-                                    );
-                                }
-                            }
+                        if ($item->id_produk === null) {
+                            continue;
                         }
-                    }
-
-                    $driver = DB::connection()->getDriverName();
-                    foreach ($pesanan->items as $item) {
-                        if ($item->id_produk !== null) {
-                            $rawExpr = $driver === 'sqlite'
-                                ? 'MAX(stok - ' . (int) $item->jumlah . ', 0)'
-                                : 'GREATEST(stok - ' . (int) $item->jumlah . ', 0)';
-                            Produk::where('id_produk', $item->id_produk)
-                                ->update(['stok' => DB::raw($rawExpr)]);
+                        $prod = Produk::lockForUpdate()->find($item->id_produk);
+                        if (!$prod || $prod->isPreOrder()) {
+                            continue;
                         }
+                        $qty = max(0, (int) $item->jumlah);
+                        if ((int) $prod->stok < $qty) {
+                            throw new \RuntimeException(
+                                'Stok produk "' . $prod->nama_produk . '" tidak mencukupi (sisa ' . $prod->stok . ', dipesan ' . $qty . '). Tambah stok atau tolak pesanan.'
+                            );
+                        }
+                        Produk::where('id_produk', $prod->id_produk)->update([
+                            'stok' => DB::raw("CASE WHEN stok >= {$qty} THEN stok - {$qty} ELSE 0 END"),
+                        ]);
                     }
                     $pesanan->save();
                 } elseif ($status === 'ditolak') {

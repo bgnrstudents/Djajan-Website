@@ -22,12 +22,7 @@ class OrderCancellationService
 
             // Kembalikan stok jika sebelumnya sudah diterima UMKM
             if ($statusLama === 'diterima') {
-                foreach ($order->items as $item) {
-                    if ($item->id_produk !== null) {
-                        Produk::where('id_produk', $item->id_produk)
-                            ->increment('stok', (int) $item->jumlah);
-                    }
-                }
+                Produk::restoreStockForOrder($order);
             }
 
             $isPaid = in_array($order->payment_status, ['paid', 'settlement', 'capture'], true) ||

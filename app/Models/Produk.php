@@ -41,6 +41,29 @@ class Produk extends Model
         return $this->hasMany(UlasanProduk::class, 'id_produk', 'id_produk');
     }
 
+    public function isPreOrder(): bool
+    {
+        return strtolower(str_replace(['-', '_', ' '], '', (string) $this->mode_penjualan)) === 'preorder';
+    }
+
+    /**
+     * Kembalikan stok produk non-Pre-Order saat pesanan berstatus diterima dibatalkan.
+     */
+    public static function restoreStockForOrder(Pesanan $order): void
+    {
+        $order->loadMissing('items.produk');
+        foreach ($order->items as $item) {
+            if ($item->id_produk === null) {
+                continue;
+            }
+            $produk = $item->produk ?? self::find($item->id_produk);
+            if ($produk && !$produk->isPreOrder()) {
+                self::where('id_produk', $item->id_produk)
+                    ->increment('stok', (int) $item->jumlah);
+            }
+        }
+    }
+
     public function urlGambar(): ?string
     {
         return UploadFoto::url($this->gambar_produk, 'produk');

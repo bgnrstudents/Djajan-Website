@@ -306,5 +306,60 @@ class OrderCancellationAndIntegrityTest extends TestCase
 
         $this->assertEquals(5, $product->fresh()->stok);
     }
+
+    public function test_umkm_can_accept_and_cancel_preorder_product_with_zero_stock(): void
+    {
+        $pelanggan = $this->createCustomer('081299998888');
+        $umkm = $this->createUmkm();
+        $poProduct = Produk::create([
+            'id_umkm' => $umkm->id_umkm,
+            'nama_produk' => 'Nasi Cumi Hitam PO',
+            'harga' => 17000,
+            'stok' => 0,
+            'min_order_po' => 20,
+            'status_ketersediaan' => true,
+            'mode_penjualan' => 'pre_order',
+        ]);
+
+        $order = $this->createOrder(
+            $pelanggan,
+            $umkm,
+            statusPesanan: 'po_baru',
+            statusPembayaran: 'dp_terbayar',
+            paymentStatus: 'dp_terbayar'
+        );
+        DetailPesanan::create([
+            'id_pesanan' => $order->id_pesanan,
+            'id_produk' => $poProduct->id_produk,
+            'nama_produk' => $poProduct->nama_produk,
+            'satuan' => 'porsi',
+            'jumlah' => 21,
+            'harga_satuan' => 17000,
+            'subtotal' => 357000,
+        ]);
+
+        Sanctum::actingAs($umkm, ['*']);
+
+        $acceptRes = $this->postJson('/api/pesanan_status', [
+            'id_pesanan' => $order->id_pesanan,
+            'status' => 'diterima',
+        ]);
+        $acceptRes->assertOk()
+            ->assertJsonPath('data.status_pesanan', 'diterima');
+
+        // Pre-Order product stock must remain 0 (not underflow / negative)
+        $this->assertSame(0, (int) $poProduct->fresh()->stok);
+
+        // Rejecting/cancelling accepted PO must also keep PO stock at 0
+        $rejectRes = $this->postJson('/api/pesanan_status', [
+            'id_pesanan' => $order->id_pesanan,
+            'status' => 'ditolak',
+            'alasan' => 'Jadwal dapur penuh',
+        ]);
+        $rejectRes->assertOk()
+            ->assertJsonPath('data.status_pesanan', 'ditolak');
+
+        $this->assertSame(0, (int) $poProduct->fresh()->stok);
+    }
 }
 
