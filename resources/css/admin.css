@@ -261,61 +261,12 @@ body.admin-shell .text-emerald-700 {
 }
 
 body.admin-shell .border-emerald-200,
-body.admin-shell .border-green-200,
-body.admin-shell .border-amber-200,
-body.admin-shell .border-red-200,
-body.admin-shell .border-red-400 {
+body.admin-shell .border-green-200 {
     border-color: color-mix(in srgb, #16814e 36%, var(--admin-border));
 }
 
 body.admin-shell .border-amber-200\/60 {
     border-color: color-mix(in srgb, var(--admin-primary) 24%, var(--admin-border));
-}
-
-body.admin-shell .bg-amber-50 {
-    background-color: color-mix(in srgb, var(--admin-primary) 10%, var(--admin-surface));
-}
-
-body.admin-shell .text-amber-900,
-body.admin-shell .text-amber-800,
-body.admin-shell .text-amber-700 {
-    color: var(--admin-primary);
-}
-
-body.admin-shell .bg-amber-500 {
-    background-color: var(--admin-primary);
-}
-
-body.admin-shell .bg-red-50 {
-    background-color: var(--admin-surface-muted);
-}
-
-body.admin-shell .text-red-700,
-body.admin-shell .text-red-600,
-body.admin-shell .text-red-500 {
-    color: var(--admin-text);
-}
-
-body.admin-shell .bg-blue-50 {
-    background-color: var(--admin-surface-muted);
-}
-
-body.admin-shell .text-blue-800 {
-    color: var(--admin-text);
-}
-
-body.admin-shell .bg-red-600,
-body.admin-shell .bg-red-500 {
-    background-color: var(--admin-primary);
-}
-
-body.admin-shell .hover\:bg-red-50:hover,
-body.admin-shell .hover\:bg-red-100:hover {
-    background-color: var(--admin-surface-muted);
-}
-
-body.admin-shell .hover\:text-red-600:hover {
-    color: var(--admin-primary);
 }
 
 body.admin-shell .rounded-xl.border,
