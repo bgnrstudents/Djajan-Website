@@ -220,7 +220,38 @@ class OngkirHitungTest extends TestCase
         $historyResponse->assertStatus(200);
         // Pastikan snapshot biaya_pengantaran tetap Rp 4.000, BUKAN 15.000
         $this->assertEquals(4000, $historyResponse->json('data.biaya_pengantaran'));
-        $this->assertEquals(45200, $historyResponse->json('data.total_harga')); // (2 * 20.000) + 4.000 + 1.200 (biaya layanan 3%)
+        $this->assertEquals(45200, $historyResponse->json('data.total_harga')); // (2 * 20.000) + 4.000 + 1.200 (biaya platform 3%)
+    }
+
+    public function test_checkout_mengenakan_biaya_platform_tiga_persen_pada_transaksi_kecil_satu_kali(): void
+    {
+        $produk = Produk::create([
+            'id_umkm' => $this->umkm->id_umkm,
+            'nama_produk' => 'Jajanan Kecil',
+            'harga' => 5000,
+            'stok' => 10,
+            'status_ketersediaan' => true,
+            'mode_penjualan' => 'instant',
+        ]);
+
+        $response = $this->actingAs($this->pelanggan, 'sanctum')
+            ->postJson('/api/pesanan/checkout', [
+                'metode_pembayaran' => 'cod',
+                'groups' => [
+                    [
+                        'id_umkm' => $this->umkm->id_umkm,
+                        'metode_pengiriman' => 'pickup',
+                        'items' => [
+                            ['id_produk' => $produk->id_produk, 'jumlah' => 1],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.total_harga', 5150)
+            ->assertJsonPath('data.orders.0.biaya_layanan', 150)
+            ->assertJsonPath('data.orders.0.total_harga', 5150);
     }
 
     public function test_fallback_koordinat_kreyongan_dan_tarif_kurir_dinamis(): void

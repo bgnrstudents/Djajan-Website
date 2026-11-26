@@ -21,6 +21,10 @@ class AdminOmzetDashboard
             ->first();
 
         $totalOmzet = (int) $totals->total_omzet;
+        $totalKomisi = (int) DB::query()
+            ->fromSub(clone $orders, 'pesanan')
+            ->selectRaw('COALESCE(SUM(pesanan.biaya_layanan), 0) as total_komisi')
+            ->value('total_komisi');
         $merchants = $this->rankingQuery($mulai, $akhir)->get();
         $transactions = DB::query()
             ->fromSub($this->eligibleOrders($mulai, $akhir), 'pesanan')
@@ -35,6 +39,7 @@ class AdminOmzetDashboard
                 'pesanan.payment_status',
                 'pesanan.dibayar_pada',
                 'pesanan.tanggal_pesan',
+                'pesanan.biaya_layanan',
                 'umkm.nama_usaha'
             )
             ->selectRaw('DATE(COALESCE(pesanan.dibayar_pada, pesanan.tanggal_pesan)) as tanggal')
@@ -48,6 +53,7 @@ class AdminOmzetDashboard
                 'pesanan.payment_status',
                 'pesanan.dibayar_pada',
                 'pesanan.tanggal_pesan',
+                'pesanan.biaya_layanan',
                 'umkm.nama_usaha'
             )
             ->orderBy('tanggal')
@@ -61,6 +67,7 @@ class AdminOmzetDashboard
                 'status_pesanan' => $row->status_pesanan,
                 'status_pembayaran' => $row->status_pembayaran ?: $row->payment_status,
                 'omzet' => (int) $row->omzet,
+                'komisi_platform' => (int) $row->biaya_layanan,
             ])
             ->all();
 
@@ -96,6 +103,8 @@ class AdminOmzetDashboard
         return [
             'statistics' => [
                 'total_omzet' => $totalOmzet,
+                'total_komisi_platform' => $totalKomisi,
+                'total_bagian_umkm' => $totalOmzet,
                 'total_transaksi' => (int) $totals->total_transaksi,
                 'total_umkm_terjual' => (int) $totals->total_umkm_terjual,
                 'total_produk_terjual' => (int) $totals->total_produk_terjual,
@@ -153,30 +162,10 @@ class AdminOmzetDashboard
 
         $totalTransaksi = (int) $totals->total_transaksi;
         $totalOmzet = (int) $totals->total_omzet;
-
         $totalKomisi = (int) DB::query()
             ->fromSub(clone $orders, 'pesanan')
             ->selectRaw('COALESCE(SUM(pesanan.biaya_layanan), 0) as total_komisi')
             ->value('total_komisi');
-        $totalPendapatanUmkm = $totalOmzet - $totalKomisi;
-
-        // Breakdown Pembayaran: COD vs Digital (Model A)
-        $codTotals = DB::query()
-            ->fromSub(clone $orders, 'pesanan')
-            ->join('detail_pesanan', 'detail_pesanan.id_pesanan', '=', 'pesanan.id_pesanan')
-            ->where('pesanan.metode_pembayaran', 'cod')
-            ->selectRaw('COALESCE(SUM(detail_pesanan.subtotal), 0) as total_omzet_cod')
-            ->first();
-        $totalOmzetCod = (int) ($codTotals->total_omzet_cod ?? 0);
-
-        $totalKomisiCod = (int) DB::query()
-            ->fromSub(clone $orders, 'pesanan')
-            ->where('pesanan.metode_pembayaran', 'cod')
-            ->selectRaw('COALESCE(SUM(pesanan.biaya_layanan), 0) as total_komisi_cod')
-            ->value('total_komisi_cod');
-
-        $totalOmzetDigital = max(0, $totalOmzet - $totalOmzetCod);
-        $totalKomisiDigital = max(0, $totalKomisi - $totalKomisiCod);
 
         $merchantCount = DB::table('umkm')
             ->where('status_verifikasi', 'terverifikasi')
@@ -215,13 +204,9 @@ class AdminOmzetDashboard
         return [
             'statistics' => [
                 'total_omzet' => $totalOmzet,
-                'total_transaksi' => $totalTransaksi,
                 'total_komisi_platform' => $totalKomisi,
-                'total_pendapatan_umkm' => $totalPendapatanUmkm,
-                'total_omzet_cod' => $totalOmzetCod,
-                'total_komisi_cod' => $totalKomisiCod,
-                'total_omzet_digital' => $totalOmzetDigital,
-                'total_komisi_digital' => $totalKomisiDigital,
+                'total_bagian_umkm' => $totalOmzet,
+                'total_transaksi' => $totalTransaksi,
                 'total_umkm_terjual' => (int) $totals->total_umkm_terjual,
                 'total_produk_terjual' => (int) $totals->total_produk_terjual,
                 'rata_rata_transaksi' => $totalTransaksi > 0
@@ -277,9 +262,8 @@ class AdminOmzetDashboard
                 'pesanan.status_pesanan',
                 'pesanan.status_pembayaran',
                 'pesanan.payment_status',
-                'pesanan.metode_pembayaran',
-                'pesanan.biaya_layanan',
-                'pesanan.status_refund'
+                'pesanan.status_refund',
+                'pesanan.biaya_layanan'
             )
             ->where('umkm.status_verifikasi', 'terverifikasi')
             ->whereNotNull('pesanan.id_umkm')
@@ -407,8 +391,7 @@ class AdminOmzetDashboard
                 'jumlah_produk' => (int) $row->jumlah_produk,
                 'jenis_produk' => (int) $row->jenis_produk,
                 'omzet_produk' => (int) $row->omzet_produk,
-                'komisi_platform' => (int) ($row->biaya_layanan ?? 0),
-                'pendapatan_umkm' => (int) ($row->omzet_produk ?? 0) - (int) ($row->biaya_layanan ?? 0),
+                'komisi_platform' => (int) $row->biaya_layanan,
                 'status_pesanan' => $row->status_pesanan,
                 'status_pembayaran' => $row->status_pembayaran,
                 'items' => $itemsByOrder->get($row->id_pesanan, collect())

@@ -17,51 +17,6 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-3 xl:grid-cols-2">
-        <form method="get" action="{{ route('admin.dashboard') }}" class="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm" aria-label="Filter periode omzet">
-            <label class="text-xs font-medium text-gray-500">Tanggal mulai
-                <input type="date" name="mulai" value="{{ $mulai }}" required class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
-            </label>
-            <label class="text-xs font-medium text-gray-500">Tanggal akhir
-                <input type="date" name="akhir" value="{{ $akhir }}" required class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
-            </label>
-            <button class="rounded-lg bg-djajan-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-900">Terapkan periode</button>
-            <p class="w-full text-xs text-gray-400">Tanggal mengikuti pembayaran; pesanan tanpa pembayaran memakai tanggal pesan.</p>
-        </form>
-        <form id="omzet-report-form" method="get" action="{{ route('admin.omzet.report.pdf', [], false) }}" target="_blank" class="flex flex-wrap items-end gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 shadow-sm" aria-label="Cetak laporan omzet PDF">
-            <input type="hidden" name="preview" value="1">
-            <input type="hidden" name="report_key" value="{{ $reportKey }}">
-            <label class="text-xs font-medium text-gray-600">Periode laporan
-                <select id="report-period" name="periode" class="mt-1 block w-full rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
-                    <option value="harian">Harian</option>
-                    <option value="mingguan">Mingguan</option>
-                    <option value="bulanan">Bulanan</option>
-                    <option value="tahunan">Tahunan</option>
-                    <option value="rentang" selected>Rentang tanggal</option>
-                </select>
-            </label>
-            <label id="report-date-field" class="hidden text-xs font-medium text-gray-600">Tanggal acuan
-                <input type="date" name="tanggal" value="{{ $akhir }}" disabled class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
-            </label>
-            <div id="report-range-fields" class="flex flex-wrap items-end gap-3">
-                <label class="text-xs font-medium text-gray-600">Mulai
-                    <input type="date" name="mulai" value="{{ $mulai }}" required class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
-                </label>
-                <label class="text-xs font-medium text-gray-600">Sampai
-                    <input type="date" name="akhir" value="{{ $akhir }}" required class="mt-1 block rounded-lg border-gray-300 text-sm text-gray-800 focus:border-djajan-primary focus:ring-djajan-primary">
-                </label>
-            </div>
-            <button type="submit" class="rounded-lg bg-djajan-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-900">Cetak Laporan PDF</button>
-            <p class="w-full text-xs text-gray-500">Laporan terbuka di tab baru. Gunakan ikon unduh pada penampil PDF untuk menyimpan berkas.</p>
-        </form>
-    </div>
-
-    {{-- <details class="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-gray-600">
-        <summary class="cursor-pointer font-semibold text-djajan-neutral">Cara membaca laporan</summary>
-        <p class="mt-2">Omzet produk adalah jumlah subtotal produk dari pesanan UMKM terverifikasi yang sudah lunas, selesai, dan tidak memiliki status refund. Ongkir tidak termasuk. Satu checkout lintas-UMKM dihitung satu transaksi pada ringkasan, tetapi satu pesanan pada setiap UMKM terkait.</p>
-        <p class="mt-1">Djajan belum menyimpan nilai diskon, nominal refund, atau harga pokok/modal. Karena itu laporan tidak mengarang omzet kotor/neto maupun keuntungan; status refund hanya ditampilkan sebagai jumlah pesanan.</p>
-    </details> --}}
-
     <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan omzet">
         <article class="stat-card stat-card-primary rounded-2xl bg-djajan-primary p-5 text-white shadow-sm">
             <div class="flex items-start justify-between gap-3">
@@ -105,55 +60,96 @@
         </article>
     </section>
 
-    <!-- LAPORAN FINANSIAL & BAGI HASIL PLATFORM (REVENUE MODEL) -->
-    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm" aria-label="Bagi hasil platform">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
-            <div>
-                <h2 class="font-semibold text-djajan-neutral flex items-center gap-2">
-                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-djajan-primary text-xs">💰</span>
-                    Laporan Finansial &amp; Bagi Hasil Platform
-                </h2>
-                <p class="text-xs text-gray-500 mt-0.5">Skema Subsidi Mikro Desa: Bebas komisi (0%) untuk transaksi &lt; Rp 10.000, komisi 3% untuk &ge; Rp 10.000</p>
-            </div>
-            <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-djajan-primary ring-1 ring-inset ring-emerald-600/20">
-                Komisi Platform 3%
-            </span>
-        </div>
-        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div class="revenue-subcard rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-                <p class="text-xs font-medium text-gray-500">Volume Transaksi (GMV)</p>
-                <p id="stat-gmv" class="mt-2 text-xl font-bold tracking-tight text-djajan-neutral">Rp {{ number_format($statistics['total_omzet'], 0, ',', '.') }}</p>
-                <p class="mt-1 text-xs text-gray-400">Total nilai pesanan produk tercatat</p>
-            </div>
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 relative overflow-hidden">
-                <div class="flex items-center justify-between">
-                    <p class="text-xs font-bold text-djajan-primary uppercase tracking-wide">Pemasukan Kas Platform</p>
-                    <span class="text-[10px] font-bold text-white bg-djajan-primary px-2 py-0.5 rounded shadow-xs">KAS DJAJAN</span>
+    <div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-5">
+        <form method="get" action="{{ route('admin.dashboard') }}" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm xl:col-span-3" aria-label="Filter periode omzet">
+            <div class="mb-4 flex items-center gap-3">
+                <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-djajan-primary" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path></svg>
+                </span>
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-djajan-primary">Analisis omzet</p>
+                    <h2 class="text-sm font-semibold text-djajan-neutral">Filter periode</h2>
                 </div>
-                <p id="stat-komisi-platform" class="mt-2 text-2xl font-black tracking-tight text-djajan-primary">Rp {{ number_format($statistics['total_komisi_platform'] ?? 0, 0, ',', '.') }}</p>
-                <p class="mt-1 text-xs text-emerald-800">Pendapatan operasional &amp; kas desa</p>
             </div>
-            <div class="revenue-subcard rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-                <p class="text-xs font-medium text-gray-500">Hak Pendapatan Bersih Mitra UMKM</p>
-                <p id="stat-pendapatan-umkm" class="mt-2 text-xl font-bold tracking-tight text-djajan-neutral">Rp {{ number_format($statistics['total_pendapatan_umkm'] ?? ($statistics['total_omzet'] - ($statistics['total_komisi_platform'] ?? 0)), 0, ',', '.') }}</p>
-                <p class="mt-1 text-xs text-gray-400">Total hak bayar bersih diteruskan ke UMKM</p>
+            <div class="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                <label class="block text-xs font-medium text-gray-600">Tanggal mulai
+                    <input type="date" name="mulai" value="{{ $mulai }}" required class="mt-1 block w-full rounded-lg border-gray-300 px-2.5 py-2 text-sm text-gray-800 shadow-sm focus:border-djajan-primary focus:ring-djajan-primary">
+                </label>
+                <label class="block text-xs font-medium text-gray-600">Tanggal akhir
+                    <input type="date" name="akhir" value="{{ $akhir }}" required class="mt-1 block w-full rounded-lg border-gray-300 px-2.5 py-2 text-sm text-gray-800 shadow-sm focus:border-djajan-primary focus:ring-djajan-primary">
+                </label>
+                <button class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-djajan-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-djajan-primary focus:ring-offset-2 sm:col-span-2 lg:col-span-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                    Terapkan periode
+                </button>
             </div>
+            <p class="mt-3 border-t border-gray-100 pt-2.5 text-xs text-gray-500">Tanggal acuan mengikuti pembayaran; pesanan tanpa pembayaran memakai tanggal pesanan.</p>
+        </form>
+
+        <form id="omzet-report-form" method="get" action="{{ route('admin.omzet.report.pdf', [], false) }}" target="_blank" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm xl:col-span-2" aria-label="Cetak laporan omzet PDF">
+            <input type="hidden" name="preview" value="1">
+            <input type="hidden" name="report_key" value="{{ $reportKey }}">
+            <div class="mb-4 flex items-center gap-3">
+                <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-djajan-primary" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6M8 13h8M8 17h8"></path></svg>
+                </span>
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Dokumen</p>
+                    <h2 class="text-sm font-semibold text-djajan-neutral">Unduh laporan</h2>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <label class="block text-xs font-medium text-gray-700">Periode laporan
+                    <select id="report-period" name="periode" class="mt-1 block w-full rounded-lg border-gray-300 bg-white px-2.5 py-2 text-sm text-gray-800 shadow-sm focus:border-djajan-primary focus:ring-djajan-primary">
+                        <option value="harian">Harian</option>
+                        <option value="mingguan">Mingguan</option>
+                        <option value="bulanan">Bulanan</option>
+                        <option value="tahunan">Tahunan</option>
+                        <option value="rentang" selected>Rentang tanggal</option>
+                    </select>
+                </label>
+                <label id="report-date-field" class="hidden text-xs font-medium text-gray-700">Tanggal acuan
+                    <input type="date" name="tanggal" value="{{ $akhir }}" disabled class="mt-1 block w-full rounded-lg border-gray-300 bg-white px-2.5 py-2 text-sm text-gray-800 shadow-sm focus:border-djajan-primary focus:ring-djajan-primary">
+                </label>
+                <div id="report-range-fields" class="col-span-1 grid grid-cols-1 gap-3 sm:col-span-2 sm:grid-cols-2 xl:col-span-2">
+                    <label class="block text-xs font-medium text-gray-700">Mulai
+                        <input type="date" name="mulai" value="{{ $mulai }}" required class="mt-1 block w-full rounded-lg border-gray-300 bg-white px-2.5 py-2 text-sm text-gray-800 shadow-sm focus:border-djajan-primary focus:ring-djajan-primary">
+                    </label>
+                    <label class="block text-xs font-medium text-gray-700">Sampai
+                        <input type="date" name="akhir" value="{{ $akhir }}" required class="mt-1 block w-full rounded-lg border-gray-300 bg-white px-2.5 py-2 text-sm text-gray-800 shadow-sm focus:border-djajan-primary focus:ring-djajan-primary">
+                    </label>
+                </div>
+            </div>
+            <button type="submit" class="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-800 transition hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-djajan-primary focus:ring-offset-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5M12 15V3"></path></svg>
+                Cetak Laporan PDF
+            </button>
+            <p class="mt-2 text-xs leading-4 text-gray-500">PDF dibuka di tab baru; unduh melalui penampil PDF.</p>
+        </form>
+    </div>
+
+    {{-- <details class="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-gray-600">
+        <summary class="cursor-pointer font-semibold text-djajan-neutral">Cara membaca laporan</summary>
+        <p class="mt-2">Omzet produk adalah jumlah subtotal produk dari pesanan UMKM terverifikasi yang sudah lunas, selesai, dan tidak memiliki status refund. Ongkir tidak termasuk. Satu checkout lintas-UMKM dihitung satu transaksi pada ringkasan, tetapi satu pesanan pada setiap UMKM terkait.</p>
+        <p class="mt-1">Djajan belum menyimpan nilai diskon, nominal refund, atau harga pokok/modal. Karena itu laporan tidak mengarang omzet kotor/neto maupun keuntungan; status refund hanya ditampilkan sebagai jumlah pesanan.</p>
+    </details> --}}
+
+    <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" aria-label="Pendapatan platform dan bagian UMKM">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+                <h2 class="text-sm font-semibold text-djajan-neutral">Pendapatan platform &amp; bagian UMKM</h2>
+                <p class="mt-1 text-xs text-gray-500">Biaya platform 3% dibayar pembeli dan tidak mengurangi omzet produk UMKM.</p>
+            </div>
+            <span class="text-xs font-medium text-gray-500">Periode terpilih</span>
         </div>
-        <div class="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div class="flex items-center gap-2">
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                <span class="text-gray-600">Online (Midtrans):</span>
-                <span class="font-bold text-gray-800">Rp {{ number_format($statistics['total_omzet_digital'] ?? 0, 0, ',', '.') }}</span>
-                <span class="text-gray-400">(Kas Masuk: Rp {{ number_format($statistics['total_komisi_digital'] ?? 0, 0, ',', '.') }})</span>
+        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                <p class="text-xs font-medium text-gray-500">Omzet produk UMKM</p>
+                <p id="stat-bagian-umkm" class="mt-1 text-lg font-semibold tracking-tight text-djajan-neutral">Rp {{ number_format($statistics['total_bagian_umkm'], 0, ',', '.') }}</p>
             </div>
-            <div class="flex items-center gap-2">
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                <span class="text-gray-600">Tunai di Tempat (COD):</span>
-                <span class="font-bold text-gray-800">Rp {{ number_format($statistics['total_omzet_cod'] ?? 0, 0, ',', '.') }}</span>
-                <span class="text-gray-400">(Bagi Hasil: Rp {{ number_format($statistics['total_komisi_cod'] ?? 0, 0, ',', '.') }})</span>
-            </div>
-            <div class="text-gray-400 italic">
-                *Model A: Komisi pesanan COD otomatis memotong saldo digital UMKM
+            <div class="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                <p class="text-xs font-medium text-gray-500">Pendapatan platform · biaya pembeli 3%</p>
+                <p id="stat-komisi-platform" class="mt-1 text-lg font-semibold tracking-tight text-djajan-neutral">Rp {{ number_format($statistics['total_komisi_platform'], 0, ',', '.') }}</p>
             </div>
         </div>
     </section>
@@ -234,7 +230,7 @@
         </div>
     </section>
 
-    <section class="grid grid-cols-1 gap-4 xl:grid-cols-2" aria-label="Rincian penjualan">
+    <section class="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:items-start" aria-label="Rincian penjualan">
         <article class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div class="border-b border-gray-100 px-5 py-4">
                 <h2 class="font-semibold text-djajan-neutral">Produk terlaris</h2>
@@ -272,14 +268,14 @@
                 <p class="mt-1 text-xs text-gray-500">10 pesanan per UMKM terbaru yang masuk dalam omzet periode ini.</p>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full min-w-[540px] text-sm">
+                <table class="w-full min-w-[650px] text-sm">
                     <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
                         <tr>
                             <th class="px-5 py-3 font-semibold">Tanggal / ID / produk</th>
                             <th class="px-5 py-3 font-semibold">UMKM</th>
                             <th class="px-5 py-3 text-right font-semibold">Unit</th>
                             <th class="px-5 py-3 text-right font-semibold">Omzet produk</th>
-                            <th class="px-5 py-3 text-right font-semibold">Komisi Platform</th>
+                            <th class="px-5 py-3 text-right font-semibold">Biaya platform 3%</th>
                         </tr>
                     </thead>
                     <tbody id="recent-orders-body" class="divide-y divide-gray-100">
@@ -289,9 +285,7 @@
                                 <td class="px-5 py-3 text-gray-700">{{ $order['nama_umkm'] }}</td>
                                 <td class="px-5 py-3 text-right text-gray-600">{{ number_format($order['jumlah_produk'], 0, ',', '.') }}</td>
                                 <td class="px-5 py-3 text-right font-medium text-djajan-neutral">Rp {{ number_format($order['omzet_produk'], 0, ',', '.') }}</td>
-                                <td class="px-5 py-3 text-right font-medium {{ ($order['komisi_platform'] ?? 0) > 0 ? 'text-emerald-700' : 'text-gray-400' }}">
-                                    {{ ($order['komisi_platform'] ?? 0) > 0 ? 'Rp ' . number_format($order['komisi_platform'], 0, ',', '.') : 'Gratis (0%)' }}
-                                </td>
+                                <td class="px-5 py-3 text-right text-gray-600">Rp {{ number_format($order['komisi_platform'], 0, ',', '.') }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="5" class="px-5 py-8 text-center text-gray-500">Belum ada transaksi pada periode ini.</td></tr>
@@ -614,16 +608,12 @@
                 items.textContent = order.items.map(item => `${number.format(item.jumlah)}x ${item.nama_produk}`).join(' • ');
                 idCell.append(date, id, items);
 
-                const komisi = order.komisi_platform || 0;
-                const komisiText = komisi > 0 ? currency.format(komisi) : 'Gratis (0%)';
-                const komisiClass = komisi > 0 ? 'text-right font-medium text-emerald-700' : 'text-right text-gray-400 text-xs';
-
                 row.append(
                     idCell,
                     createTextCell(order.nama_umkm),
                     createTextCell(number.format(order.jumlah_produk), 'text-right'),
                     createTextCell(currency.format(order.omzet_produk), 'text-right font-medium text-djajan-neutral'),
-                    createTextCell(komisiText, komisiClass)
+                    createTextCell(currency.format(order.komisi_platform), 'text-right')
                 );
                 body.appendChild(row);
             });
@@ -639,17 +629,11 @@
         function render(data) {
             state.data = data;
             document.getElementById('stat-omzet').textContent = currency.format(data.statistics.total_omzet);
+            document.getElementById('stat-bagian-umkm').textContent = currency.format(data.statistics.total_bagian_umkm);
+            document.getElementById('stat-komisi-platform').textContent = currency.format(data.statistics.total_komisi_platform);
             document.getElementById('stat-transaksi').textContent = number.format(data.statistics.total_transaksi);
             document.getElementById('stat-produk-terjual').textContent = number.format(data.statistics.total_produk_terjual);
             document.getElementById('stat-rata-rata').textContent = currency.format(data.statistics.rata_rata_transaksi);
-            
-            const gmvEl = document.getElementById('stat-gmv');
-            if (gmvEl) gmvEl.textContent = currency.format(data.statistics.total_omzet || 0);
-            const komisiEl = document.getElementById('stat-komisi-platform');
-            if (komisiEl) komisiEl.textContent = currency.format(data.statistics.total_komisi_platform || 0);
-            const pendapatanEl = document.getElementById('stat-pendapatan-umkm');
-            if (pendapatanEl) pendapatanEl.textContent = currency.format(data.statistics.total_pendapatan_umkm || 0);
-
             drawTrend(data.trend);
             renderComparison(data.comparison);
             renderRanking(data.ranking, data.pagination);

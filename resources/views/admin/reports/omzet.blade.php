@@ -216,6 +216,14 @@
                         <td class="right"><strong>{{ $currency($statistics['total_omzet']) }}</strong></td>
                     </tr>
                     <tr>
+                        <td>Omzet produk UMKM</td>
+                        <td class="right">{{ $currency($statistics['total_bagian_umkm']) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Pendapatan Platform (biaya pembeli 3%)</td>
+                        <td class="right">{{ $currency($statistics['total_komisi_platform']) }}</td>
+                    </tr>
+                    <tr>
                         <td>Checkout Berhasil</td>
                         <td class="right">{{ number_format($statistics['total_transaksi'], 0, ',', '.') }}</td>
                     </tr>
@@ -274,10 +282,11 @@
                 <thead>
                     <tr>
                         <th style="width: 14%">Tanggal</th>
-                        <th style="width: 23%">Nama UMKM</th>
-                        <th style="width: 23%">Nomor Pesanan</th>
-                        <th style="width: 22%">Status Pembayaran / Pesanan</th>
-                        <th style="width: 18%">Nominal Produk</th>
+                        <th style="width: 19%">Nama UMKM</th>
+                        <th style="width: 20%">Nomor Pesanan</th>
+                        <th style="width: 19%">Status</th>
+                        <th style="width: 14%">Biaya platform 3%</th>
+                        <th style="width: 14%">Omzet produk UMKM</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -287,13 +296,15 @@
                             <td>{{ $transaction['nama_umkm'] }}</td>
                             <td class="order-number">{{ $transaction['id_pesanan'] }}</td>
                             <td>{{ $paymentLabel($transaction['status_pembayaran']) }} / {{ $orderLabel($transaction['status_pesanan']) }}</td>
+                            <td class="right">{{ $currency($transaction['komisi_platform']) }}</td>
                             <td class="right">{{ $currency($transaction['omzet']) }}</td>
                         </tr>
                     @empty
-                        <tr class="empty-row"><td colspan="5">Tidak ada transaksi yang memenuhi kriteria omzet pada periode ini.</td></tr>
+                        <tr class="empty-row"><td colspan="6">Tidak ada transaksi yang memenuhi kriteria omzet pada periode ini.</td></tr>
                     @endforelse
                     <tr class="total-row">
-                        <td colspan="4">Total Omzet Produk</td>
+                        <td colspan="4">Total per transaksi</td>
+                        <td class="right">{{ $currency($statistics['total_komisi_platform']) }}</td>
                         <td class="right">{{ $currency($statistics['total_omzet']) }}</td>
                     </tr>
                 </tbody>
