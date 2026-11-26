@@ -93,7 +93,159 @@ class PelangganAuthController extends Controller
 
     public function google(Request $request): JsonResponse
     {
-        $idToken = trim((string) $request->input('id_token'));
+        $google = $this->verifyGoogleToken((string) $request->input('id_token'));
+        if ($google instanceof JsonResponse) {
+            return $google;
+        }
+
+        $googleSub = (string) $google['sub'];
+        $email = mb_strtolower((string) $google['email']);
+
+        $umkm = Umkm::whereRaw('LOWER(email_usaha) = ?', [$email])->first();
+        if ($umkm) {
+            if ($umkm->status_verifikasi === 'ditolak') {
+                return $this->gagal(
+                    'Pendaftaran usaha Anda belum disetujui. Hubungi admin Desa Kreongan Atas untuk informasi lebih lanjut.',
+                    403,
+                    ['code' => 'account_rejected'],
+                );
+            }
+            if (in_array($umkm->status_verifikasi, ['pending', 'menunggu'], true)) {
+                return $this->gagal(
+                    'Pendaftaran usaha Anda sedang ditinjau. Coba masuk kembali setelah mendapat konfirmasi dari admin.',
+                    403,
+                    ['code' => 'account_pending'],
+                );
+            }
+
+            return $this->sukses('Selamat datang, '.$umkm->nama_usaha.'!', $this->dataUmkmDenganToken($umkm));
+        }
+
+        $pelanggan = Pelanggan::where('google_sub', $googleSub)
+            ->orWhereRaw('LOWER(email) = ?', [$email])
+            ->first();
+
+        if ($pelanggan) {
+            $pelanggan->forceFill([
+                'google_sub' => $googleSub,
+                'auth_provider' => 'google',
+                'email_verified_at' => $pelanggan->email_verified_at ?? now(),
+            ])->save();
+
+            return $this->sukses('Selamat datang, ' . $pelanggan->nama . '!', $this->dataDenganToken($pelanggan));
+        }
+
+        // Pendaftaran baru via Google: kirim kode OTP 6 digit ke email Google untuk verifikasi 1x.
+        $otp = sprintf('%06d', random_int(100000, 999999));
+        $tokenKey = 'google_reg:' . $email;
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $tokenKey],
+            [
+                'token' => Hash::make($otp),
+                'created_at' => now(),
+            ]
+        );
+
+        try {
+            Mail::send('emails.otp_reset_password', [
+                'otp' => $otp,
+                'email' => $email,
+                'preheader' => 'Kode verifikasi pendaftaran akun DJajan Anda adalah ' . $otp . '. Berlaku selama 15 menit.',
+                'heading' => 'Verifikasi Pendaftaran Akun',
+                'intro' => 'Terima kasih telah mendaftar dengan Google di DJajan. Masukkan kode verifikasi (OTP) berikut untuk mengaktifkan akun Anda:',
+                'stepTwo' => 'Masukkan 6 digit kode OTP di atas pada layar verifikasi pendaftaran Google.',
+                'stepThree' => 'Akun Anda akan aktif secara otomatis dan siap digunakan untuk berbelanja.',
+            ], function ($message) use ($email) {
+                $fromAddress = config('mail.from.address', 'muhmmadrizki081207@gmail.com');
+                $fromName = config('mail.from.name', 'DJajan Desa Kreyongan');
+                $message->from($fromAddress, $fromName)
+                    ->to($email)
+                    ->subject('Kode Verifikasi Pendaftaran Akun DJajan');
+            });
+        } catch (\Throwable $e) {
+            \Log::warning('Gagal mengirim email OTP registrasi Google: ' . $e->getMessage(), compact('email'));
+        }
+
+        return $this->sukses(
+            'Kode verifikasi OTP telah dikirim ke email ' . $email . '. Silakan masukkan kode untuk menyelesaikan pendaftaran.',
+            [
+                'requires_otp' => true,
+                'email' => $email,
+                'nama' => $google['name'] ?? ($google['given_name'] ?? explode('@', $email)[0]),
+            ]
+        );
+    }
+
+    public function verifyGoogleOtp(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'id_token' => ['required', 'string'],
+            'otp' => ['required', 'string', 'size:6'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->gagal($validator->errors()->first(), 400);
+        }
+
+        $google = $this->verifyGoogleToken((string) $request->input('id_token'));
+        if ($google instanceof JsonResponse) {
+            return $google;
+        }
+
+        $googleSub = (string) $google['sub'];
+        $email = mb_strtolower((string) $google['email']);
+        $otp = trim((string) $request->input('otp'));
+        $tokenKey = 'google_reg:' . $email;
+
+        $existing = Pelanggan::where('google_sub', $googleSub)
+            ->orWhereRaw('LOWER(email) = ?', [$email])
+            ->first();
+        if ($existing) {
+            DB::table('password_reset_tokens')->where('email', $tokenKey)->delete();
+            $existing->forceFill([
+                'google_sub' => $googleSub,
+                'auth_provider' => 'google',
+                'email_verified_at' => $existing->email_verified_at ?? now(),
+            ])->save();
+
+            return $this->sukses('Selamat datang, ' . $existing->nama . '!', $this->dataDenganToken($existing));
+        }
+
+        $record = DB::table('password_reset_tokens')->where('email', $tokenKey)->first();
+        if (!$record) {
+            return $this->gagal('Kode verifikasi tidak ditemukan atau sudah kedaluwarsa. Silakan ulangi daftar dengan Google.', 422);
+        }
+
+        if (now()->diffInMinutes($record->created_at) > 15) {
+            DB::table('password_reset_tokens')->where('email', $tokenKey)->delete();
+            return $this->gagal('Kode verifikasi telah kedaluwarsa (berlaku 15 menit). Silakan minta kode baru.', 422);
+        }
+
+        if (!Hash::check($otp, $record->token) && $record->token !== $otp) {
+            return $this->gagal('Kode verifikasi OTP yang Anda masukkan salah.', 422);
+        }
+
+        DB::table('password_reset_tokens')->where('email', $tokenKey)->delete();
+
+        $pelanggan = Pelanggan::create([
+            'nama' => $google['name'] ?? ($google['given_name'] ?? explode('@', $email)[0]),
+            'email' => $email,
+            'google_sub' => $googleSub,
+            'auth_provider' => 'google',
+            'email_verified_at' => now(),
+        ]);
+
+        return $this->sukses(
+            'Pendaftaran berhasil! Selamat datang, ' . $pelanggan->nama . '!',
+            $this->dataDenganToken($pelanggan),
+            201
+        );
+    }
+
+    private function verifyGoogleToken(string $rawIdToken): array|JsonResponse
+    {
+        $idToken = trim($rawIdToken);
         if ($idToken === '') {
             return $this->gagal('ID token Google wajib dikirim.', 400);
         }
@@ -127,47 +279,7 @@ class PelangganAuthController extends Controller
             return $this->gagal('Data akun Google tidak lengkap.', 401);
         }
 
-        $umkm = Umkm::whereRaw('LOWER(email_usaha) = ?', [$email])->first();
-        if ($umkm) {
-            if ($umkm->status_verifikasi === 'ditolak') {
-                return $this->gagal(
-                    'Pendaftaran usaha Anda belum disetujui. Hubungi admin Desa Kreongan Atas untuk informasi lebih lanjut.',
-                    403,
-                    ['code' => 'account_rejected'],
-                );
-            }
-            if (in_array($umkm->status_verifikasi, ['pending', 'menunggu'], true)) {
-                return $this->gagal(
-                    'Pendaftaran usaha Anda sedang ditinjau. Coba masuk kembali setelah mendapat konfirmasi dari admin.',
-                    403,
-                    ['code' => 'account_pending'],
-                );
-            }
-
-            return $this->sukses('Selamat datang, '.$umkm->nama_usaha.'!', $this->dataUmkmDenganToken($umkm));
-        }
-
-        $pelanggan = Pelanggan::where('google_sub', $googleSub)
-            ->orWhereRaw('LOWER(email) = ?', [$email])
-            ->first();
-
-        if (!$pelanggan) {
-            $pelanggan = Pelanggan::create([
-                'nama' => $google['name'] ?? ($google['given_name'] ?? explode('@', $email)[0]),
-                'email' => $email,
-                'google_sub' => $googleSub,
-                'auth_provider' => 'google',
-                'email_verified_at' => now(),
-            ]);
-        } else {
-            $pelanggan->forceFill([
-                'google_sub' => $googleSub,
-                'auth_provider' => 'google',
-                'email_verified_at' => $pelanggan->email_verified_at ?? now(),
-            ])->save();
-        }
-
-        return $this->sukses('Selamat datang, ' . $pelanggan->nama . '!', $this->dataDenganToken($pelanggan));
+        return $google;
     }
 
     public function logout(Request $request): JsonResponse

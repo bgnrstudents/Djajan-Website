@@ -53,7 +53,7 @@ class ProductReviewTest extends TestCase
             ->assertJsonPath('data.daftar_ulasan.0.komentar', 'Enak dan dikemas dengan baik.');
     }
 
-    public function test_customer_can_edit_but_not_duplicate_a_product_review(): void
+    public function test_customer_cannot_edit_submitted_review_but_can_review_repurchase(): void
     {
         [$customer, $order, $product, $detail] = $this->createCompletedOrder();
         Sanctum::actingAs($customer, ['*']);
@@ -64,11 +64,45 @@ class ProductReviewTest extends TestCase
         $payload['rating'] = 3;
         $payload['komentar'] = 'Sudah diperbarui.';
         $this->postJson($this->reviewUrl($order, $product), $payload)
-            ->assertOk()
-            ->assertJsonPath('data.items.0.ulasan.rating', 3)
-            ->assertJsonPath('data.items.0.ulasan.komentar', 'Sudah diperbarui.');
+            ->assertStatus(409)
+            ->assertJsonPath('sukses', false);
 
-        $this->assertDatabaseCount('ulasan_produk', 1);
+        $this->assertDatabaseHas('ulasan_produk', [
+            'id_detail' => $detail->id_detail,
+            'rating' => 4,
+            'komentar' => 'Enak.',
+        ]);
+
+        // Repeat purchase gets a new id_detail and can submit a new review
+        $secondOrder = Pesanan::create([
+            'id_pesanan' => 'PO-' . now()->format('Ymd') . '-' . strtoupper(uniqid()),
+            'id_pelanggan' => $customer->id_pelanggan,
+            'id_umkm' => $order->id_umkm,
+            'nama_umkm_snapshot' => $order->nama_umkm_snapshot,
+            'tanggal_pesan' => now()->toDateTimeString(),
+            'metode_pengiriman' => 'pickup',
+            'metode_pembayaran' => 'cod',
+            'status_pembayaran' => 'lunas',
+            'payment_status' => 'paid',
+            'total_harga' => 10000,
+            'status_pesanan' => 'selesai',
+        ]);
+        $secondDetail = DetailPesanan::create([
+            'id_pesanan' => $secondOrder->id_pesanan,
+            'id_produk' => $product->id_produk,
+            'nama_produk' => $product->nama_produk,
+            'jumlah' => 1,
+            'harga_satuan' => 10000,
+            'subtotal' => 10000,
+        ]);
+
+        $this->postJson($this->reviewUrl($secondOrder, $product), [
+            'id_detail' => $secondDetail->id_detail,
+            'rating' => 5,
+            'komentar' => 'Beli kedua kalinya tetap mantap!',
+        ])->assertOk();
+
+        $this->assertDatabaseCount('ulasan_produk', 2);
     }
 
     public function test_customer_cannot_review_an_incomplete_order_or_another_customers_order(): void

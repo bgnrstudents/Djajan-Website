@@ -8,7 +8,7 @@
 <body style="margin: 0; padding: 0; background-color: #f0fdf4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #1f2937;">
     <!-- HIDDEN PREHEADER FOR GMAIL PREVIEW -->
     <div style="display:none;font-size:1px;color:#f0fdf4;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
-        Kode verifikasi reset kata sandi DJajan Anda adalah {{ $otp }}. Berlaku selama 15 menit. Jaga kerahasiaan kode ini.
+        {{ $preheader ?? ('Kode verifikasi DJajan Anda adalah ' . $otp . '. Berlaku selama 15 menit. Jaga kerahasiaan kode ini.') }}
     </div>
 
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f0fdf4; padding: 40px 15px;">
@@ -38,11 +38,11 @@
                     <tr>
                         <td style="padding: 36px 36px 28px;">
                             <h2 style="color: #064e3b; font-size: 21px; font-weight: 700; margin: 0 0 14px; text-align: center;">
-                                Atur Ulang Kata Sandi
+                                {{ $heading ?? 'Atur Ulang Kata Sandi' }}
                             </h2>
                             <p style="color: #4b5563; font-size: 14.5px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
                                 Halo Pengguna DJajan,<br>
-                                Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda. Gunakan kode verifikasi (OTP) resmi berikut:
+                                {{ $intro ?? 'Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda. Gunakan kode verifikasi (OTP) resmi berikut:' }}
                             </p>
 
                             <!-- OTP CODE BOX -->
@@ -67,8 +67,8 @@
                                 </p>
                                 <ol style="margin: 0; padding-left: 20px; color: #4b5563; font-size: 13px; line-height: 1.6;">
                                     <li>Buka kembali aplikasi <strong>DJajan</strong> di perangkat Anda.</li>
-                                    <li>Masukkan 6 digit kode di atas pada formulir reset kata sandi.</li>
-                                    <li>Buat kata sandi baru yang kuat (minimal 8 karakter).</li>
+                                    <li>{{ $stepTwo ?? 'Masukkan 6 digit kode di atas pada formulir reset kata sandi.' }}</li>
+                                    <li>{{ $stepThree ?? 'Buat kata sandi baru yang kuat (minimal 8 karakter).' }}</li>
                                 </ol>
                             </div>
 

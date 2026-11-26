@@ -110,7 +110,7 @@ class PelangganAuthTest extends TestCase
         );
     }
 
-    public function test_unregistered_google_account_auto_registers(): void
+    public function test_unregistered_google_account_requires_otp_then_logs_in_without_otp(): void
     {
         config(['services.google.client_id' => 'client-id']);
         Http::fake([
@@ -126,13 +126,43 @@ class PelangganAuthTest extends TestCase
         $this->postJson('/api/auth/google', ['id_token' => 'valid-token'])
             ->assertOk()
             ->assertJsonPath('sukses', true)
-            ->assertJsonPath('data.nama', 'Pengguna Baru')
+            ->assertJsonPath('data.requires_otp', true)
             ->assertJsonPath('data.email', 'new@example.com');
+
+        $this->assertDatabaseMissing('pelanggan', ['email' => 'new@example.com']);
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => 'google_reg:new@example.com']);
+
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', 'google_reg:new@example.com')
+            ->update([
+                'token' => \Illuminate\Support\Facades\Hash::make('654321'),
+                'created_at' => now(),
+            ]);
+
+        $this->postJson('/api/auth/google/verify-otp', [
+            'id_token' => 'valid-token',
+            'otp' => '000000',
+        ])->assertStatus(422);
+
+        $this->postJson('/api/auth/google/verify-otp', [
+            'id_token' => 'valid-token',
+            'otp' => '654321',
+        ])->assertCreated()
+            ->assertJsonPath('sukses', true)
+            ->assertJsonPath('data.nama', 'Pengguna Baru')
+            ->assertJsonPath('data.email', 'new@example.com')
+            ->assertJsonPath('data.role', 'pelanggan');
 
         $this->assertDatabaseHas('pelanggan', [
             'email' => 'new@example.com',
             'google_sub' => 'google-new',
         ]);
+
+        // Subsequent Google login for registered email bypasses OTP completely
+        $this->postJson('/api/auth/google', ['id_token' => 'valid-token'])
+            ->assertOk()
+            ->assertJsonPath('data.role', 'pelanggan')
+            ->assertJsonMissingPath('data.requires_otp');
     }
 
     public function test_forgot_and_reset_password_flow(): void

@@ -25,8 +25,8 @@ class OrderCancellationService
                 Produk::restoreStockForOrder($order);
             }
 
-            $isPaid = in_array($order->payment_status, ['paid', 'settlement', 'capture'], true) ||
-                in_array($order->status_pembayaran, ['lunas', 'paid'], true);
+            $isPaid = in_array($order->payment_status, ['paid', 'settlement', 'capture', 'dp_terbayar'], true) ||
+                in_array($order->status_pembayaran, ['lunas', 'paid', 'dp_terbayar'], true);
 
             $order->status_pesanan = 'ditolak';
             $order->alasan_batal = $reason;
@@ -37,9 +37,12 @@ class OrderCancellationService
                 $order->status_refund = 'perlu_refund';
                 if (in_array($order->metode_pembayaran, ['qris', 'midtrans'], true)) {
                     $targetId = $order->id_checkout ?? $order->id_pesanan;
+                    $paidAmount = ($order->nominal_dp > 0 && $order->nominal_dp < $order->total_harga)
+                        ? (int) $order->nominal_dp
+                        : (int) $order->total_harga;
                     $refundRes = $this->midtransService->refundTransaction(
                         $targetId,
-                        (int) $order->total_harga,
+                        $paidAmount,
                         $cancelledBy . ': ' . $reason
                     );
                     if (!empty($refundRes) && empty($refundRes['error'])) {

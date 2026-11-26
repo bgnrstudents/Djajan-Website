@@ -361,5 +361,63 @@ class OrderCancellationAndIntegrityTest extends TestCase
 
         $this->assertSame(0, (int) $poProduct->fresh()->stok);
     }
+
+    public function test_cancel_supports_checkout_id_and_refunds_dp_amount_for_dp_terbayar(): void
+    {
+        $pelanggan = $this->createCustomer('081277776666');
+        $umkm = $this->createUmkm();
+        $checkoutId = 'CHK-' . now()->format('YmdHis') . '-DPREF';
+
+        \App\Models\CheckoutGroup::create([
+            'id_checkout' => $checkoutId,
+            'id_pelanggan' => $pelanggan->id_pelanggan,
+            'metode_pembayaran' => 'qris',
+            'skema_po' => 'dp_30',
+            'total_harga' => 100000,
+            'nominal_dp' => 30000,
+            'sisa_bayar' => 70000,
+            'payment_status' => 'dp_terbayar',
+        ]);
+
+        $order = Pesanan::create([
+            'id_pesanan' => 'PO-' . now()->format('Ymd') . '-DPREF1',
+            'id_checkout' => $checkoutId,
+            'id_pelanggan' => $pelanggan->id_pelanggan,
+            'id_umkm' => $umkm->id_umkm,
+            'nama_umkm_snapshot' => $umkm->nama_usaha,
+            'tanggal_pesan' => now()->toDateTimeString(),
+            'metode_pengiriman' => 'kurir',
+            'metode_pembayaran' => 'qris',
+            'skema_po' => 'dp_30',
+            'status_pembayaran' => 'dp_terbayar',
+            'payment_status' => 'dp_terbayar',
+            'total_harga' => 100000,
+            'nominal_dp' => 30000,
+            'sisa_bayar' => 70000,
+            'status_pesanan' => 'po_baru',
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake([
+            'https://api.sandbox.midtrans.com/v2/*/refund' => \Illuminate\Support\Facades\Http::response([
+                'status_code' => '200',
+                'refund_amount' => '30000',
+            ], 200),
+        ]);
+
+        Sanctum::actingAs($pelanggan, ['*']);
+
+        $res = $this->postJson('/api/pesanan/batal', [
+            'id_pesanan' => $checkoutId,
+            'alasan' => 'Berubah pikiran',
+        ]);
+
+        $res->assertOk()
+            ->assertJsonPath('data.status_pesanan', 'ditolak')
+            ->assertJsonPath('data.status_refund', 'refund_berhasil');
+
+        \Illuminate\Support\Facades\Http::assertSent(fn ($request) =>
+            $request->data()['amount'] === 30000
+        );
+    }
 }
 

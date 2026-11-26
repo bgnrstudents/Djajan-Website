@@ -17,6 +17,7 @@ Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/pelanggan/register', [PelangganAuthController::class, 'register']);
 Route::post('/pelanggan/login', [PelangganAuthController::class, 'login']);
 Route::post('/auth/google', [PelangganAuthController::class, 'google']);
+Route::post('/auth/google/verify-otp', [PelangganAuthController::class, 'verifyGoogleOtp']);
 Route::post('/password/forgot', [PelangganAuthController::class, 'forgotPassword']);
 Route::post('/password/reset', [PelangganAuthController::class, 'resetPassword']);
 Route::get('/kategori', [KategoriController::class, 'index']);

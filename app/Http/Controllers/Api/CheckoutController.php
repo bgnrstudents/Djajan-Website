@@ -108,7 +108,7 @@ class CheckoutController extends Controller
         }
 
         $order = Pesanan::with(['items', 'umkm', 'pelanggan'])
-            ->where('id_pesanan', $id)
+            ->where(fn ($query) => $query->where('id_pesanan', $id)->orWhere('id_checkout', $id))
             ->first();
 
         if (!$order) {
@@ -157,7 +157,7 @@ class CheckoutController extends Controller
         }
 
         $order = Pesanan::with(['items', 'umkm', 'pelanggan'])
-            ->where('id_pesanan', $id)
+            ->where(fn ($query) => $query->where('id_pesanan', $id)->orWhere('id_checkout', $id))
             ->first();
 
         if (!$order) {
@@ -242,17 +242,19 @@ class CheckoutController extends Controller
             return $this->gagal('Produk tersebut tidak ditemukan pada pesanan ini.', 404);
         }
 
+        if ($detail->ulasan()->exists()) {
+            return $this->gagal('Ulasan untuk item pesanan ini sudah dikirim dan tidak dapat diubah.', 409);
+        }
+
         try {
             DB::transaction(function () use ($detail, $pelanggan, $idProduk, $request) {
-                UlasanProduk::updateOrCreate(
-                    ['id_detail' => $detail->id_detail],
-                    [
-                        'id_pelanggan' => $pelanggan->id_pelanggan,
-                        'id_produk' => $idProduk,
-                        'rating' => (int) $request->input('rating'),
-                        'komentar' => trim((string) $request->input('komentar')),
-                    ],
-                );
+                UlasanProduk::create([
+                    'id_detail'    => $detail->id_detail,
+                    'id_pelanggan' => $pelanggan->id_pelanggan,
+                    'id_produk'    => $idProduk,
+                    'rating'       => (int) $request->input('rating'),
+                    'komentar'     => trim((string) $request->input('komentar')),
+                ]);
             });
         } catch (\Throwable $e) {
             report($e);
@@ -1503,6 +1505,14 @@ class CheckoutController extends Controller
         ];
         if ($newStatus === 'failed') {
             $changes['status_pesanan'] = 'ditolak';
+            $changes['alasan_batal'] = 'Pembayaran dibatalkan atau kedaluwarsa (' . $status . ').';
+            $changes['dibatalkan_oleh'] = 'sistem';
+            $changes['dibatalkan_pada'] = now();
+            foreach ($group->pesanan as $orderItem) {
+                if ($orderItem->status_pesanan === 'diterima') {
+                    Produk::restoreStockForOrder($orderItem);
+                }
+            }
         }
         if ($newStatus === 'paid' || $newStatus === 'dp_terbayar') {
             $changes['dibayar_pada'] = now();
