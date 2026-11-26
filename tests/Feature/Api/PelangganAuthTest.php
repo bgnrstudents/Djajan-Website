@@ -86,15 +86,16 @@ class PelangganAuthTest extends TestCase
         ])->assertStatus(409)
             ->assertJsonPath('data.field', 'no_telp');
 
-        // Tolak duplikat nama (case-insensitive & spasi berlebih)
+        // Nama yang sama diperbolehkan asalkan email dan nomor WhatsApp berbeda
         $this->postJson('/api/pelanggan/register', [
-            'nama' => '  budi   santoso ',
+            'nama' => 'Budi Santoso',
             'no_telp' => '089999999999',
-            'email' => 'lain@example.com',
+            'email' => 'budi.kedua@example.com',
             'password' => 'rahasia123',
             'password_confirmation' => 'rahasia123',
-        ])->assertStatus(409)
-            ->assertJsonPath('data.field', 'nama');
+        ])->assertOk()
+            ->assertJsonPath('sukses', true)
+            ->assertJsonPath('data.requires_otp', true);
     }
 
     public function test_invalid_google_token_is_rejected(): void

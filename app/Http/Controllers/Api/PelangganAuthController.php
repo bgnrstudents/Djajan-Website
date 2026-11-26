@@ -42,7 +42,7 @@ class PelangganAuthController extends Controller
             return $this->gagal('Nomor WhatsApp tidak valid. Contoh format yang benar: 081234567890.', 400, ['field' => 'no_telp']);
         }
 
-        if ($bentrok = $this->cekDuplikatPelanggan($nama, $nomor, $email)) {
+        if ($bentrok = $this->cekDuplikatPelanggan($nomor, $email)) {
             return $this->gagal($bentrok['pesan'], 409, ['field' => $bentrok['field']]);
         }
 
@@ -130,7 +130,7 @@ class PelangganAuthController extends Controller
             return $this->gagal('Sesi pendaftaran telah kedaluwarsa. Silakan isi ulang formulir daftar.', 422);
         }
 
-        if ($bentrok = $this->cekDuplikatPelanggan((string) $pending['nama'], (string) $pending['no_telp'], $email)) {
+        if ($bentrok = $this->cekDuplikatPelanggan((string) $pending['no_telp'], $email)) {
             return $this->gagal($bentrok['pesan'], 409, ['field' => $bentrok['field']]);
         }
 
@@ -154,14 +154,14 @@ class PelangganAuthController extends Controller
     }
 
     /**
-     * Pastikan nama, nomor WhatsApp, dan email belum dipakai akun lain.
+     * Pastikan nomor WhatsApp dan email belum dipakai akun lain.
+     * Nama lengkap pelanggan boleh sama karena orang berbeda dapat memiliki nama yang sama.
      *
      * @return array{field:string,pesan:string}|null
      */
-    private function cekDuplikatPelanggan(string $nama, string $nomor, string $email): ?array
+    private function cekDuplikatPelanggan(string $nomor, string $email): ?array
     {
-        $pelanggans = Pelanggan::query()->get(['id_pelanggan', 'nama', 'no_telp', 'email']);
-        $targetNama = ValidasiUmkm::normalisasiNama($nama);
+        $pelanggans = Pelanggan::query()->get(['id_pelanggan', 'no_telp', 'email']);
         $targetNomor = ValidasiUmkm::normalisasiNomor($nomor);
         $targetEmail = ValidasiUmkm::normalisasiEmail($email);
 
@@ -171,9 +171,6 @@ class PelangganAuthController extends Controller
             }
             if ($p->no_telp !== null && $p->no_telp !== '' && ValidasiUmkm::normalisasiNomor((string) $p->no_telp) === $targetNomor) {
                 return ['field' => 'no_telp', 'pesan' => 'Nomor WhatsApp sudah terdaftar. Gunakan nomor lain atau masuk ke akun Anda.'];
-            }
-            if ($p->nama !== null && ValidasiUmkm::normalisasiNama((string) $p->nama) === $targetNama) {
-                return ['field' => 'nama', 'pesan' => 'Nama lengkap sudah terdaftar. Gunakan nama lain agar tidak duplikat.'];
             }
         }
 
