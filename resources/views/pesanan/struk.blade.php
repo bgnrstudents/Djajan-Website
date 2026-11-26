@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Struk Transaksi #{{ $pesanan->id_pesanan }} - DJajan</title>
+    <link rel="icon" type="image/png" href="{{ asset('logo_djajan_mark.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ asset('logo_djajan_mark.png') }}">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #f3f4f6; color: #1f2937; padding: 24px 12px; }

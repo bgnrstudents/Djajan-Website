@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#ffffff">
     <title>@yield('title', 'Admin - Djajan')</title>
+    <link rel="icon" type="image/png" href="{{ asset('logo_djajan_mark.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ asset('logo_djajan_mark.png') }}">
     <script>
         (() => {
             try {

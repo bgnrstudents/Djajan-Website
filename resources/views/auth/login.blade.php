@@ -7,6 +7,9 @@
 
     <meta name="theme-color" content="#ffffff">
     <title>Masuk | Djajan</title>
+    <link rel="icon" type="image/png" href="{{ asset('logo_djajan_mark.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ asset('logo_djajan_mark.png') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
