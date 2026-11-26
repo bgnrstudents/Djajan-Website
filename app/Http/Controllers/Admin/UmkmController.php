@@ -39,7 +39,7 @@ class UmkmController extends Controller
      */
     public function show(Umkm $umkm)
     {
-        $umkm->load(['produk', 'riwayatVerifikasi']);
+        $umkm->load(['produk.kategoriMaster', 'riwayatVerifikasi']);
 
         return view('admin.umkm.show', compact('umkm'));
     }

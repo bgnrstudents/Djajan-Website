@@ -182,12 +182,14 @@ class ProfilController extends Controller
         $umkm = $request->user();
         $lama = (string) $request->input('password_lama');
         $tersimpan = (string) $umkm->password;
-        $valid = hash_equals($tersimpan, hash('sha256', $lama))
-            || (str_starts_with($tersimpan, '$2y$') && Hash::check($lama, $tersimpan));
+        $isLegacySha256 = strlen($tersimpan) === 64
+            && ctype_xdigit($tersimpan)
+            && hash_equals($tersimpan, hash('sha256', $lama));
+        $valid = $isLegacySha256 || ($tersimpan !== '' && Hash::check($lama, $tersimpan));
         if (!$valid) {
             return $this->gagal('Kata sandi lama tidak sesuai.', 400);
         }
-        $umkm->update(['password' => hash('sha256', (string) $request->input('password_baru'))]);
+        $umkm->update(['password' => Hash::make((string) $request->input('password_baru'))]);
         return $this->sukses('Kata sandi berhasil diperbarui.');
     }
 }

@@ -23,7 +23,7 @@ class Pesanan extends Model
         'id_pesanan', 'id_checkout', 'id_pelanggan', 'id_umkm', 'nama_umkm_snapshot', 'tanggal_pesan', 'waktu_dibutuhkan',
         'batas_konfirmasi', 'keperluan_acara', 'metode_pengiriman', 'alamat_tujuan',
         'latitude_tujuan', 'longitude_tujuan',
-        'catatan', 'metode_pembayaran', 'skema_po', 'status_pembayaran', 'bukti_pembayaran',
+        'catatan', 'metode_pembayaran', 'skema_po', 'status_pembayaran',
         'biaya_pengantaran', 'jarak_km', 'zona_ongkir_id', 'biaya_layanan', 'total_harga', 'nominal_dp', 'sisa_bayar', 'status_pesanan',
         'waktu_diantar', 'waktu_selesai',
         'midtrans_order_id', 'snap_token', 'payment_url', 'payment_status',

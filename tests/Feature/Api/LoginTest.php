@@ -108,6 +108,7 @@ class LoginTest extends TestCase
     {
         foreach ([
             ['pending', 'account_pending'],
+            ['menunggu', 'account_pending'],
             ['ditolak', 'account_rejected'],
         ] as [$verificationStatus, $errorCode]) {
             $umkm = $this->buatUmkm('Warung '.$verificationStatus, $verificationStatus);
@@ -118,6 +119,22 @@ class LoginTest extends TestCase
             ])->assertForbidden()
                 ->assertJsonPath('data.code', $errorCode);
         }
+    }
+
+    public function test_legacy_sha256_umkm_password_is_rehashed_to_bcrypt_on_login(): void
+    {
+        $umkm = $this->buatUmkm('Warung Legacy', 'terverifikasi');
+        $umkm->forceFill(['password' => hash('sha256', 'password123')])->save();
+
+        $this->postJson('/api/login', [
+            'identifier' => $umkm->email_usaha,
+            'password' => 'password123',
+        ])->assertOk()
+            ->assertJsonPath('data.id_umkm', $umkm->id_umkm);
+
+        $umkm->refresh();
+        $this->assertTrue(Hash::check('password123', $umkm->password));
+        $this->assertNotEquals(hash('sha256', 'password123'), $umkm->password);
     }
 
     private function buatUmkm(string $nama, string $status): Umkm

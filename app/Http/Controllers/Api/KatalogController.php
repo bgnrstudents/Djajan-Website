@@ -41,21 +41,18 @@ class KatalogController extends Controller
                 $query->where('status_verifikasi', 'terverifikasi')
                     ->where('toko_aktif', true);
             })
-            ->with(['umkm' => function ($query) {
+            ->with(['kategoriMaster', 'umkm' => function ($query) {
                 $query->withAvg('ulasan as rating_avg', 'rating');
             }])
             ->withAvg('ulasanProduk as product_rating_avg', 'rating')
             ->when($cari !== '', function ($query) use ($cari) {
                 $query->where(function ($inner) use ($cari) {
                     $inner->where('nama_produk', 'like', "%{$cari}%")
-                        ->orWhere('kategori', 'like', "%{$cari}%");
+                        ->orWhereHas('kategoriMaster', fn ($category) => $category->where('nama', 'like', "%{$cari}%"));
                 });
             })
             ->when($kategori !== '' && $kategori !== 'Semua', function ($query) use ($kategori) {
-                $query->where(function ($inner) use ($kategori) {
-                    $inner->where('kategori', $kategori)
-                        ->orWhereHas('kategori', fn ($category) => $category->where('nama', $kategori));
-                });
+                $query->whereHas('kategoriMaster', fn ($category) => $category->where('nama', $kategori));
             })
             ->latest()
             ->get();
@@ -87,7 +84,7 @@ class KatalogController extends Controller
                 'umkm_type' => $product->umkm?->spesialis ?: 'UMKM Kuliner Desa',
                 'price' => (int) $product->harga,
                 'rating' => round((float) ($product->product_rating_avg ?? $product->umkm?->rating_avg ?? 0.0), 1),
-                'category' => $product->kategori ?: 'Semua',
+                'category' => $product->kategoriMaster?->nama ?: 'Semua',
                 'order_type' => match ($product->mode_penjualan) {
                     'pre_order' => 'Pre-Order',
                     'keduanya' => 'Ready & PO',

@@ -10,6 +10,7 @@ use App\Support\ValidasiUmkm;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class RegisterController extends Controller
 {
@@ -135,8 +136,8 @@ class RegisterController extends Controller
                 'alamat' => $alamat,
                 'no_telp_usaha' => $nomor,
                 'email_usaha' => ValidasiUmkm::normalisasiEmail($emailUsaha),
-                'password' => hash('sha256', $password),
-                'status_verifikasi' => 'pending',
+                'password' => Hash::make($password),
+                'status_verifikasi' => 'menunggu',
                 'toko_aktif' => 1,
                 'transfer_bank_aktif' => 0,
                 'cod_aktif' => 1,

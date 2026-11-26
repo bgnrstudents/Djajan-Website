@@ -59,10 +59,11 @@ class UlasanController extends Controller
         $ulasan = UlasanPesanan::updateOrCreate(
             ['id_pesanan' => $pesanan->id_pesanan],
             [
-                'id_pelanggan' => (int) $pelanggan->id_pelanggan,
-                'id_umkm'      => (int) $pesanan->id_umkm,
-                'rating'       => (int) $request->input('rating'),
-                'komentar'     => $request->filled('komentar') ? trim((string) $request->input('komentar')) : null,
+                'id_pelanggan'       => (int) $pelanggan->id_pelanggan,
+                'id_umkm'            => $pesanan->id_umkm !== null ? (int) $pesanan->id_umkm : null,
+                'nama_umkm_snapshot' => $pesanan->nama_umkm_snapshot ?? $pesanan->umkm?->nama_usaha,
+                'rating'             => (int) $request->input('rating'),
+                'komentar'           => $request->filled('komentar') ? trim((string) $request->input('komentar')) : null,
             ]
         );
 

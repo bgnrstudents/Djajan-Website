@@ -6,7 +6,9 @@ use App\Models\DetailPesanan;
 use App\Models\Pelanggan;
 use App\Models\Pesanan;
 use App\Models\Produk;
+use App\Models\UlasanPesanan;
 use App\Models\Umkm;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -86,6 +88,51 @@ class OrderCancellationAndIntegrityTest extends TestCase
             'id_pesanan' => $order->id_pesanan,
             'id_umkm' => null,
             'nama_umkm_snapshot' => 'Warung Makmur',
+        ]);
+    }
+
+    public function test_deleting_customer_with_orders_is_restricted_and_umkm_review_survives_umkm_deletion(): void
+    {
+        $pelanggan = $this->createCustomer();
+        $umkm = $this->createUmkm();
+        $order = $this->createOrder($pelanggan, $umkm, 'selesai', 'lunas', 'paid');
+
+        UlasanPesanan::create([
+            'id_pesanan' => $order->id_pesanan,
+            'id_pelanggan' => $pelanggan->id_pelanggan,
+            'id_umkm' => $umkm->id_umkm,
+            'nama_umkm_snapshot' => $umkm->nama_usaha,
+            'rating' => 5,
+            'komentar' => 'Mantap',
+        ]);
+
+        // Menghapus pelanggan yang punya pesanan harus ditolak oleh RESTRICT FK
+        $this->expectException(QueryException::class);
+        $pelanggan->delete();
+    }
+
+    public function test_deleting_umkm_preserves_order_review_with_null_id_umkm(): void
+    {
+        $pelanggan = $this->createCustomer('081234567899');
+        $umkm = $this->createUmkm();
+        $order = $this->createOrder($pelanggan, $umkm, 'selesai', 'lunas', 'paid');
+
+        $ulasan = UlasanPesanan::create([
+            'id_pesanan' => $order->id_pesanan,
+            'id_pelanggan' => $pelanggan->id_pelanggan,
+            'id_umkm' => $umkm->id_umkm,
+            'nama_umkm_snapshot' => $umkm->nama_usaha,
+            'rating' => 5,
+            'komentar' => 'Enak banget',
+        ]);
+
+        $umkm->delete();
+
+        $this->assertDatabaseHas('ulasan_pesanan', [
+            'id_ulasan' => $ulasan->id_ulasan,
+            'id_umkm' => null,
+            'nama_umkm_snapshot' => 'Warung Makmur',
+            'rating' => 5,
         ]);
     }
 

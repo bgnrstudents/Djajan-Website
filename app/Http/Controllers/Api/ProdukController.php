@@ -29,11 +29,11 @@ class ProdukController extends Controller
         $idUmkm = (int) $request->user()->id_umkm;
         $cari   = trim((string) $request->query('cari', ''));
 
-        $query = Produk::where('id_umkm', $idUmkm);
+        $query = Produk::with('kategoriMaster')->where('id_umkm', $idUmkm);
         if ($cari !== '') {
             $query->where(function ($q) use ($cari) {
                 $q->where('nama_produk', 'like', "%{$cari}%")
-                  ->orWhere('kategori', 'like', "%{$cari}%");
+                  ->orWhereHas('kategoriMaster', fn ($k) => $k->where('nama', 'like', "%{$cari}%"));
             });
         }
 
@@ -79,11 +79,15 @@ class ProdukController extends Controller
         if ($idKategori === '') {
             $idKategori = null;
         }
+        $kategoriModel = null;
         if ($idKategori !== null) {
-            $kategori = Kategori::whereKey($idKategori)->where('aktif', true)->first();
-            if (!$kategori) {
+            $kategoriModel = Kategori::whereKey($idKategori)->where('aktif', true)->first();
+            if (!$kategoriModel) {
                 return $this->gagal('Kategori tidak ditemukan atau sedang nonaktif.', 400, ['field' => 'id_kategori']);
             }
+        } elseif ($request->filled('kategori')) {
+            $kategoriModel = Kategori::whereRaw('LOWER(nama) = ?', [mb_strtolower(trim((string) $request->input('kategori')))])->first();
+            $idKategori = $kategoriModel?->id_kategori;
         }
 
         $gambar = UploadFoto::simpan($request, 'gambar_produk', 'produk', 'produk');
@@ -92,7 +96,6 @@ class ProdukController extends Controller
             'id_umkm'             => $idUmkm,
             'id_kategori'        => $idKategori !== null ? (int) $idKategori : null,
             'nama_produk'         => $nama,
-            'kategori'            => (string) $request->input('kategori', 'Makanan & Catering'),
             'harga'               => $harga,
             'deskripsi'           => $deskripsi,
             'mode_penjualan'      => $mode,
@@ -103,7 +106,7 @@ class ProdukController extends Controller
             'gambar_produk'       => $gambar,
         ]);
 
-        return $this->sukses('Produk "' . $nama . '" berhasil disimpan ke database.', $produk->keFormatJson(), 201);
+        return $this->sukses('Produk "' . $nama . '" berhasil disimpan ke database.', $produk->load('kategoriMaster')->keFormatJson(), 201);
     }
 
     public function update(Request $request): JsonResponse
@@ -144,11 +147,16 @@ class ProdukController extends Controller
             if ($idKategori === null || $idKategori === '') {
                 $produk->id_kategori = null;
             } else {
-                $kategori = Kategori::whereKey($idKategori)->where('aktif', true)->first();
-                if (!$kategori) {
+                $kategoriModel = Kategori::whereKey($idKategori)->where('aktif', true)->first();
+                if (!$kategoriModel) {
                     return $this->gagal('Kategori tidak ditemukan atau sedang nonaktif.', 400, ['field' => 'id_kategori']);
                 }
                 $produk->id_kategori = (int) $idKategori;
+            }
+        } elseif ($request->filled('kategori')) {
+            $kategoriModel = Kategori::whereRaw('LOWER(nama) = ?', [mb_strtolower(trim((string) $request->input('kategori')))])->first();
+            if ($kategoriModel) {
+                $produk->id_kategori = (int) $kategoriModel->id_kategori;
             }
         }
 
@@ -164,7 +172,7 @@ class ProdukController extends Controller
             return $this->gagal($error, 409, ['field' => 'nama_produk']);
         }
 
-        foreach (['nama_produk', 'kategori', 'waktu_masak_po'] as $k) {
+        foreach (['nama_produk', 'waktu_masak_po'] as $k) {
             if ($request->has($k)) {
                 $produk->{$k} = trim((string) $request->input($k));
             }
@@ -210,7 +218,7 @@ class ProdukController extends Controller
 
         $produk->save();
 
-        return $this->sukses('Produk "' . $produk->nama_produk . '" berhasil diperbarui.', $produk->fresh()->keFormatJson());
+        return $this->sukses('Produk "' . $produk->nama_produk . '" berhasil diperbarui.', $produk->fresh('kategoriMaster')->keFormatJson());
     }
 
     public function destroy(Request $request): JsonResponse

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Kategori;
 use App\Models\Produk;
 use App\Models\Umkm;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use App\Support\UploadFoto;
 use App\Support\ValidasiProduk;
 use Illuminate\Validation\ValidationException;
@@ -30,6 +32,7 @@ class ProductController extends Controller
                 'required', 'string', 'min:3', 'max:150',
                 'regex:/^[\pL\s.,\'&()\/-]+$/u', 
             ],
+            'id_kategori'          => ['nullable', 'integer', 'exists:kategori,id_kategori'],
             'kategori'             => ['nullable', 'string', 'max:60'],
             'harga'                => ['required', 'integer', 'min:100', 'max:1000000'],
             'deskripsi'            => ['nullable', 'string', 'max:1000', 'regex:/^(?!\s+$).+$/s'],
@@ -102,7 +105,9 @@ class ProductController extends Controller
      */
     public function create(Umkm $umkm)
     {
-        return view('admin.product.create', compact('umkm'));
+        $kategoris = Kategori::where('aktif', true)->orderBy('nama')->get();
+
+        return view('admin.product.create', compact('umkm', 'kategoris'));
     }
 
     /**
@@ -128,6 +133,8 @@ class ProductController extends Controller
             $validated['stok'] = 0;
         }
         $validated['id_umkm'] = $umkm->id_umkm;
+        $validated['id_kategori'] = $this->resolveKategoriId($validated);
+        unset($validated['kategori']);
 
         Produk::create($validated);
 
@@ -138,9 +145,10 @@ class ProductController extends Controller
 
     public function edit(Produk $product)
     {
-        $product->load('umkm');
+        $product->load(['umkm', 'kategoriMaster']);
+        $kategoris = Kategori::where('aktif', true)->orderBy('nama')->get();
 
-        return view('admin.product.edit', compact('product'));
+        return view('admin.product.edit', compact('product', 'kategoris'));
     }
 
     public function update(Request $request, Produk $product)
@@ -177,6 +185,8 @@ class ProductController extends Controller
         if (($validated['mode_penjualan'] ?? null) === 'pre_order') {
             $validated['stok'] = 0;
         }
+        $validated['id_kategori'] = $this->resolveKategoriId($validated);
+        unset($validated['kategori']);
 
         $product->update($validated);
 
@@ -187,7 +197,7 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $query = Produk::with('umkm')->latest();
+        $query = Produk::with(['umkm', 'kategoriMaster'])->latest();
 
         if ($request->filled('search')) {
             $query->where('nama_produk', 'like', '%' . $request->search . '%');
@@ -213,7 +223,7 @@ class ProductController extends Controller
 
     public function show(Produk $product)
     {
-        $product->load('umkm');
+        $product->load(['umkm', 'kategoriMaster']);
 
         return view('admin.product.show', compact('product'));
     }
@@ -235,8 +245,9 @@ class ProductController extends Controller
             ->where('toko_aktif', true)
             ->orderBy('nama_usaha')
             ->get();
+        $kategoris = Kategori::where('aktif', true)->orderBy('nama')->get();
 
-        return view('admin.product.create-standalone', compact('umkms'));
+        return view('admin.product.create-standalone', compact('umkms', 'kategoris'));
     }
 
     public function storeStandalone(Request $request)
@@ -263,11 +274,43 @@ class ProductController extends Controller
         if (($validated['mode_penjualan'] ?? null) === 'pre_order') {
             $validated['stok'] = 0;
         }
+        $validated['id_kategori'] = $this->resolveKategoriId($validated);
+        unset($validated['kategori']);
 
         Produk::create($validated);
 
         return redirect()
             ->route('admin.products.index')
             ->with('success', 'Produk berhasil ditambahkan.');
+    }
+
+    private function resolveKategoriId(array $validated): ?int
+    {
+        if (!empty($validated['id_kategori'])) {
+            return (int) $validated['id_kategori'];
+        }
+
+        $nama = trim((string) ($validated['kategori'] ?? ''));
+        if ($nama === '') {
+            return null;
+        }
+
+        $existing = Kategori::whereRaw('LOWER(TRIM(nama)) = ?', [mb_strtolower($nama)])->value('id_kategori');
+        if ($existing) {
+            return (int) $existing;
+        }
+
+        $baseSlug = Str::slug($nama) ?: 'kategori';
+        $slug = $baseSlug;
+        $suffix = 2;
+        while (Kategori::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $suffix++;
+        }
+
+        return (int) Kategori::create([
+            'nama' => $nama,
+            'slug' => $slug,
+            'aktif' => true,
+        ])->id_kategori;
     }
 }

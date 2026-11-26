@@ -31,7 +31,7 @@ class HomeController extends Controller
                 $query->where('status_verifikasi', 'terverifikasi')
                     ->where('toko_aktif', true);
             })
-            ->with('umkm')
+            ->with(['umkm', 'kategoriMaster'])
             ->latest()
             ->get();
 

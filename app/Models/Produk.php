@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\UploadFoto;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,7 +17,7 @@ class Produk extends Model
     // yang urus otomatis (timestamps default true), cocok dengan pola bawaan.
 
     protected $fillable = [
-        'id_umkm', 'id_kategori', 'nama_produk', 'kategori', 'harga', 'deskripsi', 'mode_penjualan',
+        'id_umkm', 'id_kategori', 'nama_produk', 'harga', 'deskripsi', 'mode_penjualan',
         'stok', 'min_order_po', 'waktu_masak_po', 'status_ketersediaan', 'gambar_produk',
     ];
 
@@ -25,9 +26,14 @@ class Produk extends Model
         return $this->belongsTo(Umkm::class, 'id_umkm', 'id_umkm');
     }
 
-    public function kategori(): BelongsTo
+    public function kategoriMaster(): BelongsTo
     {
         return $this->belongsTo(Kategori::class, 'id_kategori', 'id_kategori');
+    }
+
+    protected function kategori(): Attribute
+    {
+        return Attribute::get(fn (): ?string => $this->kategoriMaster?->nama);
     }
 
     public function ulasanProduk(): HasMany
@@ -48,7 +54,7 @@ class Produk extends Model
             'id_umkm'             => (int) $this->id_umkm,
             'id_kategori'        => $this->id_kategori !== null ? (int) $this->id_kategori : null,
             'nama_produk'         => $this->nama_produk,
-            'kategori'            => $this->kategori,
+            'kategori'            => $this->kategoriMaster?->nama,
             'harga'               => (int) $this->harga,
             'deskripsi'           => $this->deskripsi ?? '',
             'mode_penjualan'      => $this->mode_penjualan,

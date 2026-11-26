@@ -14,6 +14,7 @@ class UlasanPesanan extends Model
         'id_pesanan',
         'id_pelanggan',
         'id_umkm',
+        'nama_umkm_snapshot',
         'rating',
         'komentar',
     ];

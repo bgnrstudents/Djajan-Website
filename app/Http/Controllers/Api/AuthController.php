@@ -7,6 +7,7 @@ use App\Models\Umkm;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -39,8 +40,11 @@ class AuthController extends Controller
                 ['code' => 'account_not_found'],
             );
         }
-        $cocok = hash_equals((string) $umkm->password, hash('sha256', $password))
-            || (str_starts_with((string) $umkm->password, '$2y$') && password_verify($password, $umkm->password));
+        $storedHash = (string) $umkm->password;
+        $isLegacySha256 = strlen($storedHash) === 64
+            && ctype_xdigit($storedHash)
+            && hash_equals($storedHash, hash('sha256', $password));
+        $cocok = $isLegacySha256 || ($storedHash !== '' && Hash::check($password, $storedHash));
 
         if (!$cocok) {
             return $this->gagal(
@@ -48,6 +52,10 @@ class AuthController extends Controller
                 401,
                 ['code' => 'invalid_password'],
             );
+        }
+
+        if ($isLegacySha256) {
+            $umkm->forceFill(['password' => Hash::make($password)])->save();
         }
 
         if ($umkm->status_verifikasi === 'ditolak') {

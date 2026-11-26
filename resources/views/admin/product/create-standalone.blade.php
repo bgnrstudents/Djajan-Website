@@ -160,22 +160,29 @@
                 <div>
 
                     <label
-                        for="kategori"
+                        for="id_kategori"
                         class="mb-1.5 block text-sm font-medium text-gray-700"
                     >
                         Kategori
                     </label>
 
-                    <input
-                        type="text"
-                        id="kategori"
-                        name="kategori"
-                        value="{{ old('kategori') }}"
-                        placeholder="Contoh: Makanan"
+                    <select
+                        id="id_kategori"
+                        name="id_kategori"
                         class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F623F] focus:ring-1 focus:ring-[#0F623F]"
                     >
+                        <option value="">Pilih Kategori</option>
+                        @foreach($kategoris as $kat)
+                            <option
+                                value="{{ $kat->id_kategori }}"
+                                {{ (string) old('id_kategori') === (string) $kat->id_kategori ? 'selected' : '' }}
+                            >
+                                {{ $kat->nama }}
+                            </option>
+                        @endforeach
+                    </select>
 
-                    @error('kategori')
+                    @error('id_kategori')
                         <p class="mt-1 text-xs text-red-600">
                             {{ $message }}
                         </p>
