@@ -14,12 +14,17 @@ class DetailPesanan extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_pesanan', 'id_produk', 'nama_produk', 'satuan', 'jumlah', 'harga_satuan', 'subtotal',
+        'id_pesanan', 'id_produk', 'nama_produk', 'satuan', 'jumlah', 'harga_satuan', 'subtotal', 'jenis_pesanan',
     ];
 
     public function produk(): BelongsTo
     {
         return $this->belongsTo(Produk::class, 'id_produk', 'id_produk');
+    }
+
+    public function pesanan(): BelongsTo
+    {
+        return $this->belongsTo(Pesanan::class, 'id_pesanan', 'id_pesanan');
     }
 
     public function ulasan(): HasOne
@@ -31,7 +36,9 @@ class DetailPesanan extends Model
     public function keFormatJson(): array
     {
         $mode = $this->produk?->mode_penjualan ?? 'ready';
-        $isPo = in_array(strtolower(str_replace(['-', '_', ' '], '', (string) $mode)), ['preorder'], true);
+        $isPo = $this->jenis_pesanan !== null
+            ? $this->jenis_pesanan === 'preorder'
+            : in_array(strtolower(str_replace(['-', '_', ' '], '', (string) $mode)), ['preorder'], true);
 
         return [
             'id_detail'      => (int) $this->id_detail,
@@ -42,6 +49,7 @@ class DetailPesanan extends Model
             'harga_satuan'   => (int) $this->harga_satuan,
             'subtotal'       => (int) $this->subtotal,
             'mode_penjualan' => $mode,
+            'jenis_pesanan'  => $this->jenis_pesanan ?? ($isPo ? 'preorder' : 'ready'),
             'is_preorder'    => $isPo,
             'gambar_url'     => UploadFoto::url($this->produk?->gambar_produk, 'produk'),
             'ulasan'         => $this->ulasan ? [

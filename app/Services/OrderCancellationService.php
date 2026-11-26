@@ -35,7 +35,7 @@ class OrderCancellationService
 
             if ($isPaid) {
                 $order->status_refund = 'perlu_refund';
-                if ($order->metode_pembayaran === 'midtrans') {
+                if (in_array($order->metode_pembayaran, ['qris', 'midtrans'], true)) {
                     $targetId = $order->id_checkout ?? $order->id_pesanan;
                     $refundRes = $this->midtransService->refundTransaction(
                         $targetId,
@@ -48,7 +48,7 @@ class OrderCancellationService
                 }
             } else {
                 $order->status_refund = 'none';
-                if ($order->metode_pembayaran === 'midtrans') {
+                if (in_array($order->metode_pembayaran, ['qris', 'midtrans'], true)) {
                     $order->payment_status = 'cancel';
                     $order->status_pembayaran = 'batal';
                     $targetId = $order->id_checkout ?? $order->id_pesanan;

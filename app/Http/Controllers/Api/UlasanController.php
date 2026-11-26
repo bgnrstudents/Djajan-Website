@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Pesanan;
 use App\Models\UlasanPesanan;
+use App\Models\UlasanProduk;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,12 +87,17 @@ class UlasanController extends Controller
             return $this->gagal('Parameter id_umkm tidak valid.', 422);
         }
 
-        $avg = (float) UlasanPesanan::where('id_umkm', $idUmkm)->avg('rating');
-        $total = (int) UlasanPesanan::where('id_umkm', $idUmkm)->count();
+        $reviews = UlasanProduk::query()
+            ->whereHas('produk', fn ($query) => $query->where('id_umkm', $idUmkm));
+        $avg = (float) (clone $reviews)->avg('rating');
+        $total = (int) (clone $reviews)->count();
 
-        $ulasanList = UlasanPesanan::query()
-            ->where('id_umkm', $idUmkm)
-            ->with('pelanggan:id_pelanggan,nama,foto_profil')
+        $ulasanList = $reviews
+            ->with([
+                'pelanggan:id_pelanggan,nama,foto_profil',
+                'produk',
+                'detailPesanan.pesanan',
+            ])
             ->latest('created_at')
             ->limit(20)
             ->get();
@@ -99,10 +105,17 @@ class UlasanController extends Controller
         return $this->sukses('Daftar ulasan UMKM berhasil dimuat.', [
             'rata_rata'    => round($avg, 1),
             'total_ulasan' => $total,
-            'daftar_ulasan' => $ulasanList->map(function (UlasanPesanan $item) {
+            'daftar_ulasan' => $ulasanList->map(function (UlasanProduk $item) {
+                $detail = $item->detailPesanan;
+                $produk = $item->produk ?? $detail?->produk;
                 return [
                     'id_ulasan'      => $item->id_ulasan,
-                    'id_pesanan'     => $item->id_pesanan,
+                    'id_detail'      => $item->id_detail,
+                    'id_pesanan'     => $detail?->pesanan?->id_pesanan ?? '',
+                    'id_produk'      => $item->id_produk !== null ? (int) $item->id_produk : null,
+                    'nama_produk'    => $detail?->nama_produk ?? $produk?->nama_produk ?? 'Produk',
+                    'gambar_url'     => $produk?->urlGambar() ?? '',
+                    'foto_produk'    => $produk?->urlGambar() ?? '',
                     'nama_pelanggan' => $item->pelanggan?->nama ?? 'Warga DJajan',
                     'rating'         => (int) $item->rating,
                     'komentar'       => $item->komentar ?? '',

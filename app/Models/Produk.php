@@ -57,7 +57,10 @@ class Produk extends Model
                 continue;
             }
             $produk = $item->produk ?? self::find($item->id_produk);
-            if ($produk && !$produk->isPreOrder()) {
+            $isPreorder = $item->jenis_pesanan !== null
+                ? $item->jenis_pesanan === 'preorder'
+                : ($produk ? $produk->isPreOrder() : false);
+            if ($produk && !$isPreorder) {
                 self::where('id_produk', $item->id_produk)
                     ->increment('stok', (int) $item->jumlah);
             }
