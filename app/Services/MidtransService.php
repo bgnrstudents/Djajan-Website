@@ -46,28 +46,8 @@ class MidtransService
         int $expiryHours = 2,
     ): array
     {
-        $serverKey = $this->serverKey();
-        if ($serverKey === '') {
-            throw new \RuntimeException('MIDTRANS_SERVER_KEY belum diatur di environment.');
-        }
-
+        $serverKey = $this->validatedServerKey();
         $isProduction = (bool) config('services.midtrans.is_production');
-        $isSandboxKey = str_starts_with($serverKey, 'SB-Mid-server-');
-        $isProductionKey = str_starts_with($serverKey, 'Mid-server-');
-
-        if (!$isProduction && !$isSandboxKey) {
-            throw new \RuntimeException(
-                'MIDTRANS_IS_PRODUCTION=false membutuhkan Sandbox Server Key '
-                . '(diawali SB-Mid-server-).'
-            );
-        }
-
-        if ($isProduction && !$isProductionKey) {
-            throw new \RuntimeException(
-                'MIDTRANS_IS_PRODUCTION=true membutuhkan Production Server Key '
-                . '(diawali Mid-server-).'
-            );
-        }
 
         $endpoint = $isProduction
             ? 'https://app.midtrans.com/snap/v1/transactions'
@@ -122,6 +102,122 @@ class MidtransService
             'redirect_url' => (string) ($payload['redirect_url'] ?? ''),
             'transaction_id' => (string) ($payload['transaction_id'] ?? ''),
         ];
+    }
+
+    public function chargeQris(
+        string $orderId,
+        int $amount,
+        array $items,
+        array $customer,
+        int $expiryMinutes = 120,
+    ): array {
+        $serverKey = $this->validatedServerKey();
+        $isProduction = (bool) config('services.midtrans.is_production');
+
+        $endpoint = $isProduction
+            ? 'https://api.midtrans.com/v2/charge'
+            : 'https://api.sandbox.midtrans.com/v2/charge';
+
+        $notificationUrl = rtrim(trim((string) config('app.url')), '/')
+            . '/api/pesanan/midtrans/callback';
+
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+            'X-Override-Notification' => $notificationUrl,
+        ])->withBasicAuth($serverKey, '')->timeout(15)->post($endpoint, [
+            'payment_type' => 'qris',
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $amount,
+            ],
+            'item_details' => $items,
+            'customer_details' => [
+                'first_name' => $customer['first_name'] ?? 'Pelanggan',
+                'email' => $customer['email'] ?? 'customer@example.com',
+                'phone' => $customer['phone'] ?? '',
+            ],
+            'qris' => [
+                'acquirer' => 'gopay',
+            ],
+            'custom_expiry' => [
+                'order_time' => now()->format('Y-m-d H:i:s O'),
+                'expiry_duration' => $expiryMinutes,
+                'unit' => 'minute',
+            ],
+        ]);
+
+        $payload = $response->json();
+        $statusCode = is_array($payload) ? (string) ($payload['status_code'] ?? '') : '';
+
+        if ($response->failed() || ($statusCode !== '' && !in_array($statusCode, ['200', '201'], true))) {
+            $message = (is_array($payload) ? ($payload['status_message'] ?? $payload['validation_messages'][0] ?? null) : null)
+                ?? 'Gagal membuat transaksi QRIS Midtrans.';
+            \Log::error('Midtrans Core API QRIS charge failed', [
+                'order_id' => $orderId,
+                'http_status' => $response->status(),
+                'status_code' => $statusCode,
+                'message' => $message,
+                'body' => $response->body(),
+            ]);
+            throw new \RuntimeException((string) $message);
+        }
+
+        if (!is_array($payload)) {
+            throw new \RuntimeException('Respons Midtrans QRIS tidak valid.');
+        }
+
+        $qrCodeUrl = '';
+        foreach ((array) ($payload['actions'] ?? []) as $action) {
+            if (is_array($action) && ($action['name'] ?? '') === 'generate-qr-code') {
+                $qrCodeUrl = (string) ($action['url'] ?? '');
+                break;
+            }
+        }
+        if ($qrCodeUrl === '') {
+            foreach ((array) ($payload['actions'] ?? []) as $action) {
+                if (is_array($action) && str_contains((string) ($action['name'] ?? ''), 'qr-code')) {
+                    $qrCodeUrl = (string) ($action['url'] ?? '');
+                    break;
+                }
+            }
+        }
+
+        return [
+            'transaction_id' => (string) ($payload['transaction_id'] ?? ''),
+            'qr_string' => (string) ($payload['qr_string'] ?? ''),
+            'qr_code_url' => $qrCodeUrl,
+            'expiry_time' => (string) ($payload['expiry_time'] ?? ''),
+            'transaction_status' => (string) ($payload['transaction_status'] ?? 'pending'),
+        ];
+    }
+
+    private function validatedServerKey(): string
+    {
+        $serverKey = $this->serverKey();
+        if ($serverKey === '') {
+            throw new \RuntimeException('MIDTRANS_SERVER_KEY belum diatur di environment.');
+        }
+
+        $isProduction = (bool) config('services.midtrans.is_production');
+        $isSandboxKey = str_starts_with($serverKey, 'SB-Mid-server-');
+        $isProductionKey = str_starts_with($serverKey, 'Mid-server-');
+
+        if (!$isProduction && !$isSandboxKey) {
+            throw new \RuntimeException(
+                'MIDTRANS_IS_PRODUCTION=false membutuhkan Sandbox Server Key '
+                . '(diawali SB-Mid-server-).'
+            );
+        }
+
+        if ($isProduction && !$isProductionKey) {
+            throw new \RuntimeException(
+                'MIDTRANS_IS_PRODUCTION=true membutuhkan Production Server Key '
+                . '(diawali Mid-server-).'
+            );
+        }
+
+        return $serverKey;
     }
 
     public function verifyCallback(array $payload, string $serverKey): bool

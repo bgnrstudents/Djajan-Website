@@ -346,6 +346,26 @@ class OmzetDashboardTest extends TestCase
             ->assertJsonPath('data.laporan_harian.0.omzet', 30000);
     }
 
+    public function test_biaya_layanan_pelanggan_tidak_memotong_pendapatan_umkm(): void
+    {
+        $this->buatPesanan('PO-FEE-1500', $this->warungA, '2026-11-12', [20000], 'paid', 'selesai', 'none', null, 1500);
+
+        $data = app(AdminOmzetDashboard::class)->data('2026-11-01', '2026-11-12');
+        $this->assertSame(20000, $data['statistics']['total_omzet']);
+        $this->assertSame(1500, $data['statistics']['total_komisi_platform']);
+        $this->assertSame(20000, $data['statistics']['total_pendapatan_umkm']);
+        $this->assertSame(20000, $data['recent_orders'][0]['pendapatan_umkm']);
+        $this->assertSame(1500, $data['recent_orders'][0]['komisi_platform']);
+
+        $this->actingAs($this->warungA, 'sanctum')
+            ->getJson('/api/ringkasan?mulai=2026-11-01&akhir=2026-11-12')
+            ->assertOk()
+            ->assertJsonPath('data.omzet_diterima', 20000)
+            ->assertJsonPath('data.omzet_periode', 20000)
+            ->assertJsonPath('data.komisi_periode', 1500)
+            ->assertJsonPath('data.laporan_harian.0.omzet', 20000);
+    }
+
     public function test_tren_omzet_mengagregasi_hari_minggu_bulan_dan_tahun(): void
     {
         $this->buatPesanan('PO-GRANULARITY-1', $this->warungA, '2026-11-02', [30000]);
@@ -451,7 +471,8 @@ class OmzetDashboardTest extends TestCase
         string $paymentStatus = 'paid',
         string $orderStatus = 'selesai',
         string $refundStatus = 'none',
-        ?string $checkoutId = null
+        ?string $checkoutId = null,
+        int $biayaLayanan = 0
     ): void {
         Pesanan::create([
             'id_pesanan' => $id,
@@ -460,7 +481,8 @@ class OmzetDashboardTest extends TestCase
             'id_umkm' => $umkm->id_umkm,
             'tanggal_pesan' => $tanggal,
             'dibayar_pada' => $tanggal.' 12:00:00',
-            'total_harga' => array_sum($subtotal),
+            'biaya_layanan' => $biayaLayanan,
+            'total_harga' => array_sum($subtotal) + $biayaLayanan,
             'status_pembayaran' => $paymentStatus === 'paid' ? 'lunas' : 'belum_bayar',
             'payment_status' => $paymentStatus,
             'status_pesanan' => $orderStatus,

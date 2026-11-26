@@ -158,7 +158,7 @@ class AdminOmzetDashboard
             ->fromSub(clone $orders, 'pesanan')
             ->selectRaw('COALESCE(SUM(pesanan.biaya_layanan), 0) as total_komisi')
             ->value('total_komisi');
-        $totalPendapatanUmkm = $totalOmzet - $totalKomisi;
+        $totalPendapatanUmkm = $totalOmzet;
 
         // Breakdown Pembayaran: COD vs Digital (Model A)
         $codTotals = DB::query()
@@ -408,7 +408,7 @@ class AdminOmzetDashboard
                 'jenis_produk' => (int) $row->jenis_produk,
                 'omzet_produk' => (int) $row->omzet_produk,
                 'komisi_platform' => (int) ($row->biaya_layanan ?? 0),
-                'pendapatan_umkm' => (int) ($row->omzet_produk ?? 0) - (int) ($row->biaya_layanan ?? 0),
+                'pendapatan_umkm' => (int) ($row->omzet_produk ?? 0),
                 'status_pesanan' => $row->status_pesanan,
                 'status_pembayaran' => $row->status_pembayaran,
                 'items' => $itemsByOrder->get($row->id_pesanan, collect())

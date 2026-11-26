@@ -50,7 +50,7 @@ class DashboardController extends Controller
             ->whereIn('id_pesanan', clone $idPesananPeriode)
             ->sum('subtotal');
         $komisiPeriode = (int) (clone $pesananPeriode)->sum('biaya_layanan');
-        $omzetBersihPeriode = max(0, $omzetKotorPeriode - $komisiPeriode);
+        $omzetBersihPeriode = $omzetKotorPeriode;
 
         // Breakdown Periode: COD vs Digital
         $idPesananCodPeriode = (clone $pesananPeriode)
@@ -93,7 +93,7 @@ class DashboardController extends Controller
             ->whereIn('id_pesanan', clone $idPesananSemuaWaktu)
             ->sum('subtotal');
         $komisiSemuaWaktu = (int) (clone $pesananLunasSelesaiSemuaWaktu)->sum('biaya_layanan');
-        $omzetBersihSemuaWaktu = max(0, $omzetKotorSemuaWaktu - $komisiSemuaWaktu);
+        $omzetBersihSemuaWaktu = $omzetKotorSemuaWaktu;
         $jumlahPesananLunasSelesai = (clone $pesananLunasSelesaiSemuaWaktu)->count();
 
         // Breakdown Semua Waktu: COD vs Digital
@@ -117,10 +117,10 @@ class DashboardController extends Controller
             ->where('metode_pembayaran', '!=', 'cod')
             ->sum('biaya_layanan');
 
-        // Model A (Auto-Potong): Saldo Digital bersih dikurangi komisi COD
-        $saldoDigitalBersih = max(0, $omzetDigitalSemuaWaktu - $komisiDigitalSemuaWaktu);
-        $saldoDigitalSiapCair = max(0, $saldoDigitalBersih - $komisiCodSemuaWaktu);
-        $sisaKewajibanCod = max(0, $komisiCodSemuaWaktu - $saldoDigitalBersih);
+        // Biaya layanan Rp 1.500 dibebankan ke pelanggan; omzet produk UMKM utuh 100%
+        $saldoDigitalBersih = $omzetDigitalSemuaWaktu;
+        $saldoDigitalSiapCair = $saldoDigitalBersih;
+        $sisaKewajibanCod = 0;
 
         $data = [
             'total_produk' => Produk::where('id_umkm', $idUmkm)->count(),
@@ -147,10 +147,8 @@ class DashboardController extends Controller
             'komisi_digital_semua_waktu' => $komisiDigitalSemuaWaktu,
             'saldo_digital_siap_cair' => $saldoDigitalSiapCair,
             'sisa_kewajiban_cod' => $sisaKewajibanCod,
-            'peringatan_kewajiban_cod' => $saldoDigitalBersih <= 0 && $sisaKewajibanCod >= 50000,
-            'pesan_peringatan_cod' => ($saldoDigitalBersih <= 0 && $sisaKewajibanCod >= 50000)
-                ? 'Kewajiban komisi COD toko Anda telah mencapai Rp ' . number_format($sisaKewajibanCod, 0, ',', '.') . '. Komisi ini akan dipotong otomatis saat menerima pesanan QRIS/transfer berikutnya.'
-                : null,
+            'peringatan_kewajiban_cod' => false,
+            'pesan_peringatan_cod' => null,
             'jumlah_produk_terjual' => $jumlahProdukTerjual,
             'rata_rata_transaksi' => $jumlahPesananPeriode > 0
                 ? (int) round($omzetBersihPeriode / $jumlahPesananPeriode)
@@ -187,7 +185,7 @@ class DashboardController extends Controller
                 ->map(fn ($ordersOnDate, $tanggal) => [
                     'tanggal' => $tanggal,
                     'jumlah_pesanan' => $ordersOnDate->count(),
-                    'omzet' => max(0, (int) $ordersOnDate->sum(fn ($p) => $p->items->sum('subtotal')) - (int) $ordersOnDate->sum('biaya_layanan')),
+                    'omzet' => (int) $ordersOnDate->sum(fn ($p) => $p->items->sum('subtotal')),
                 ])
                 ->values()
                 ->all(),

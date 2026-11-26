@@ -111,12 +111,12 @@
             <div>
                 <h2 class="font-semibold text-djajan-neutral flex items-center gap-2">
                     <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-djajan-primary text-xs">💰</span>
-                    Laporan Finansial &amp; Bagi Hasil Platform
+                    Laporan Finansial &amp; Biaya Layanan Platform
                 </h2>
-                <p class="text-xs text-gray-500 mt-0.5">Skema Subsidi Mikro Desa: Bebas komisi (0%) untuk transaksi &lt; Rp 10.000, komisi 3% untuk &ge; Rp 10.000</p>
+                <p class="text-xs text-gray-500 mt-0.5">Biaya Layanan Platform Flat Rp 1.500 per checkout (dibayar oleh pelanggan). Mitra UMKM menerima 100% omzet penjualan produk.</p>
             </div>
             <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-djajan-primary ring-1 ring-inset ring-emerald-600/20">
-                Komisi Platform 3%
+                Biaya Layanan Flat Rp 1.500
             </span>
         </div>
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -127,33 +127,33 @@
             </div>
             <div class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 relative overflow-hidden">
                 <div class="flex items-center justify-between">
-                    <p class="text-xs font-bold text-djajan-primary uppercase tracking-wide">Pemasukan Kas Platform</p>
+                    <p class="text-xs font-bold text-djajan-primary uppercase tracking-wide">Pendapatan Biaya Layanan</p>
                     <span class="text-[10px] font-bold text-white bg-djajan-primary px-2 py-0.5 rounded shadow-xs">KAS DJAJAN</span>
                 </div>
                 <p id="stat-komisi-platform" class="mt-2 text-2xl font-black tracking-tight text-djajan-primary">Rp {{ number_format($statistics['total_komisi_platform'] ?? 0, 0, ',', '.') }}</p>
-                <p class="mt-1 text-xs text-emerald-800">Pendapatan operasional &amp; kas desa</p>
+                <p class="mt-1 text-xs text-emerald-800">Pendapatan biaya layanan platform (dibayar pelanggan)</p>
             </div>
             <div class="revenue-subcard rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-                <p class="text-xs font-medium text-gray-500">Hak Pendapatan Bersih Mitra UMKM</p>
-                <p id="stat-pendapatan-umkm" class="mt-2 text-xl font-bold tracking-tight text-djajan-neutral">Rp {{ number_format($statistics['total_pendapatan_umkm'] ?? ($statistics['total_omzet'] - ($statistics['total_komisi_platform'] ?? 0)), 0, ',', '.') }}</p>
-                <p class="mt-1 text-xs text-gray-400">Total hak bayar bersih diteruskan ke UMKM</p>
+                <p class="text-xs font-medium text-gray-500">Pendapatan Mitra UMKM (100%)</p>
+                <p id="stat-pendapatan-umkm" class="mt-2 text-xl font-bold tracking-tight text-djajan-neutral">Rp {{ number_format($statistics['total_pendapatan_umkm'] ?? $statistics['total_omzet'], 0, ',', '.') }}</p>
+                <p class="mt-1 text-xs text-gray-400">100% utuh dari penjualan produk UMKM</p>
             </div>
         </div>
         <div class="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div class="flex items-center gap-2">
                 <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                <span class="text-gray-600">Online (Midtrans):</span>
+                <span class="text-gray-600">Online (QRIS Midtrans):</span>
                 <span class="font-bold text-gray-800">Rp {{ number_format($statistics['total_omzet_digital'] ?? 0, 0, ',', '.') }}</span>
-                <span class="text-gray-400">(Kas Masuk: Rp {{ number_format($statistics['total_komisi_digital'] ?? 0, 0, ',', '.') }})</span>
+                <span class="text-gray-400">(Biaya Layanan: Rp {{ number_format($statistics['total_komisi_digital'] ?? 0, 0, ',', '.') }})</span>
             </div>
             <div class="flex items-center gap-2">
                 <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
                 <span class="text-gray-600">Tunai di Tempat (COD):</span>
                 <span class="font-bold text-gray-800">Rp {{ number_format($statistics['total_omzet_cod'] ?? 0, 0, ',', '.') }}</span>
-                <span class="text-gray-400">(Bagi Hasil: Rp {{ number_format($statistics['total_komisi_cod'] ?? 0, 0, ',', '.') }})</span>
+                <span class="text-gray-400">(Biaya Layanan: Rp {{ number_format($statistics['total_komisi_cod'] ?? 0, 0, ',', '.') }})</span>
             </div>
             <div class="text-gray-400 italic">
-                *Model A: Komisi pesanan COD otomatis memotong saldo digital UMKM
+                *Biaya layanan flat Rp 1.500 dibebankan ke pelanggan per checkout, omzet produk UMKM utuh 100%
             </div>
         </div>
     </section>
@@ -279,7 +279,7 @@
                             <th class="px-5 py-3 font-semibold">UMKM</th>
                             <th class="px-5 py-3 text-right font-semibold">Unit</th>
                             <th class="px-5 py-3 text-right font-semibold">Omzet produk</th>
-                            <th class="px-5 py-3 text-right font-semibold">Komisi Platform</th>
+                            <th class="px-5 py-3 text-right font-semibold">Biaya Layanan</th>
                         </tr>
                     </thead>
                     <tbody id="recent-orders-body" class="divide-y divide-gray-100">
@@ -290,7 +290,7 @@
                                 <td class="px-5 py-3 text-right text-gray-600">{{ number_format($order['jumlah_produk'], 0, ',', '.') }}</td>
                                 <td class="px-5 py-3 text-right font-medium text-djajan-neutral">Rp {{ number_format($order['omzet_produk'], 0, ',', '.') }}</td>
                                 <td class="px-5 py-3 text-right font-medium {{ ($order['komisi_platform'] ?? 0) > 0 ? 'text-emerald-700' : 'text-gray-400' }}">
-                                    {{ ($order['komisi_platform'] ?? 0) > 0 ? 'Rp ' . number_format($order['komisi_platform'], 0, ',', '.') : 'Gratis (0%)' }}
+                                    {{ ($order['komisi_platform'] ?? 0) > 0 ? 'Rp ' . number_format($order['komisi_platform'], 0, ',', '.') : 'Gratis' }}
                                 </td>
                             </tr>
                         @empty
@@ -615,7 +615,7 @@
                 idCell.append(date, id, items);
 
                 const komisi = order.komisi_platform || 0;
-                const komisiText = komisi > 0 ? currency.format(komisi) : 'Gratis (0%)';
+                const komisiText = komisi > 0 ? currency.format(komisi) : 'Gratis';
                 const komisiClass = komisi > 0 ? 'text-right font-medium text-emerald-700' : 'text-right text-gray-400 text-xs';
 
                 row.append(

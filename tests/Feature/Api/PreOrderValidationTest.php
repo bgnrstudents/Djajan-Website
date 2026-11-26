@@ -149,5 +149,78 @@ class PreOrderValidationTest extends TestCase
         $response->assertStatus(422);
         $this->assertStringContainsString('Tanggal dan jam kebutuhan acara wajib dipilih', $response->json('pesan'));
     }
+
+    public function test_checkout_menolak_campuran_produk_ready_dan_preorder(): void
+    {
+        $response = $this->actingAs($this->pelanggan, 'sanctum')
+            ->postJson('/api/pesanan/checkout', [
+                'id_alamat' => $this->alamat->id_alamat,
+                'metode_pembayaran' => 'midtrans',
+                'groups' => [
+                    [
+                        'id_umkm' => $this->umkm->id_umkm,
+                        'metode_pengiriman' => 'kurir',
+                        'waktu_dibutuhkan' => now()->addDays(2)->format('Y-m-d 10:00:00'),
+                        'items' => [
+                            ['id_produk' => $this->produkReady->id_produk, 'jumlah' => 1],
+                            ['id_produk' => $this->produkPo->id_produk, 'jumlah' => 1],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJson(['sukses' => false]);
+        $this->assertStringContainsString('Ready dan Pre-Order tidak dapat digabung', $response->json('pesan'));
+    }
+
+    public function test_checkout_mengenakan_biaya_layanan_flat_1500_dan_qris_core_api(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'https://api.sandbox.midtrans.com/v2/charge' => \Illuminate\Support\Facades\Http::response([
+                'status_code' => '201',
+                'status_message' => 'Qris transaction is created',
+                'transaction_id' => 'tx-qris-12345',
+                'transaction_status' => 'pending',
+                'qr_string' => '00020101021226620014COM.GO-JEK.WWW',
+                'expiry_time' => '2026-11-26 17:30:00',
+                'actions' => [
+                    [
+                        'name' => 'generate-qr-code',
+                        'method' => 'GET',
+                        'url' => 'https://api.sandbox.midtrans.com/v2/qris/tx-qris-12345/qr-code',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->actingAs($this->pelanggan, 'sanctum')
+            ->postJson('/api/pesanan/checkout', [
+                'id_alamat' => $this->alamat->id_alamat,
+                'metode_pembayaran' => 'midtrans',
+                'groups' => [
+                    [
+                        'id_umkm' => $this->umkm->id_umkm,
+                        'metode_pengiriman' => 'kurir',
+                        'items' => [
+                            ['id_produk' => $this->produkReady->id_produk, 'jumlah' => 1],
+                        ],
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.biaya_layanan', 1500)
+            ->assertJsonPath('data.qr_code_url', 'https://api.sandbox.midtrans.com/v2/qris/tx-qris-12345/qr-code')
+            ->assertJsonPath('data.qr_string', '00020101021226620014COM.GO-JEK.WWW')
+            ->assertJsonPath('data.expiry_time', '2026-11-26 17:30:00')
+            ->assertJsonPath('data.orders.0.biaya_layanan', 1500);
+
+        $order = $response->json('data.orders.0');
+        $this->assertEquals(
+            12000 + (int) $order['biaya_pengantaran'] + 1500,
+            (int) $order['total_harga']
+        );
+    }
 }
 
