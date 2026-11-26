@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/pelanggan/register', [PelangganAuthController::class, 'register']);
+Route::post('/pelanggan/register/verify-otp', [PelangganAuthController::class, 'verifyRegisterOtp']);
 Route::post('/pelanggan/login', [PelangganAuthController::class, 'login']);
 Route::post('/auth/google', [PelangganAuthController::class, 'google']);
 Route::post('/auth/google/verify-otp', [PelangganAuthController::class, 'verifyGoogleOtp']);

@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Pelanggan;
 use App\Models\Umkm;
 use App\Support\ApiResponse;
+use App\Support\ValidasiUmkm;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Hash;
@@ -24,7 +26,7 @@ class PelangganAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'nama' => ['required', 'string', 'min:3', 'max:120'],
             'no_telp' => ['required', 'string', 'min:10', 'max:20'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'max:100', 'confirmed'],
         ]);
 
@@ -32,24 +34,160 @@ class PelangganAuthController extends Controller
             return $this->gagal($validator->errors()->first(), 400);
         }
 
-        $email = $request->filled('email')
-            ? mb_strtolower(trim((string) $request->input('email')))
-            : null;
+        $nama = preg_replace('/\s+/u', ' ', trim((string) $request->input('nama'))) ?? trim((string) $request->input('nama'));
+        $email = ValidasiUmkm::normalisasiEmail((string) $request->input('email'));
+        $nomor = ValidasiUmkm::normalisasiNomor((string) $request->input('no_telp'));
 
-        if ($email && (Pelanggan::where('email', $email)->exists()
-            || Umkm::whereRaw('LOWER(email_usaha) = ?', [$email])->exists())) {
-            return $this->gagal('Email sudah terdaftar.', 409, ['field' => 'email']);
+        if (! preg_match('/^08[1-9][0-9]{6,11}$/', $nomor)) {
+            return $this->gagal('Nomor WhatsApp tidak valid. Contoh format yang benar: 081234567890.', 400, ['field' => 'no_telp']);
         }
 
-        $pelanggan = Pelanggan::create([
-            'nama' => trim((string) $request->input('nama')),
+        if ($bentrok = $this->cekDuplikatPelanggan($nama, $nomor, $email)) {
+            return $this->gagal($bentrok['pesan'], 409, ['field' => $bentrok['field']]);
+        }
+
+        $otp = sprintf('%06d', random_int(100000, 999999));
+        $tokenKey = 'manual_reg:' . $email;
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $tokenKey],
+            [
+                'token' => Hash::make($otp),
+                'created_at' => now(),
+            ]
+        );
+
+        Cache::put('manual_reg_data:' . $email, [
+            'nama' => $nama,
+            'no_telp' => $nomor,
             'email' => $email,
             'password' => Hash::make((string) $request->input('password')),
-            'no_telp' => preg_replace('/[\s\-.]/', '', (string) $request->input('no_telp')),
-            'auth_provider' => 'password',
+        ], now()->addMinutes(15));
+
+        try {
+            Mail::send('emails.otp_reset_password', [
+                'otp' => $otp,
+                'email' => $email,
+                'preheader' => 'Kode verifikasi pendaftaran akun DJajan Anda adalah ' . $otp . '. Berlaku selama 15 menit.',
+                'heading' => 'Verifikasi Pendaftaran Akun',
+                'intro' => 'Terima kasih telah mendaftar di DJajan. Masukkan kode verifikasi (OTP) berikut untuk mengaktifkan akun Anda:',
+                'stepTwo' => 'Masukkan 6 digit kode OTP di atas pada layar verifikasi pendaftaran aplikasi.',
+                'stepThree' => 'Akun Anda akan aktif secara otomatis dan siap digunakan untuk berbelanja.',
+            ], function ($message) use ($email) {
+                $fromAddress = config('mail.from.address', 'muhmmadrizki081207@gmail.com');
+                $fromName = config('mail.from.name', 'DJajan Desa Kreyongan');
+                $message->from($fromAddress, $fromName)
+                    ->to($email)
+                    ->subject('Kode Verifikasi Pendaftaran Akun DJajan');
+            });
+        } catch (\Throwable $e) {
+            \Log::warning('Gagal mengirim email OTP registrasi manual: ' . $e->getMessage(), compact('email'));
+        }
+
+        return $this->sukses(
+            'Kode verifikasi OTP telah dikirim ke email ' . $email . '. Silakan masukkan kode untuk menyelesaikan pendaftaran.',
+            [
+                'requires_otp' => true,
+                'email' => $email,
+                'nama' => $nama,
+            ]
+        );
+    }
+
+    public function verifyRegisterOtp(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => ['required', 'email', 'max:255'],
+            'otp' => ['required', 'string', 'size:6'],
         ]);
 
-        return $this->sukses('Akun pelanggan berhasil dibuat.', $this->dataDenganToken($pelanggan), 201);
+        if ($validator->fails()) {
+            return $this->gagal($validator->errors()->first(), 400);
+        }
+
+        $email = ValidasiUmkm::normalisasiEmail((string) $request->input('email'));
+        $otp = trim((string) $request->input('otp'));
+        $tokenKey = 'manual_reg:' . $email;
+
+        $record = DB::table('password_reset_tokens')->where('email', $tokenKey)->first();
+        if (! $record) {
+            return $this->gagal('Kode verifikasi tidak ditemukan atau sudah kedaluwarsa. Silakan daftar ulang.', 422);
+        }
+
+        if (now()->diffInMinutes($record->created_at) > 15) {
+            DB::table('password_reset_tokens')->where('email', $tokenKey)->delete();
+            Cache::forget('manual_reg_data:' . $email);
+            return $this->gagal('Kode verifikasi telah kedaluwarsa (berlaku 15 menit). Silakan minta kode baru.', 422);
+        }
+
+        if (! Hash::check($otp, $record->token) && $record->token !== $otp) {
+            return $this->gagal('Kode verifikasi OTP yang Anda masukkan salah.', 422);
+        }
+
+        $pending = Cache::get('manual_reg_data:' . $email);
+        if (! is_array($pending)) {
+            DB::table('password_reset_tokens')->where('email', $tokenKey)->delete();
+            return $this->gagal('Sesi pendaftaran telah kedaluwarsa. Silakan isi ulang formulir daftar.', 422);
+        }
+
+        if ($bentrok = $this->cekDuplikatPelanggan((string) $pending['nama'], (string) $pending['no_telp'], $email)) {
+            return $this->gagal($bentrok['pesan'], 409, ['field' => $bentrok['field']]);
+        }
+
+        DB::table('password_reset_tokens')->where('email', $tokenKey)->delete();
+        Cache::forget('manual_reg_data:' . $email);
+
+        $pelanggan = Pelanggan::create([
+            'nama' => (string) $pending['nama'],
+            'email' => $email,
+            'password' => (string) $pending['password'],
+            'no_telp' => (string) $pending['no_telp'],
+            'auth_provider' => 'password',
+            'email_verified_at' => now(),
+        ]);
+
+        return $this->sukses(
+            'Pendaftaran berhasil! Selamat datang, ' . $pelanggan->nama . '!',
+            $this->dataDenganToken($pelanggan),
+            201
+        );
+    }
+
+    /**
+     * Pastikan nama, nomor WhatsApp, dan email belum dipakai akun lain.
+     *
+     * @return array{field:string,pesan:string}|null
+     */
+    private function cekDuplikatPelanggan(string $nama, string $nomor, string $email): ?array
+    {
+        $pelanggans = Pelanggan::query()->get(['id_pelanggan', 'nama', 'no_telp', 'email']);
+        $targetNama = ValidasiUmkm::normalisasiNama($nama);
+        $targetNomor = ValidasiUmkm::normalisasiNomor($nomor);
+        $targetEmail = ValidasiUmkm::normalisasiEmail($email);
+
+        foreach ($pelanggans as $p) {
+            if ($p->email !== null && ValidasiUmkm::normalisasiEmail((string) $p->email) === $targetEmail) {
+                return ['field' => 'email', 'pesan' => 'Email sudah terdaftar. Silakan masuk dengan akun Anda.'];
+            }
+            if ($p->no_telp !== null && $p->no_telp !== '' && ValidasiUmkm::normalisasiNomor((string) $p->no_telp) === $targetNomor) {
+                return ['field' => 'no_telp', 'pesan' => 'Nomor WhatsApp sudah terdaftar. Gunakan nomor lain atau masuk ke akun Anda.'];
+            }
+            if ($p->nama !== null && ValidasiUmkm::normalisasiNama((string) $p->nama) === $targetNama) {
+                return ['field' => 'nama', 'pesan' => 'Nama lengkap sudah terdaftar. Gunakan nama lain agar tidak duplikat.'];
+            }
+        }
+
+        $umkms = Umkm::query()->get(['id_umkm', 'no_telp_usaha', 'email_usaha']);
+        foreach ($umkms as $u) {
+            if ($u->email_usaha !== null && ValidasiUmkm::normalisasiEmail((string) $u->email_usaha) === $targetEmail) {
+                return ['field' => 'email', 'pesan' => 'Email sudah terdaftar di akun UMKM. Silakan masuk dengan email tersebut.'];
+            }
+            if ($u->no_telp_usaha !== null && $u->no_telp_usaha !== '' && ValidasiUmkm::normalisasiNomor((string) $u->no_telp_usaha) === $targetNomor) {
+                return ['field' => 'no_telp', 'pesan' => 'Nomor WhatsApp sudah terdaftar di akun UMKM. Gunakan nomor lain.'];
+            }
+        }
+
+        return null;
     }
 
     public function login(Request $request): JsonResponse

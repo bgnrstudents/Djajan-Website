@@ -12,24 +12,89 @@ class PelangganAuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_customer_can_register_without_email_and_login(): void
+    public function test_customer_registration_requires_email_otp_and_rejects_duplicates(): void
     {
-        $register = $this->postJson('/api/pelanggan/register', [
+        // Email wajib diisi untuk menerima OTP
+        $this->postJson('/api/pelanggan/register', [
             'nama' => 'Budi Santoso',
             'no_telp' => '081234567890',
             'password' => 'rahasia123',
             'password_confirmation' => 'rahasia123',
+        ])->assertStatus(400);
+
+        $register = $this->postJson('/api/pelanggan/register', [
+            'nama' => 'Budi Santoso',
+            'no_telp' => '+62 812-3456-7890',
+            'email' => 'Budi@example.com',
+            'password' => 'rahasia123',
+            'password_confirmation' => 'rahasia123',
         ]);
 
-        $register->assertCreated()
+        $register->assertOk()
+            ->assertJsonPath('sukses', true)
+            ->assertJsonPath('data.requires_otp', true)
+            ->assertJsonPath('data.email', 'budi@example.com');
+
+        // Belum masuk database sebelum OTP diverifikasi
+        $this->assertDatabaseMissing('pelanggan', ['email' => 'budi@example.com']);
+
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', 'manual_reg:budi@example.com')
+            ->update([
+                'token' => \Illuminate\Support\Facades\Hash::make('123456'),
+                'created_at' => now(),
+            ]);
+
+        // OTP salah ditolak
+        $this->postJson('/api/pelanggan/register/verify-otp', [
+            'email' => 'budi@example.com',
+            'otp' => '000000',
+        ])->assertStatus(422);
+
+        // OTP benar membuat akun & login
+        $this->postJson('/api/pelanggan/register/verify-otp', [
+            'email' => 'budi@example.com',
+            'otp' => '123456',
+        ])->assertCreated()
             ->assertJsonPath('data.role', 'pelanggan')
-            ->assertJsonPath('data.no_telp', '081234567890');
+            ->assertJsonPath('data.no_telp', '081234567890')
+            ->assertJsonPath('data.email', 'budi@example.com');
 
         $this->postJson('/api/pelanggan/login', [
             'identifier' => '081234567890',
             'password' => 'rahasia123',
         ])->assertOk()
             ->assertJsonPath('data.role', 'pelanggan');
+
+        // Tolak duplikat email
+        $this->postJson('/api/pelanggan/register', [
+            'nama' => 'Nama Berbeda',
+            'no_telp' => '089999999999',
+            'email' => 'budi@example.com',
+            'password' => 'rahasia123',
+            'password_confirmation' => 'rahasia123',
+        ])->assertStatus(409)
+            ->assertJsonPath('data.field', 'email');
+
+        // Tolak duplikat nomor WhatsApp (dengan format berbeda +62/62/0)
+        $this->postJson('/api/pelanggan/register', [
+            'nama' => 'Nama Berbeda',
+            'no_telp' => '6281234567890',
+            'email' => 'lain@example.com',
+            'password' => 'rahasia123',
+            'password_confirmation' => 'rahasia123',
+        ])->assertStatus(409)
+            ->assertJsonPath('data.field', 'no_telp');
+
+        // Tolak duplikat nama (case-insensitive & spasi berlebih)
+        $this->postJson('/api/pelanggan/register', [
+            'nama' => '  budi   santoso ',
+            'no_telp' => '089999999999',
+            'email' => 'lain@example.com',
+            'password' => 'rahasia123',
+            'password_confirmation' => 'rahasia123',
+        ])->assertStatus(409)
+            ->assertJsonPath('data.field', 'nama');
     }
 
     public function test_invalid_google_token_is_rejected(): void
