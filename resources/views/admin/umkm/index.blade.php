@@ -4,14 +4,29 @@
 
 @section('content')
 
+<div class="mx-auto max-w-7xl space-y-6 pb-10">
+
 <!-- PAGE HEADER -->
-<div class="mb-6">
-    <h1 class="text-2xl font-bold text-djajan-neutral font-heading tracking-tight">Data UMKM</h1>
-    <p class="text-sm text-gray-500 mt-1"> Data Hasil Tinjau, setujui, atau tolak pendaftaran UMKM yang masuk lewat aplikasi mobile.</p>
-</div>
+<x-admin.page-hero
+    badge="Direktori Mitra"
+    title="Data UMKM"
+    subtitle="Tinjau, setujui, atau tolak pendaftaran UMKM yang masuk lewat aplikasi mobile.">
+    <x-slot:icon>
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+    </x-slot:icon>
+    <x-slot:right>
+        <div class="admin-page-hero-pill inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold">
+            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+            <span class="tabular-nums">{{ number_format(array_sum($jumlah), 0, ',', '.') }} total mitra UMKM</span>
+        </div>
+    </x-slot:right>
+</x-admin.page-hero>
 
 <!-- STATUS TABS -->
-<div class="flex flex-wrap gap-2 mb-6">
+<div class="flex flex-wrap gap-2">
     @php
         $tabs = [
             'pending' => 'Menunggu',
@@ -33,7 +48,7 @@
 </div>
 
 <!-- UMKM TABLE CONTAINER -->
-<div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+<div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
 
     {{-- Success / Info Alert --}}
     @if(session('success'))
@@ -194,6 +209,8 @@
         </div>
     </div>
     @endif
+</div>
+
 </div>
 
 @endsection

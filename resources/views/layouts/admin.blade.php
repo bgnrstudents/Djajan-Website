@@ -220,7 +220,7 @@
         {{-- MAIN WRAPPER (Topbar + Content) --}}
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
             {{-- Global Topbar Header --}}
-            <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10">
+            <header id="admin-topbar" class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10">
                 <div class="flex items-center gap-4 flex-1">
                     {{-- Mobile Hamburger --}}
                     <button id="mobile-sidebar-toggle" type="button" onclick="toggleSidebar(true)" class="lg:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Buka menu" aria-controls="sidebar-container" aria-expanded="false">

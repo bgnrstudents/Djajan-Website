@@ -2,26 +2,27 @@
 
 @section('content')
 
-<div class="space-y-6">
+<div class="mx-auto max-w-7xl space-y-6 pb-10">
 
     {{-- Header --}}
-    <div class="flex items-center justify-between">
-        <div>
-            <p class="text-sm text-gray-500">
-                Manajemen Data
-            </p>
-
-            <h1 class="text-2xl font-semibold text-gray-900">
-                Data Produk
-            </h1>
-
-            <p class="mt-1 text-sm text-gray-500">
-                Lihat seluruh produk yang dikelola oleh UMKM melalui aplikasi mobile.
-            </p>
-        </div>
-
-
-    </div>
+    <x-admin.page-hero
+        badge="Manajemen Data"
+        title="Data Produk"
+        subtitle="Lihat seluruh produk yang dikelola oleh UMKM melalui aplikasi mobile.">
+        <x-slot:icon>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+        </x-slot:icon>
+        <x-slot:right>
+            <div class="admin-page-hero-pill inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold">
+                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                <span class="tabular-nums">{{ number_format($products->total(), 0, ',', '.') }} produk tercatat</span>
+            </div>
+        </x-slot:right>
+    </x-admin.page-hero>
 
 
     {{-- Success Message --}}
@@ -33,7 +34,7 @@
 
 
     {{-- Search & Filter --}}
-    <div class="rounded-xl border border-gray-200 bg-white p-5">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5">
 
         <form
             method="GET"

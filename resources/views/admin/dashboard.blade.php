@@ -6,20 +6,24 @@
 @php($statistics = $analytics['statistics'])
 <div class="mx-auto max-w-7xl space-y-6 pb-10">
     {{-- Page Header --}}
-    <header class="flex flex-col gap-4 border-b border-gray-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <div class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-djajan-primary ring-1 ring-inset ring-emerald-600/15">
-                <span class="h-1.5 w-1.5 rounded-full bg-djajan-primary"></span>
-                Pusat Monitoring Bisnis
+    <x-admin.page-hero
+        badge="Pusat Monitoring Bisnis"
+        title="Analitik Omzet UMKM"
+        subtitle="Ringkasan kinerja penjualan produk UMKM yang sudah lunas dan selesai.">
+        <x-slot:icon>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 3v18h18"></path>
+                <path d="m19 9-5 5-4-4-3 3"></path>
+                <path d="M15 9h4v4"></path>
+            </svg>
+        </x-slot:icon>
+        <x-slot:right>
+            <div class="admin-page-hero-pill inline-flex items-center gap-2.5 rounded-full px-3.5 py-2 text-xs font-medium" aria-label="Status pembaruan dashboard">
+                <span id="live-indicator" class="h-2 w-2 rounded-full bg-amber-400"></span>
+                <span id="live-status" aria-live="polite">Memuat pembaruan...</span>
             </div>
-            <h1 class="mt-2.5 text-2xl font-extrabold tracking-tight text-djajan-neutral font-heading sm:text-3xl">Analitik Omzet UMKM</h1>
-            <p class="mt-1 text-sm text-gray-500">Ringkasan kinerja penjualan produk UMKM yang sudah lunas dan selesai.</p>
-        </div>
-        <div class="flex items-center gap-2.5 self-start rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs font-medium text-gray-600 shadow-xs sm:self-auto" aria-label="Status pembaruan dashboard">
-            <span id="live-indicator" class="h-2 w-2 rounded-full bg-amber-400"></span>
-            <span id="live-status" aria-live="polite">Memuat pembaruan...</span>
-        </div>
-    </header>
+        </x-slot:right>
+    </x-admin.page-hero>
 
     {{-- Top Bento KPI Row --}}
     <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Ringkasan omzet">

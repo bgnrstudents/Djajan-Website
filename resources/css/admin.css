@@ -39,7 +39,7 @@ body.admin-shell {
 
 body.admin-shell #sidebar-container,
 body.admin-shell #sidebar-container > div:first-child,
-body.admin-shell header,
+body.admin-shell #admin-topbar,
 body.admin-shell main {
     background-color: var(--admin-surface);
     border-color: var(--admin-border);
@@ -139,8 +139,71 @@ body.admin-shell #sidebar-collapse-toggle .sidebar-collapse-icon {
     transition: transform 200ms ease;
 }
 
-body.admin-shell header {
+body.admin-shell #admin-topbar {
     box-shadow: 0 2px 12px rgb(26 55 39 / 3%);
+}
+
+body.admin-shell .admin-page-hero {
+    border: 1px solid color-mix(in srgb, var(--admin-primary) 14%, var(--admin-border));
+    background:
+        radial-gradient(circle at top right, color-mix(in srgb, var(--admin-primary) 10%, transparent), transparent 56%),
+        linear-gradient(135deg, color-mix(in srgb, #0f623f 4%, var(--admin-surface)) 0%, var(--admin-surface) 62%, color-mix(in srgb, #0f623f 3%, var(--admin-surface)) 100%);
+    box-shadow: var(--admin-shadow);
+}
+
+body.admin-shell .admin-page-hero::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #0f623f, #56ae78);
+    content: "";
+    pointer-events: none;
+}
+
+body.admin-shell .admin-page-hero::after {
+    position: absolute;
+    top: -64px;
+    right: -48px;
+    width: 190px;
+    height: 190px;
+    border: 1px solid color-mix(in srgb, var(--admin-primary) 12%, transparent);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--admin-primary) 5%, transparent);
+    content: "";
+    pointer-events: none;
+}
+
+body.admin-shell .admin-page-hero-icon {
+    border: 1px solid color-mix(in srgb, var(--admin-primary) 16%, var(--admin-border));
+    background: linear-gradient(145deg, color-mix(in srgb, #0f623f 11%, var(--admin-surface)), color-mix(in srgb, #0f623f 5%, var(--admin-surface)));
+    color: var(--admin-primary);
+    box-shadow: inset 0 1px rgb(255 255 255 / 70%), 0 6px 16px rgb(15 98 63 / 8%);
+}
+
+body.admin-shell .admin-page-hero-badge {
+    border: 1px solid color-mix(in srgb, var(--admin-primary) 18%, var(--admin-border));
+    background-color: color-mix(in srgb, #16814e 11%, var(--admin-surface));
+    color: var(--admin-primary);
+}
+
+body.admin-shell .admin-page-hero-pill {
+    border: 1px solid var(--admin-border);
+    background-color: color-mix(in srgb, var(--admin-surface) 88%, var(--admin-canvas));
+    color: var(--admin-muted);
+    box-shadow: 0 2px 8px rgb(17 35 25 / 4%);
+}
+
+html[data-admin-theme="dark"] body.admin-shell .admin-page-hero {
+    border-color: color-mix(in srgb, var(--admin-primary) 28%, var(--admin-border));
+    background:
+        radial-gradient(circle at top right, color-mix(in srgb, var(--admin-primary) 16%, transparent), transparent 58%),
+        linear-gradient(135deg, color-mix(in srgb, #4aa879 10%, var(--admin-surface)) 0%, var(--admin-surface) 60%, color-mix(in srgb, #4aa879 6%, var(--admin-surface)) 100%);
+}
+
+html[data-admin-theme="dark"] body.admin-shell .admin-page-hero-icon {
+    box-shadow: inset 0 1px rgb(255 255 255 / 8%), 0 8px 18px rgb(0 0 0 / 22%);
 }
 
 body.admin-shell main > * {
@@ -307,7 +370,7 @@ body.admin-shell main button:not(:disabled):active {
 
 body.admin-shell main button:focus-visible,
 body.admin-shell main a:focus-visible,
-body.admin-shell header button:focus-visible {
+body.admin-shell #admin-topbar button:focus-visible {
     outline: 3px solid color-mix(in srgb, var(--admin-primary) 42%, transparent);
     outline-offset: 2px;
 }
@@ -413,7 +476,7 @@ body.admin-shell main .granularity-button[aria-pressed="true"] {
 }
 
 html[data-admin-theme="dark"] body.admin-shell #sidebar-container .bg-white,
-html[data-admin-theme="dark"] body.admin-shell header .bg-white,
+html[data-admin-theme="dark"] body.admin-shell #admin-topbar .bg-white,
 html[data-admin-theme="dark"] body.admin-shell #notification-dropdown .bg-white {
     background-color: var(--admin-surface);
 }
