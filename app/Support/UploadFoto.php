@@ -74,6 +74,18 @@ class UploadFoto
             return null;
         }
 
+        $parts = parse_url($namaFile);
+        if (
+            is_array($parts)
+            && ($parts['scheme'] ?? null) === 'https'
+            && strtolower((string) ($parts['host'] ?? '')) === 'images.unsplash.com'
+            && !isset($parts['user'])
+            && !isset($parts['pass'])
+            && !isset($parts['port'])
+        ) {
+            return $namaFile;
+        }
+
         return url('uploads/' . $folder . '/' . rawurlencode($namaFile));
     }
 
