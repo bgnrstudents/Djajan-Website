@@ -33,7 +33,7 @@ html.js:not(.mb-failed) #menu-book-stage { display: block; }
 html.js:not(.mb-failed) #product-classic[data-has-book] { display: none; }
 
 /* ---------- Panggung ---------- */
-.mb-stage { position: relative; outline: none; }
+.mb-stage { position: relative; outline: none; overflow-y: auto; max-height: 100vh; }
 .mb-stage:focus-visible .mb-scene { outline: 2px solid var(--mb-green); outline-offset: 8px; border-radius: 12px; }
 
 /* =====================================================================
@@ -427,4 +427,12 @@ html.js:not(.mb-failed) #product-classic[data-has-book] { display: none; }
     .mb-scene, .mb-tilt, .mb-shift, #menu-book { transition-duration: .01ms !important; }
     .mb-scene { transform: none; }
     .mb-open-hint, .mb-photo, .mb-spinner { animation: none; }
+}
+
+/* Fix: enable horizontal scrolling on narrow screens */
+@media (max-width: 720px) {
+    .mb-table {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
 }
